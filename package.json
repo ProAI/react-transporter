@@ -1,0 +1,44 @@
+{
+  "name": "react-transporter",
+  "version": "0.1.0",
+  "main": "./lib/index.js",
+  "description": "React.js Redux GraphQL client",
+  "author": "Markus Wetzel <markuswetzel@gmx.net>",
+  "license": "MIT",
+  "keywords": ["react", "redux", "graphql", "api"],
+  "repository": "https://github.com/ProAI/react-transporter.git",
+  "bugs": {
+    "url": "https://github.com/ProAI/react-transporter/issues"
+  },
+  "scripts": {
+    "build": "./node_modules/.bin/babel -d lib/ src/",
+    "watch": "./node_modules/.bin/babel -d lib/ -w src/",
+    "lint": "./node_modules/.bin/eslint src"
+  },
+  "dependencies": {
+    "graphql": "^0.10.5",
+    "graphql-tag": "^2.4.2"
+  },
+  "devDependencies": {
+    "babel-cli": "6.24.1",
+    "eslint": "4.4.1",
+    "react": "15.6.1",
+    "react-dom": "15.6.1",
+    "react-kickstarter": "0.2.13",
+    "react-redux": "5.0.6",
+    "react-router": "4.1.2",
+    "react-router-dom": "4.1.2",
+    "redux": "3.7.2",
+    "redux-form": "7.0.3"
+  },
+  "peerDependencies": {
+    "react": "^15.0.0",
+    "react-dom": "^15.0.0",
+    "react-redux": "^5.0.0",
+    "redux": "^3.0.0"
+  },
+  "engines": {
+    "npm": ">=3",
+    "node": ">=5"
+  }
+}
