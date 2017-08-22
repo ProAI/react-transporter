@@ -1,8 +1,4 @@
-import Transporter from './Transporter';
-
 class Client {
-  config = null;
-
   constructor(config) {
     this.config = config;
   }

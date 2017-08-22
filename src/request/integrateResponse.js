@@ -1,6 +1,6 @@
-import Updater from './updaters/Updater';
+import Updater from './updater/Updater';
 
-function integrateResponse(dispatch, request, response) {
+function integrateResponse(dispatch, integration, response) {
   // insert/update entities
   if (response.entities) {
     dispatch({
@@ -18,9 +18,9 @@ function integrateResponse(dispatch, request, response) {
   }
 
   // update connections/aliases
-  if (request.integration) {
+  if (integration) {
     const updater = new Updater(dispatch);
-    request.integration(updater, {
+    integration(updater, {
       root: response.root,
       trash: response.trash,
     });

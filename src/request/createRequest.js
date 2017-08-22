@@ -1,6 +1,22 @@
 import Transporter from '../core/Transporter';
-import entityFactory from './entityFactory';
+import entityFactory from './entities/factory';
 import integrateResponse from './integrateResponse';
+
+function formatEntities(rawEntities) {
+  const entities = {};
+  rawEntities.forEach((rawEntity) => {
+    const id = rawEntity.getId();
+    // if there is no type entry, create one
+    if (!entities[id[0]]) {
+      entities[id[0]] = {};
+    }
+
+    // add entity
+    entities[id[0]][id[1]] = rawEntity.attributes;
+  });
+
+  return entities;
+}
 
 export default function createRequest(request) {
   return (dispatch) => {
@@ -14,7 +30,9 @@ export default function createRequest(request) {
     if (request.mutation && request.optimisticResponse) {
       const optimisticResponse = request.optimisticResponse(entityFactory);
 
-      integrateResponse(dispatch, request, optimisticResponse);
+      optimisticResponse.entities = formatEntities(optimisticResponse.entities);
+
+      integrateResponse(dispatch, request.integration, optimisticResponse);
     }
 
     // dispatch query
@@ -27,7 +45,7 @@ export default function createRequest(request) {
         });
 
         // TODO
-        // integrateResponse(dispatch, request, response);
+        // integrateResponse(dispatch, request.integration, response);
       },
       (error) => {
         // update request status on error

@@ -1,5 +1,7 @@
 class Transporter {
-  client = null;
+  constructor() {
+    this.client = null;
+  }
 
   setClient(client) {
     this.client = client;

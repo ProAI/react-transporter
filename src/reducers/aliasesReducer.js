@@ -1,4 +1,4 @@
-import { slice, push } from '../../utils';
+import { slice, push } from '../utils';
 
 const initialState = {};
 

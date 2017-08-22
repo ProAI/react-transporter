@@ -1,19 +1,17 @@
-import TransporterNetwork from "./core/TransporterNetwork";
-import TransporterClient from "./core/TransporterClient";
-import Provider from "./react/Provider";
-import withQuery from "./react/withQuery";
-import createTransporterRequest from "./redux/createRequest";
-import createTransporterSelector from "./redux/createSelector";
+import TransporterNetwork from './core/Network';
+import TransporterClient from './core/Client';
+import reducer from './reducers';
+import createTransporterRequest from './request/createRequest';
+import createTransporterSelector from './selector/createSelector';
+import Provider from './react/Provider';
+import withQuery from './react/withQuery';
 
 export default {
-  TransporterNetwork, // core
-  TransporterClient.createMiddleware(), // core
-  // Transporter, // core, class to save infos from provider
-  Provider, // react
-  withQuery, // react
-  createTransporterRequest, // redux
-  createTransporterSelector, // redux
-  transporterReducer // redux
-  // redux/response responseBuilder
-  // redux/updater updater
+  TransporterNetwork,
+  TransporterClient,
+  Provider,
+  withQuery,
+  createTransporterRequest,
+  createTransporterSelector,
+  reducer,
 };
