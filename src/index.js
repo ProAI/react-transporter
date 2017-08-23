@@ -6,12 +6,12 @@ import createTransporterSelector from './selector/createSelector';
 import Provider from './react/Provider';
 import withQuery from './react/withQuery';
 
-export default {
+export {
   TransporterNetwork,
   TransporterClient,
-  Provider,
-  withQuery,
+  reducer,
   createTransporterRequest,
   createTransporterSelector,
-  reducer,
+  Provider,
+  withQuery,
 };

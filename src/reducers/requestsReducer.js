@@ -2,7 +2,7 @@ const initialState = {};
 
 export default function reducer(state = initialState, action) {
   switch (action.type) {
-    case 'TRANSPORTER_REQUESTS_START': {
+    case 'TRANSPORTER_REQUEST_START': {
       return {
         ...state,
         [action.name]: {
@@ -11,7 +11,7 @@ export default function reducer(state = initialState, action) {
         },
       };
     }
-    case 'TRANSPORTER_REQUESTS_COMPLETED': {
+    case 'TRANSPORTER_REQUEST_COMPLETED': {
       return {
         ...state,
         [action.name]: {
@@ -20,7 +20,7 @@ export default function reducer(state = initialState, action) {
         },
       };
     }
-    case 'TRANSPORTER_REQUESTS_ERROR': {
+    case 'TRANSPORTER_REQUEST_ERROR': {
       return {
         ...state,
         [action.name]: {
