@@ -1,7 +1,7 @@
 import Selector from './Selector';
 import formatEntity from './formatEntity';
 
-function hasMany(ids) {
+function isSingle(ids) {
   return typeof ids[0] === 'string' || ids[0] instanceof String;
 }
 
@@ -27,7 +27,7 @@ export default class SelectorFactory {
 
     const aliasIds = this.state.aliases[name];
 
-    const entities = hasMany(aliasIds)
+    const entities = isSingle(aliasIds)
       ? formatEntity(aliasIds, this.state.entities[aliasIds[0]][aliasIds[1]])
       : aliasIds.map(id => formatEntity(id, this.state.entities[id[0]][id[1]]));
 
@@ -46,7 +46,7 @@ export default class SelectorFactory {
 
     const childrenIds = this.state.entities[id[0]][id[1]][name].connection;
 
-    const entities = hasMany(childrenIds)
+    const entities = isSingle(childrenIds)
       ? formatEntity(childrenIds, this.state.entities[childrenIds[0]][childrenIds[1]])
       : childrenIds.map(childrenId =>
         formatEntity(childrenId, this.state.entities[childrenId[0]][childrenId[1]]),

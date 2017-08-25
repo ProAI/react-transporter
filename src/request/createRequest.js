@@ -40,7 +40,7 @@ export default function createRequest(request, fetch) {
 
     if (typeof window !== 'undefined') {
       // apply optimistic response on mutations
-      if (request.mutation && request.optimisticResponse) {
+      if (request.type === 'TRANSPORTER_MUTATION' && request.optimisticResponse) {
         const optimisticResponse = request.optimisticResponse(entityFactory);
 
         optimisticResponse.entities = formatEntities(optimisticResponse.entities);

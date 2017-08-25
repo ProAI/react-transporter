@@ -23,9 +23,11 @@ export default function reducer(state = initialState, action) {
       };
     }
     case 'TRANSPORTER_ALIASES_DELETE': {
-      const aliases = state;
-      delete aliases[action.name];
-      return aliases;
+      const newState = { ...state };
+
+      delete newState[action.name];
+
+      return newState;
     }
     default: {
       return state;

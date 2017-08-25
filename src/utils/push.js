@@ -1,7 +1,7 @@
 import isInArray from './isInArray';
 
 export default function push(ids, newIds) {
-  const returnIds = ids;
+  const returnIds = { ...ids };
 
   newIds.forEach((newId) => {
     if (isInArray(newId, ids) === false) {
