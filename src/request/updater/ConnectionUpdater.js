@@ -7,25 +7,40 @@ export default class ConnectionUpdater {
     this.name = name;
   }
 
-  add(ids) {
+  update(id) {
+    this.dispatch({
+      type: 'TRANSPORTER_ENTITIES_CONNECTION_UPDATE',
+      connection: {
+        id: this.id,
+        name: this.name,
+      },
+      id,
+    });
+  }
+
+  add(idOrIds) {
+    const ids = enforceArray(idOrIds);
+
     this.dispatch({
       type: 'TRANSPORTER_ENTITIES_CONNECTION_PUSH',
       connection: {
         id: this.id,
         name: this.name,
       },
-      ids: enforceArray(ids),
+      ids,
     });
   }
 
-  remove(ids) {
+  remove(idOrIds) {
+    const ids = enforceArray(idOrIds);
+
     this.dispatch({
       type: 'TRANSPORTER_ENTITIES_CONNECTION_SLICE',
       connection: {
         id: this.id,
         name: this.name,
       },
-      ids: enforceArray(ids),
+      ids,
     });
   }
 }

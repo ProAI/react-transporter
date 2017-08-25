@@ -1,15 +1,13 @@
-import enforceArray from '../../utils';
-
 export default class Entity {
   constructor(id, attributes) {
     this.id = id;
     this.attributes = attributes;
   }
 
-  addConnection(name, connectionIds, connectionAttributes = {}) {
+  addConnection(name, idOrIds, attributes = {}) {
     this.attributes[name] = {
-      ...connectionAttributes,
-      connection: enforceArray(connectionIds),
+      ...attributes,
+      connection: idOrIds,
     };
   }
 

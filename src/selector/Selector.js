@@ -1,9 +1,16 @@
-import formatEntity from './formatEntity';
+import { hasMany } from '../utils';
+import formatData from './formatData';
+import getConnectionData from './getConnectionData';
 
 export default class Selector {
   constructor(state, data) {
+    this.hasMany = hasMany(data);
+
+    this.data = this.hasMany
+      ? data.map(id => formatData(id, state.entities[id[0]][id[1]]))
+      : formatData(data, state.entities[data[0]][data[1]]);
+
     this.state = state;
-    this.data = data;
   }
 
   where() {
@@ -25,18 +32,17 @@ export default class Selector {
   }
 
   join(name, constraints) {
-    this.data.forEach((attributes, key) => {
+    if (this.hasMany) {
+      this.data.forEach((attributes, key) => {
+        // eslint-disable-next-line no-underscore-dangle
+        const id = [this.data[key].__type, this.data[key].id];
+        this.data[key][name] = getConnectionData(this.state, id, name, constraints);
+      });
+    } else {
       // eslint-disable-next-line no-underscore-dangle
-      const type = this.data[key].__type;
-      const id = this.data[key].id;
-      const childrenIds = this.state.entities[type][id][name].connection;
-
-      const entities = childrenIds.map(childrenId =>
-        formatEntity(this.state.entities[childrenId[0]][childrenId[1]]),
-      );
-
-      this.data[key][name] = constraints(new Selector(entities));
-    });
+      const id = [this.data.__type, this.data.id];
+      this.data[name] = getConnectionData(this.state, id, name, constraints);
+    }
 
     return this;
   }

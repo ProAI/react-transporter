@@ -1,3 +1,3 @@
-export default function enforceArray(ids) {
-  return typeof ids === 'string' || ids instanceof String ? [ids] : ids;
+export default function enforceArray(data) {
+  return typeof data[0] === 'string' || data[0] instanceof String ? [data] : data;
 }

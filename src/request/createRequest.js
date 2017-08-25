@@ -4,6 +4,7 @@ import { getRequestName } from '../utils';
 
 function formatEntities(rawEntities) {
   const entities = {};
+
   rawEntities.forEach((rawEntity) => {
     const id = rawEntity.getId();
     // if there is no type entry, create one
@@ -43,7 +44,9 @@ export default function createRequest(request, fetch) {
       if (request.type === 'TRANSPORTER_MUTATION' && request.optimisticResponse) {
         const optimisticResponse = request.optimisticResponse(entityFactory);
 
-        optimisticResponse.entities = formatEntities(optimisticResponse.entities);
+        if (optimisticResponse && optimisticResponse.entities) {
+          optimisticResponse.entities = formatEntities(optimisticResponse.entities);
+        }
 
         integrateResponse(dispatch, request.integration, optimisticResponse);
       }

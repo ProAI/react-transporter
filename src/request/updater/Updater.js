@@ -1,28 +1,27 @@
 import AliasUpdater from './AliasUpdater';
 import ConnectionUpdater from './ConnectionUpdater';
-import { enforceArray } from '../../utils';
 
 export default class Updater {
   constructor(dispatch) {
     this.dispatch = dispatch;
   }
 
-  createAlias(alias, ids) {
+  createAlias(name, idOrIds) {
     this.dispatch({
-      type: 'TRANSPORTER_ALIASES_CREATE',
-      alias,
-      ids: enforceArray(ids),
+      type: 'TRANSPORTER_ALIAS_CREATE',
+      name,
+      idOrIds,
     });
   }
 
-  getAlias(alias) {
-    return new AliasUpdater(this.dispatch, alias);
+  getAlias(name) {
+    return new AliasUpdater(this.dispatch, name);
   }
 
-  deleteAlias(alias) {
+  deleteAlias(name) {
     this.dispatch({
-      type: 'TRANSPORTER_ALIASES_DELETE',
-      alias,
+      type: 'TRANSPORTER_ALIAS_DELETE',
+      name,
     });
   }
 

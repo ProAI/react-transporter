@@ -1,4 +1,4 @@
-import { slice, push } from '../utils';
+import { connectionSlice, connectionPush, hasMany } from '../utils';
 
 const initialState = {};
 
@@ -11,7 +11,7 @@ function mergeEntities(entity1, entity2) {
       mergedEntity[key] = {
         ...entity1[key],
         ...entity2[key],
-        connection: push(entity1[key].connection, entity2[key].connection),
+        connection: connectionPush(entity1[key].connection, entity2[key].connection),
       };
     } else {
       // add attribute
@@ -53,9 +53,16 @@ export default function reducer(state = initialState, action) {
 
       return newState;
     }
-    case 'TRANSPORTER_ENTITIES_CONNECTION_PUSH': {
+    case 'TRANSPORTER_ENTITIES_CONNECTION_UPDATE': {
       const connection = action.connection;
       const entityState = state[connection.id[0]][connection.id[1]];
+
+      if (hasMany(entityState[connection.name].connection)) {
+        throw new Error(
+          `Connection '${connection.name}' of entity [${connection.id[0]}, ${connection
+            .id[1]}] is a many connection, use push() or slice().`,
+        );
+      }
 
       return {
         ...state,
@@ -65,7 +72,32 @@ export default function reducer(state = initialState, action) {
             ...entityState,
             [connection.name]: {
               ...entityState[connection.name],
-              connection: push(entityState[connection.name].connection, action.ids),
+              connection: action.id,
+            },
+          },
+        },
+      };
+    }
+    case 'TRANSPORTER_ENTITIES_CONNECTION_PUSH': {
+      const connection = action.connection;
+      const entityState = state[connection.id[0]][connection.id[1]];
+
+      if (!hasMany(entityState[connection.name].connection)) {
+        throw new Error(
+          `Connection '${connection.name}' of entity [${connection.id[0]}, ${connection
+            .id[1]}] is NOT a many connection, use update().`,
+        );
+      }
+
+      return {
+        ...state,
+        [connection.id[0]]: {
+          ...state[connection.id[0]],
+          [connection.id[1]]: {
+            ...entityState,
+            [connection.name]: {
+              ...entityState[connection.name],
+              connection: connectionPush(entityState[connection.name].connection, action.ids),
             },
           },
         },
@@ -73,17 +105,24 @@ export default function reducer(state = initialState, action) {
     }
     case 'TRANSPORTER_ENTITIES_CONNECTION_SLICE': {
       const connection = action.connection;
-      const entity = state[connection.id[0]][connection.id[1]];
+      const entityState = state[connection.id[0]][connection.id[1]];
+
+      if (!hasMany(entityState[connection.name].connection)) {
+        throw new Error(
+          `Connection '${connection.name}' of entity [${connection.id[0]}, ${connection
+            .id[1]}] is NOT a many connection, use update().`,
+        );
+      }
 
       return {
         ...state,
         [connection.id[0]]: {
           ...state[connection.id[0]],
           [connection.id[1]]: {
-            ...entity,
+            ...entityState,
             [connection.name]: {
-              ...entity[connection.name],
-              connection: slice(entity[connection.name].connection, action.ids),
+              ...entityState[connection.name],
+              connection: connectionSlice(entityState[connection.name].connection, action.ids),
             },
           },
         },
