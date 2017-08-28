@@ -2,29 +2,30 @@ import Updater from './updater/Updater';
 import { enforceArray } from '../utils';
 
 function integrateResponse(dispatch, integration, response) {
+  const entities = response.getEntities();
+  const root = response.getRoot();
+  const trash = response.getTrash();
+
   // insert/update entities
-  if (response && response.entities) {
+  if (entities) {
     dispatch({
       type: 'TRANSPORTER_ENTITIES_UPDATE',
-      entities: response.entities,
+      entities,
     });
   }
 
   // delete trashed entities
-  if (response && response.trash) {
+  if (trash) {
     dispatch({
       type: 'TRANSPORTER_ENTITIES_DELETE',
-      ids: enforceArray(response.trash),
+      ids: enforceArray(trash),
     });
   }
 
   // update connections/aliases
   if (integration) {
     const updater = new Updater(dispatch);
-    integration(updater, {
-      root: response && response.root,
-      trash: response && response.trash,
-    });
+    integration(updater, { root, trash });
   }
 }
 

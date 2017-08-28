@@ -1,23 +1,6 @@
-import entityFactory from './entities/factory';
+import Response from './response/Response';
 import integrateResponse from './integrateResponse';
 import { getRequestName } from '../utils';
-
-function formatEntities(rawEntities) {
-  const entities = {};
-
-  rawEntities.forEach((rawEntity) => {
-    const id = rawEntity.getId();
-    // if there is no type entry, create one
-    if (!entities[id[0]]) {
-      entities[id[0]] = {};
-    }
-
-    // add entity
-    entities[id[0]][id[1]] = rawEntity.attributes;
-  });
-
-  return entities;
-}
 
 export default function createRequest(request, fetch) {
   const requestName = request.name || getRequestName(request.schema);
@@ -42,11 +25,7 @@ export default function createRequest(request, fetch) {
     if (typeof window !== 'undefined') {
       // apply optimistic response on mutations
       if (request.type === 'TRANSPORTER_MUTATION' && request.optimisticResponse) {
-        const optimisticResponse = request.optimisticResponse(entityFactory);
-
-        if (optimisticResponse && optimisticResponse.entities) {
-          optimisticResponse.entities = formatEntities(optimisticResponse.entities);
-        }
+        const optimisticResponse = request.optimisticResponse(new Response());
 
         integrateResponse(dispatch, request.integration, optimisticResponse);
       }
