@@ -7,8 +7,8 @@ export default class Selector {
     this.hasMany = hasMany(data);
 
     this.data = this.hasMany
-      ? data.map(id => formatData(id, state.entities[id[0]][id[1]]))
-      : formatData(data, state.entities[data[0]][data[1]]);
+      ? data.map(id => formatData(id, state.entities))
+      : formatData(data, state.entities);
 
     this.state = state;
   }

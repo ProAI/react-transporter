@@ -1,4 +1,10 @@
-export default function formatData(id, entity) {
+export default function formatData(id, entities) {
+  const entity = entities[id[0]][id[1]];
+
+  if (!entity) {
+    return null;
+  }
+
   const attributes = {};
 
   Object.keys(entity).forEach((key) => {
