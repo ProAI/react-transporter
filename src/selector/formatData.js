@@ -15,7 +15,7 @@ export default function formatData(id, entities) {
 
   return {
     ...attributes,
-    __type: id[0],
+    __typename: id[0],
     id: id[1],
   };
 }

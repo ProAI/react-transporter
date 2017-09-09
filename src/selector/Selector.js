@@ -35,12 +35,12 @@ export default class Selector {
     if (this.hasMany) {
       this.data.forEach((attributes, key) => {
         // eslint-disable-next-line no-underscore-dangle
-        const id = [this.data[key].__type, this.data[key].id];
+        const id = [this.data[key].__typename, this.data[key].id];
         this.data[key][name] = getConnectionData(this.state, id, name, constraints);
       });
     } else {
       // eslint-disable-next-line no-underscore-dangle
-      const id = [this.data.__type, this.data.id];
+      const id = [this.data.__typename, this.data.id];
       this.data[name] = getConnectionData(this.state, id, name, constraints);
     }
 
