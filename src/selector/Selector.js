@@ -1,6 +1,6 @@
-import { hasMany } from '../utils';
+import { hasMany, compareValues } from '../utils';
 import formatData from './formatData';
-import getConnectionData from './getConnectionData';
+import getChildrenData from './getChildrenData';
 
 export default class Selector {
   constructor(state, data) {
@@ -13,8 +13,18 @@ export default class Selector {
     this.state = state;
   }
 
-  where() {
-    // TODO
+  where(attribute, inputOperator, inputValue) {
+    const value = inputValue || inputOperator;
+    const operator = inputValue ? inputOperator : '=';
+
+    if (!hasMany) {
+      if (!compareValues(this.data[attribute], operator, value)) {
+        this.data = null;
+      }
+    }
+    if (hasMany) {
+      this.data = this.data.filter(data => compareValues(data[attribute], operator, value));
+    }
 
     return this;
   }
@@ -31,17 +41,33 @@ export default class Selector {
     return this;
   }
 
+  shallowJoin(name) {
+    if (this.hasMany) {
+      this.data.forEach((attributes, key) => {
+        // eslint-disable-next-line no-underscore-dangle
+        const id = [this.data[key].__typename, this.data[key].id];
+        this.data[key][name] = getChildrenData(this.state, id, name, null, true);
+      });
+    } else {
+      // eslint-disable-next-line no-underscore-dangle
+      const id = [this.data.__typename, this.data.id];
+      this.data[name] = getChildrenData(this.state, id, name, null, true);
+    }
+
+    return this;
+  }
+
   join(name, constraints) {
     if (this.hasMany) {
       this.data.forEach((attributes, key) => {
         // eslint-disable-next-line no-underscore-dangle
         const id = [this.data[key].__typename, this.data[key].id];
-        this.data[key][name] = getConnectionData(this.state, id, name, constraints);
+        this.data[key][name] = getChildrenData(this.state, id, name, constraints);
       });
     } else {
       // eslint-disable-next-line no-underscore-dangle
       const id = [this.data.__typename, this.data.id];
-      this.data[name] = getConnectionData(this.state, id, name, constraints);
+      this.data[name] = getChildrenData(this.state, id, name, constraints);
     }
 
     return this;

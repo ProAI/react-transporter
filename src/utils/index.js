@@ -5,6 +5,9 @@ import connectionPush from './connectionPush';
 import connectionSlice from './connectionSlice';
 import enforceArray from './enforceArray';
 import hasMany from './hasMany';
+import compareValues from './compareValues';
+import getChildrenData from './getChildrenData';
+import formatData from './formatData';
 
 export {
   getRequestName,
@@ -14,4 +17,7 @@ export {
   connectionSlice,
   enforceArray,
   hasMany,
+  compareValues,
+  getChildrenData,
+  formatData,
 };
