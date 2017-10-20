@@ -10,14 +10,14 @@ export default function getChildrenData(state, id, name, constraints, shallow = 
   if (shallow) {
     if (!hasMany(childrenIds)) {
       return {
-        id: childrenIds[0],
-        __typename: childrenIds[1],
+        id: childrenIds[1],
+        __typename: childrenIds[0],
       };
     }
 
     return childrenIds.map(childrenId => ({
-      id: childrenId[0],
-      __typename: childrenId[1],
+      id: childrenId[1],
+      __typename: childrenId[0],
     }));
   }
 

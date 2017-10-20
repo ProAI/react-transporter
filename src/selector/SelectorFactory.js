@@ -21,7 +21,7 @@ export default class SelectorFactory {
 
   selectChildren(id, name) {
     if (!this.state.entities[id[0]] || !this.state.entities[id[0]][id[1]]) {
-      throw new Error(`Cannot find connection '${name}' of entity [${id[0]}, ${id[1]}].`);
+      throw new Error(`Cannot find entity [${id[0]}, ${id[1]}].`);
     }
 
     const childrenIds =
