@@ -16,25 +16,25 @@
     "lint": "./node_modules/.bin/eslint src"
   },
   "dependencies": {
-    "graphql": "^0.10.5",
-    "graphql-tag": "^2.4.2"
+    "graphql": "^0.11.7",
+    "graphql-tag": "^2.5.0"
   },
   "devDependencies": {
     "babel-cli": "6.26.0",
-    "eslint": "4.6.1",
+    "eslint": "4.9.0",
     "react": "15.6.1",
     "react-dom": "15.6.1",
-    "react-kickstarter": "0.2.16",
+    "react-kickstarter": "0.2.23",
     "react-redux": "5.0.6",
     "redux": "3.7.2",
     "redux-thunk": "2.2.0"
   },
   "peerDependencies": {
-    "react": "^15.0.0",
-    "react-dom": "^15.0.0",
-    "react-redux": "^5.0.0",
-    "redux": "^3.0.0",
-    "redux-thunk": "^2.0.0"
+    "react": ">=15",
+    "react-dom": ">=15",
+    "react-redux": ">=5",
+    "redux": ">=3",
+    "redux-thunk": ">=2"
   },
   "engines": {
     "npm": ">=3",
