@@ -6,7 +6,7 @@ function withQuery(requestFunc, config = {}) {
     const request = requestFunc(props);
     const requestName = request.name || getRequestName(request.schema);
 
-    const requests = state.transporter.requests;
+    const { requests } = state.transporter;
     return {
       loading: requests[requestName] ? requests[requestName].loading : undefined,
       error: requests[requestName] ? requests[requestName].error : undefined,

@@ -25,7 +25,7 @@ function integrateResponse(dispatch, integration, response) {
   // update connections/aliases
   if (integration) {
     const updater = new Updater(dispatch);
-    integration(updater, { root, trash });
+    integration(updater, { root, trash }, dispatch);
   }
 }
 

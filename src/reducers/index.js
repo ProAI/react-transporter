@@ -1,10 +1,12 @@
 import { combineReducers } from 'redux';
-import entities from './entitiesReducer';
-import aliases from './aliasesReducer';
-import requests from './requestsReducer';
+import createEntitiesReducer from './createEntitiesReducer';
+import createAliasesReducer from './createAliasesReducer';
+import createRequestsReducer from './createRequestsReducer';
 
-export default combineReducers({
-  entities,
-  aliases,
-  requests,
-});
+export default function createReducer(aliases, entities) {
+  return combineReducers({
+    aliases: createAliasesReducer(aliases),
+    entities: createEntitiesReducer(entities),
+    requests: createRequestsReducer(),
+  });
+}
