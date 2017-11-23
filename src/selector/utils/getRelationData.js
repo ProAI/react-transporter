@@ -1,14 +1,14 @@
-import Selector from './Selector';
-import { hasMany } from '../utils';
+import Selector from './../Selector';
+import hasManyEntities from '../../utils/hasManyEntities';
 
-export default function getChildrenData(state, id, name, constraints, shallow = false) {
+export default function getRelationData(state, id, name, constraints, shallow = false) {
   const childrenIds =
-    !state.entities[id[0]][id[1]][name] || !state.entities[id[0]][id[1]][name].connection
+    !state.entities[id[0]][id[1]][name] || !state.entities[id[0]][id[1]][name].linked
       ? []
-      : state.entities[id[0]][id[1]][name].connection;
+      : state.entities[id[0]][id[1]][name].linked;
 
   if (shallow) {
-    if (!hasMany(childrenIds)) {
+    if (!hasManyEntities(childrenIds)) {
       return {
         id: childrenIds[1],
         __typename: childrenIds[0],

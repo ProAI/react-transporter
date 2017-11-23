@@ -19,10 +19,10 @@ export default class Client {
 
   // eslint-disable-next-line class-methods-use-this
   reducer() {
-    const aliases = this.initialData && this.initialData.aliases ? this.initialData.aliases : {};
+    const roots = this.initialData && this.initialData.roots ? this.initialData.roots : {};
     const entities = this.initialData && this.initialData.entities ? this.initialData.entities : {};
 
-    return createReducer(aliases, entities);
+    return createReducer(roots, entities);
   }
 
   getConfig() {

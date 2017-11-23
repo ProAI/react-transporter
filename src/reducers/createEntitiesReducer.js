@@ -1,145 +1,171 @@
-import { connectionSlice, connectionPush, hasMany } from '../utils';
-
-function mergeEntities(entity1, entity2) {
-  const mergedEntity = { ...entity1 };
-
-  Object.keys(entity2).forEach((key) => {
-    if (entity1[key] && entity1[key].connection) {
-      // merge existing connection
-      mergedEntity[key] = {
-        ...entity1[key],
-        ...entity2[key],
-        connection: connectionPush(entity1[key].connection, entity2[key].connection),
-      };
-    } else {
-      // add attribute
-      mergedEntity[key] = entity2[key];
-    }
-  });
-
-  return mergedEntity;
-}
+import hasManyEntities from '../utils/hasManyEntities';
+import prependEntities from './utils/prependEntities';
+import appendEntities from './utils/appendEntities';
+import detachEntities from './utils/detachEntities';
+import mergeEntities from './utils/mergeEntities';
 
 export default function createReducer(entities) {
   const initialState = entities;
 
-  return function reducer(state = initialState, action) {
-    switch (action.type) {
-      case 'TRANSPORTER_ENTITIES_UPDATE': {
-        // merge entities
-        const newState = { ...state };
-        Object.keys(action.entities).forEach((type) => {
-          if (!newState[type]) {
-            newState[type] = {};
+  return function reducer(state = initialState, baseAction) {
+    if (
+      (baseAction.type === 'TRANSPORTER_REQUEST_START' ||
+        baseAction.type === 'TRANSPORTER_REQUEST_COMPLETED') &&
+      baseAction.actions
+    ) {
+      const nextState = { ...state };
+
+      baseAction.actions.forEach((action) => {
+        switch (action.type) {
+          // apply response
+          case 'APPLY_RESPONSE': {
+            // merge entities
+            Object.keys(action.entities).forEach((type) => {
+              if (!nextState[type]) {
+                nextState[type] = {};
+              }
+              Object.keys(action.entities[type]).forEach((id) => {
+                if (!nextState[type][id]) {
+                  // insert new entity
+                  nextState[type][id] = action.entities[type][id];
+                } else {
+                  // update entity
+                  nextState[type][id] = mergeEntities(state[type][id], action.entities[type][id]);
+                }
+              });
+            });
+            break;
           }
-          Object.keys(action.entities[type]).forEach((key) => {
-            if (!newState[type][key]) {
-              // insert new entity
-              newState[type][key] = action.entities[type][key];
-            } else {
-              // update entity
-              newState[type][key] = mergeEntities(state[type][key], action.entities[type][key]);
+          // insert entity
+          case 'INSERT_ENTITY': {
+            const { 0: type, 1: id } = action.entity;
+
+            // error checks
+            if (nextState[type] && nextState[type][id]) {
+              throw new Error(`Failed to insert entity: Entity [${type}, ${id}] already exists.`);
             }
-          });
-        });
 
-        return newState;
-      }
-      case 'TRANSPORTER_ENTITIES_DELETE': {
-        const newState = { ...state };
+            nextState[type][id] = {};
+            break;
+          }
+          // update entity
+          case 'UPDATE_ENTITY': {
+            const { 0: type, 1: id } = action.entity;
 
-        action.ids.forEach((id) => {
-          delete newState[id[0]][id[1]];
-        });
+            // error checks
+            if (!nextState[type] || (nextState[type] && !nextState[type][id])) {
+              throw new Error(`Failed to update entity: Entity [${type}, ${id}] does not exist.`);
+            }
 
-        return newState;
-      }
-      case 'TRANSPORTER_ENTITIES_CONNECTION_UPDATE': {
-        const { connection } = action;
-        const entityState = state[connection.id[0]][connection.id[1]];
+            nextState[type][id] = Object.assign({}, action.data, nextState[type][id]);
+            break;
+          }
+          // delete entity
+          case 'DELETE_ENTITY': {
+            const { 0: type, 1: id } = action.entity;
 
-        if (hasMany(entityState[connection.name].connection)) {
-          throw new Error(`Connection '${connection.name}' of entity [${connection.id[0]}, ${connection
-            .id[1]}] is a many connection, use push() or slice().`);
+            // error checks
+            if (!nextState[type] || (nextState[type] && !nextState[type][id])) {
+              throw new Error(`Failed to delete entity: Entity [${type}, ${id}] does not exist.`);
+            }
+
+            nextState[type][id] = undefined;
+            break;
+          }
+          // update connection
+          case 'UPDATE_CONNECTION': {
+            const { entity: { 0: type, 1: id }, name, linkedEntity } = action;
+
+            // error checks
+            if (!nextState[type] || (nextState[type] && !nextState[type][id])) {
+              throw new Error(`Failed to update entity connection: Entity [${type}, ${id}] of connection '${
+                name
+              }' does not exist.`);
+            }
+            if (
+              nextState[type][id][name].linked &&
+              hasManyEntities(nextState[type][id][name].linked)
+            ) {
+              throw new Error(`Failed to update connection: Connection '${name}' of entity [${id[0]}, ${
+                id[1]
+              }] is a many connection, use syncPrepend(), syncAppend(), prepend(), append() or detach().`);
+            }
+
+            nextState[type][id][name].linked = linkedEntity;
+            break;
+          }
+          // update many connection
+          case 'UPDATE_MANY_CONNECTION': {
+            const { entity: { 0: type, 1: id }, name, linkedEntities } = action;
+
+            // error checks
+            if (!nextState[type] || (nextState[type] && !nextState[type][id])) {
+              throw new Error(`Failed to update entity many connection: Entity [${type},${
+                id
+              }] of many connection '${name}' does not exist.`);
+            }
+            if (
+              nextState[type][id][name].linked &&
+              !hasManyEntities(nextState[type][id][name].linked)
+            ) {
+              throw new Error(`Failed to update connection: Connection '${name}' of entity [${id[0]}, ${
+                id[1]
+              }] is NOT a many connection, use link() or unlink().`);
+            }
+
+            switch (action.method) {
+              case 'sync_prepend': {
+                nextState[type][id][name].linked = prependEntities(
+                  linkedEntities,
+                  nextState[type][id][name].linked,
+                  true,
+                );
+                break;
+              }
+              case 'sync_append': {
+                nextState[type][id][name].linked = appendEntities(
+                  linkedEntities,
+                  nextState[type][id][name].linked,
+                  true,
+                );
+                break;
+              }
+              case 'prepend': {
+                nextState[type][id][name].linked = prependEntities(
+                  linkedEntities,
+                  nextState[type][id][name].linked,
+                );
+                break;
+              }
+              case 'append': {
+                nextState[type][id][name].linked = appendEntities(
+                  linkedEntities,
+                  nextState[type][id][name].linked,
+                );
+                break;
+              }
+              case 'detach': {
+                nextState[type][id][name].linked = detachEntities(
+                  linkedEntities,
+                  nextState[type][id][name].linked,
+                );
+                break;
+              }
+              default: {
+                // do nothing
+              }
+            }
+            break;
+          }
+          default: {
+            // do nothing
+          }
         }
+      });
 
-        return {
-          ...state,
-          [connection.id[0]]: {
-            ...state[connection.id[0]],
-            [connection.id[1]]: {
-              ...entityState,
-              [connection.name]: {
-                ...entityState[connection.name],
-                connection: action.id,
-              },
-            },
-          },
-        };
-      }
-      case 'TRANSPORTER_ENTITIES_CONNECTION_PUSH': {
-        const { connection } = action;
-        const entityState = state[connection.id[0]][connection.id[1]];
-
-        if (!hasMany(entityState[connection.name].connection)) {
-          throw new Error(`Connection '${connection.name}' of entity [${connection.id[0]}, ${connection
-            .id[1]}] is NOT a many connection, use update().`);
-        }
-
-        return {
-          ...state,
-          [connection.id[0]]: {
-            ...state[connection.id[0]],
-            [connection.id[1]]: {
-              ...entityState,
-              [connection.name]: {
-                ...entityState[connection.name],
-                connection: connectionPush(entityState[connection.name].connection, action.ids),
-              },
-            },
-          },
-        };
-      }
-      case 'TRANSPORTER_ENTITIES_CONNECTION_SLICE': {
-        const { connection } = action;
-        const entityState = state[connection.id[0]][connection.id[1]];
-
-        if (!hasMany(entityState[connection.name].connection)) {
-          throw new Error(`Connection '${connection.name}' of entity [${connection.id[0]}, ${connection
-            .id[1]}] is NOT a many connection, use update().`);
-        }
-
-        return {
-          ...state,
-          [connection.id[0]]: {
-            ...state[connection.id[0]],
-            [connection.id[1]]: {
-              ...entityState,
-              [connection.name]: {
-                ...entityState[connection.name],
-                connection: connectionSlice(entityState[connection.name].connection, action.ids),
-              },
-            },
-          },
-        };
-      }
-      case 'TRANSPORTER_ENTITIES_CONNECTION_DELETE': {
-        const { connection } = action;
-        const newEntityState = { ...state[connection.id[0]][connection.id[1]] };
-
-        delete newEntityState[connection.name];
-
-        return {
-          ...state,
-          [connection.id[0]]: {
-            ...state[connection.id[0]],
-            [connection.id[1]]: newEntityState,
-          },
-        };
-      }
-      default: {
-        return state;
-      }
+      return nextState;
     }
+
+    return state;
   };
 }

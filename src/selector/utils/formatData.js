@@ -8,7 +8,7 @@ export default function formatData(id, entities) {
   const attributes = {};
 
   Object.keys(entity).forEach((key) => {
-    if (entity[key] !== null && entity[key] !== undefined && !entity[key].connection) {
+    if (entity[key] !== null && entity[key] !== undefined && !entity[key].linked) {
       attributes[key] = entity[key];
     }
   });

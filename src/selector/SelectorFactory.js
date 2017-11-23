@@ -9,26 +9,25 @@ export default class SelectorFactory {
     return new Selector(this.state, ids);
   }
 
-  selectByAlias(name) {
-    if (!this.state.aliases[name]) {
-      throw new Error(`Cannot find alias '${name}'.`);
+  selectFromRoot(name) {
+    if (!this.state.roots[name]) {
+      throw new Error(`Cannot find root '${name}'.`);
     }
 
-    const aliasIds = this.state.aliases[name];
+    const rootIds = this.state.roots[name];
 
-    return new Selector(this.state, aliasIds);
+    return new Selector(this.state, rootIds);
   }
 
-  selectChildren(id, name) {
+  selectFromRelation(id, name) {
     if (!this.state.entities[id[0]] || !this.state.entities[id[0]][id[1]]) {
       throw new Error(`Cannot find entity [${id[0]}, ${id[1]}].`);
     }
 
     const childrenIds =
-      !this.state.entities[id[0]][id[1]][name] ||
-      !this.state.entities[id[0]][id[1]][name].connection
+      !this.state.entities[id[0]][id[1]][name] || !this.state.entities[id[0]][id[1]][name].linked
         ? []
-        : this.state.entities[id[0]][id[1]][name].connection;
+        : this.state.entities[id[0]][id[1]][name].linked;
 
     return new Selector(this.state, childrenIds);
   }
