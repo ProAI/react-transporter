@@ -8,14 +8,13 @@ export default class EntityUpdater {
   }
 
   set(name, value) {
-    const data = {
-      [name]: value,
-    };
+    const data =
+      typeof name === 'string' || name instanceof String
+        ? {
+          [name]: value,
+        }
+        : name;
 
-    this.actions.updateEntity([this.type, this.id], data);
-  }
-
-  fill(data) {
     this.actions.updateEntity([this.type, this.id], data);
   }
 

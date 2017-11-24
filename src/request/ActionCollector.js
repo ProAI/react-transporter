@@ -5,19 +5,23 @@ export default class ActionCollector {
   actionsOnEntities = [];
 
   applyResponse(response) {
-    this.actionsOnRoots.push({
-      type: 'APPLY_RESPONSE',
-      data: { ...response.roots },
-    });
+    if (response.roots) {
+      this.actionsOnRoots.push({
+        type: 'APPLY_RESPONSE',
+        data: { ...response.roots },
+      });
+    }
 
-    this.actionsOnEntities.push({
-      type: 'APPLY_RESPONSE',
-      data: { ...response.entities },
-    });
+    if (response.entities) {
+      this.actionsOnEntities.push({
+        type: 'APPLY_RESPONSE',
+        data: { ...response.entities },
+      });
+    }
   }
 
-  applyUpdater(updater, ...args) {
-    updater(new StoreUpdater(this), ...args);
+  applyUpdater(updater, response) {
+    updater(new StoreUpdater(this), response);
   }
 
   insertEntity(entity) {

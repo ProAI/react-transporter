@@ -3,6 +3,14 @@ import prependEntities from './utils/prependEntities';
 import appendEntities from './utils/appendEntities';
 import detachEntities from './utils/detachEntities';
 import mergeEntities from './utils/mergeEntities';
+import {
+  throwInsertEntityError,
+  throwUpdateEntityError,
+  throwDeleteEntityError,
+  throwUpdateConnectionError,
+  throwWrongConnectionFormatError,
+  throwWrongManyConnectionFormatError,
+} from './utils/handleErrors';
 
 export default function createReducer(entities) {
   const initialState = entities;
@@ -11,11 +19,12 @@ export default function createReducer(entities) {
     if (
       (baseAction.type === 'TRANSPORTER_REQUEST_START' ||
         baseAction.type === 'TRANSPORTER_REQUEST_COMPLETED') &&
-      baseAction.actions
+      baseAction.actions.entities &&
+      baseAction.actions.entities.length > 0
     ) {
       const nextState = { ...state };
 
-      baseAction.actions.forEach((action) => {
+      baseAction.actions.entities.forEach((action) => {
         switch (action.type) {
           // apply response
           case 'APPLY_RESPONSE': {
@@ -42,7 +51,7 @@ export default function createReducer(entities) {
 
             // error checks
             if (nextState[type] && nextState[type][id]) {
-              throw new Error(`Failed to insert entity: Entity [${type}, ${id}] already exists.`);
+              throwInsertEntityError(type, id);
             }
 
             nextState[type][id] = {};
@@ -54,10 +63,10 @@ export default function createReducer(entities) {
 
             // error checks
             if (!nextState[type] || (nextState[type] && !nextState[type][id])) {
-              throw new Error(`Failed to update entity: Entity [${type}, ${id}] does not exist.`);
+              throwUpdateEntityError(type, id);
             }
 
-            nextState[type][id] = Object.assign({}, action.data, nextState[type][id]);
+            nextState[type][id] = Object.assign({}, nextState[type][id], action.data);
             break;
           }
           // delete entity
@@ -66,7 +75,7 @@ export default function createReducer(entities) {
 
             // error checks
             if (!nextState[type] || (nextState[type] && !nextState[type][id])) {
-              throw new Error(`Failed to delete entity: Entity [${type}, ${id}] does not exist.`);
+              throwDeleteEntityError(type, id);
             }
 
             nextState[type][id] = undefined;
@@ -78,17 +87,19 @@ export default function createReducer(entities) {
 
             // error checks
             if (!nextState[type] || (nextState[type] && !nextState[type][id])) {
-              throw new Error(`Failed to update entity connection: Entity [${type}, ${id}] of connection '${
-                name
-              }' does not exist.`);
+              throwUpdateConnectionError(type, id, name);
             }
             if (
+              nextState[type][id][name] &&
               nextState[type][id][name].linked &&
               hasManyEntities(nextState[type][id][name].linked)
             ) {
-              throw new Error(`Failed to update connection: Connection '${name}' of entity [${id[0]}, ${
-                id[1]
-              }] is a many connection, use syncPrepend(), syncAppend(), prepend(), append() or detach().`);
+              throwWrongConnectionFormatError(type, id, name);
+            }
+
+            // create relation if relation does not exist
+            if (!nextState[type][id][name]) {
+              nextState[type][id][name] = {};
             }
 
             nextState[type][id][name].linked = linkedEntity;
@@ -100,17 +111,19 @@ export default function createReducer(entities) {
 
             // error checks
             if (!nextState[type] || (nextState[type] && !nextState[type][id])) {
-              throw new Error(`Failed to update entity many connection: Entity [${type},${
-                id
-              }] of many connection '${name}' does not exist.`);
+              throwUpdateConnectionError(type, id, name);
             }
             if (
+              nextState[type][id][name] &&
               nextState[type][id][name].linked &&
               !hasManyEntities(nextState[type][id][name].linked)
             ) {
-              throw new Error(`Failed to update connection: Connection '${name}' of entity [${id[0]}, ${
-                id[1]
-              }] is NOT a many connection, use link() or unlink().`);
+              throwWrongManyConnectionFormatError(type, id, name);
+            }
+
+            // create relation if relation does not exist
+            if (!nextState[type][id][name]) {
+              nextState[type][id][name] = {};
             }
 
             switch (action.method) {

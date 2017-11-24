@@ -1,4 +1,4 @@
-import getEntitiesFromArgs from '../../utils/getEntitiesFromArgs';
+import getEntitiesFromArgs from './utils/getEntitiesFromArgs';
 
 export default class ConnectionUpdater {
   constructor(ref, actions) {
@@ -35,8 +35,7 @@ export default class ConnectionUpdater {
   }
 
   detach(...args) {
-    const method = args === undefined ? 'detach' : 'sync_prepend';
-    const linkedEntities = args === undefined ? getEntitiesFromArgs(args) : null;
-    this.actions.updateManyConnection(this.ref, method, linkedEntities);
+    const linkedEntities = getEntitiesFromArgs(args);
+    this.actions.updateManyConnection(this.ref, 'detach', linkedEntities);
   }
 }

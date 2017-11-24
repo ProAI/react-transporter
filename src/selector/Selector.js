@@ -8,8 +8,10 @@ export default class Selector {
     this.hasManyEntities = hasManyEntities(data);
 
     this.data = this.hasManyEntities
-      ? data.map(id => formatData(id, state.entities))
-      : formatData(data, state.entities);
+      ? data
+        .map(typeId => formatData(typeId[0], typeId[1], state.entities))
+        .filter(item => item !== undefined)
+      : formatData(data[0], data[1], state.entities);
 
     this.state = state;
   }
@@ -43,32 +45,34 @@ export default class Selector {
   }
 
   shallowJoin(name) {
-    if (this.hasManyEntities) {
-      this.data.forEach((attributes, key) => {
-        // eslint-disable-next-line no-underscore-dangle
-        const id = [this.data[key].__typename, this.data[key].id];
-        this.data[key][name] = getRelationData(this.state, id, name, null, true);
-      });
-    } else {
-      // eslint-disable-next-line no-underscore-dangle
-      const id = [this.data.__typename, this.data.id];
-      this.data[name] = getRelationData(this.state, id, name, null, true);
-    }
-
-    return this;
+    return this.join(name, null, true);
   }
 
-  join(name, constraints) {
+  join(name, constraints = null, shallow = false) {
     if (this.hasManyEntities) {
       this.data.forEach((attributes, key) => {
-        // eslint-disable-next-line no-underscore-dangle
-        const id = [this.data[key].__typename, this.data[key].id];
-        this.data[key][name] = getRelationData(this.state, id, name, constraints);
+        if (this.data[key]) {
+          this.data[key][name] = getRelationData(
+            // eslint-disable-next-line no-underscore-dangle
+            this.data[key].__typename,
+            this.data[key].id,
+            name,
+            this.state,
+            constraints,
+            shallow,
+          );
+        }
       });
-    } else {
-      // eslint-disable-next-line no-underscore-dangle
-      const id = [this.data.__typename, this.data.id];
-      this.data[name] = getRelationData(this.state, id, name, constraints);
+    } else if (this.data) {
+      this.data[name] = getRelationData(
+        // eslint-disable-next-line no-underscore-dangle
+        this.data.__typename,
+        this.data.id,
+        name,
+        this.state,
+        constraints,
+        shallow,
+      );
     }
 
     return this;

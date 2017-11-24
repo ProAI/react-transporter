@@ -2,6 +2,11 @@ import hasManyEntities from '../utils/hasManyEntities';
 import prependEntities from './utils/prependEntities';
 import appendEntities from './utils/appendEntities';
 import detachEntities from './utils/detachEntities';
+import {
+  throwUpdateRootConnectionError,
+  throwWrongRootConnectionFormatError,
+  throwWrongManyRootConnectionFormatError,
+} from './utils/handleErrors';
 
 export default function createReducer(roots) {
   const initialState = roots;
@@ -10,20 +15,22 @@ export default function createReducer(roots) {
     if (
       (baseAction.type === 'TRANSPORTER_REQUEST_START' ||
         baseAction.type === 'TRANSPORTER_REQUEST_COMPLETED') &&
-      baseAction.actions
+      baseAction.actions.roots &&
+      baseAction.actions.roots.length > 0
     ) {
       const nextState = { ...state };
 
-      baseAction.actions.forEach((action) => {
+      baseAction.actions.roots.forEach((action) => {
         switch (action.type) {
           // apply response
           case 'APPLY_RESPONSE': {
-            // TODO
-            Object.keys(action.roots).forEach((name) => {
+            Object.keys(action.data).forEach((name) => {
               if (nextState[name] && nextState[name].linked) {
-                nextState[name].linked = nextState[name].linked.concat(action.roots[name].linked);
+                nextState[name].linked = nextState[name].linked.concat(action.data[name].linked);
               } else {
-                nextState[name].linked = action.roots[name].linked;
+                nextState[name] = {
+                  linked: action.data[name].linked,
+                };
               }
             });
             break;
@@ -34,12 +41,10 @@ export default function createReducer(roots) {
 
             // error checks
             if (!nextState[name]) {
-              throw new Error(`Failed to update root: Root '${name}' does not exist.`);
+              throwUpdateRootConnectionError(name);
             }
             if (nextState[name].linked && hasManyEntities(nextState[name].linked)) {
-              throw new Error(`Failed to update root: Root '${
-                name
-              }' is a many connection, use syncPrepend(), syncAppend(), prepend(), append() or detach().`);
+              throwWrongRootConnectionFormatError(name);
             }
 
             nextState[name].linked = linkedEntity;
@@ -51,12 +56,10 @@ export default function createReducer(roots) {
 
             // error checks
             if (!nextState[name]) {
-              throw new Error(`Failed to update root: Root '${name}' does not exist.`);
+              throwUpdateRootConnectionError(name);
             }
             if (nextState[name].linked && !hasManyEntities(nextState[name].linked)) {
-              throw new Error(`Failed to update root: Root '${
-                name
-              }' is NOT a many connection, use link() or unlink().`);
+              throwWrongManyRootConnectionFormatError(name);
             }
 
             switch (action.method) {
@@ -99,6 +102,10 @@ export default function createReducer(roots) {
           }
         }
       });
+
+      return nextState;
     }
+
+    return state;
   };
 }

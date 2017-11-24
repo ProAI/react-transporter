@@ -1,6 +1,10 @@
 import hasManyEntities from '../../utils/hasManyEntities';
 
 export default function getEntitiesFromArgs(args) {
+  if (args.length === 0) {
+    return null;
+  }
+
   if (args.length === 2 && !hasManyEntities(args[0])) {
     if (typeof args[1] !== 'object') {
       // case 1) only one entity

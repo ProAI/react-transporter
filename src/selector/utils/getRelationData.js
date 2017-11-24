@@ -1,29 +1,38 @@
 import Selector from './../Selector';
 import hasManyEntities from '../../utils/hasManyEntities';
+import formatData from './formatData';
+import { logSelectRelationWarning } from './handleErrors';
 
-export default function getRelationData(state, id, name, constraints, shallow = false) {
-  const childrenIds =
-    !state.entities[id[0]][id[1]][name] || !state.entities[id[0]][id[1]][name].linked
-      ? []
-      : state.entities[id[0]][id[1]][name].linked;
+export default function getRelationData(type, id, name, state, constraints, shallow) {
+  // relation does not exist
+  if (
+    !state.entities[type][id][name] ||
+    (state.entities[type][id][name] && state.entities[type][id][name].linked === undefined)
+  ) {
+    // eslint-disable-next-line no-console
+    console.log(state.entities[type][id][name]);
+    logSelectRelationWarning(type, id, name);
+    return undefined;
+  }
+
+  // relation is set to null
+  if (state.entities[type][id][name].linked === null) {
+    return null;
+  }
+
+  const childrenTypeIds = state.entities[type][id][name].linked;
 
   if (shallow) {
-    if (!hasManyEntities(childrenIds)) {
-      return {
-        id: childrenIds[1],
-        __typename: childrenIds[0],
-      };
+    if (!hasManyEntities(childrenTypeIds)) {
+      return formatData(childrenTypeIds[0], childrenTypeIds[1]);
     }
 
-    return childrenIds.map(childrenId => ({
-      id: childrenId[1],
-      __typename: childrenId[0],
-    }));
+    return childrenTypeIds.map(childrenId => formatData(childrenId[0], childrenId[1]));
   }
 
   const selector = constraints
-    ? constraints(new Selector(state, childrenIds))
-    : new Selector(state, childrenIds);
+    ? constraints(new Selector(state, childrenTypeIds))
+    : new Selector(state, childrenTypeIds);
 
   return selector.getData();
 }

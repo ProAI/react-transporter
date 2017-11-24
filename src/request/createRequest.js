@@ -6,12 +6,13 @@ const parseSchema = schema => schema;
 const getRequestName = schema => schema;
 const getRootNames = schema => [schema];
 
-const createOptimistcResponse = rootNames =>
-  rootNames.map(rootName => ({
+const createOptimistcResponse = rootNames => ({
+  roots: rootNames.map(rootName => ({
     [rootName]: {
       linked: null,
     },
-  }));
+  })),
+});
 
 export default function createRequest(request, fetch) {
   const schema = parseSchema(request.schema);
@@ -36,7 +37,7 @@ export default function createRequest(request, fetch) {
       });
     } catch (error) {
       // eslint-disable-next-line no-console
-      console.error(error);
+      console.error(error.message);
 
       dispatch({
         type: 'TRANSPORTER_REQUEST_ERROR',
@@ -65,8 +66,8 @@ export default function createRequest(request, fetch) {
         (response) => {
           // integrate response into store on success
           const actions = new ActionCollector();
-          actions.applyResponse(response);
-          actions.applyUpdater(request.updater, { roots: response.roots });
+          if (response) actions.applyResponse(response);
+          if (request.updater) actions.applyUpdater(request.updater, response);
 
           try {
             dispatch({

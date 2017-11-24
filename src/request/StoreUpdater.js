@@ -16,7 +16,7 @@ export default class Updater {
   }
 
   insert(entityType, entityId) {
-    this.actions.insertEntity('INSERT', [entityType, entityId]);
+    this.actions.insertEntity([entityType, entityId]);
 
     return new EntityUpdater(entityType, entityId, this.actions);
   }
@@ -26,6 +26,6 @@ export default class Updater {
   }
 
   delete(entityType, entityId) {
-    this.actions.deleteEntity('DELETE', [entityType, entityId]);
+    this.actions.deleteEntity([entityType, entityId]);
   }
 }

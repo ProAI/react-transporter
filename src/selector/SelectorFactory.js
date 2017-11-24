@@ -1,17 +1,18 @@
 import Selector from './Selector';
+import { throwSelectRootError, throwSelectEntityError } from './utils/handleErrors';
 
 export default class SelectorFactory {
   constructor(state) {
     this.state = state;
   }
 
-  select(ids) {
-    return new Selector(this.state, ids);
+  select(type, id) {
+    return new Selector(this.state, [type, id]);
   }
 
   selectFromRoot(name) {
     if (!this.state.roots[name]) {
-      throw new Error(`Cannot find root '${name}'.`);
+      throwSelectRootError(name);
     }
 
     const rootIds = this.state.roots[name];
@@ -19,16 +20,16 @@ export default class SelectorFactory {
     return new Selector(this.state, rootIds);
   }
 
-  selectFromRelation(id, name) {
-    if (!this.state.entities[id[0]] || !this.state.entities[id[0]][id[1]]) {
-      throw new Error(`Cannot find entity [${id[0]}, ${id[1]}].`);
+  selectFromRelation(type, id, name) {
+    if (!this.state.entities[type] || !this.state.entities[type][id]) {
+      throwSelectEntityError(type, id);
     }
 
-    const childrenIds =
-      !this.state.entities[id[0]][id[1]][name] || !this.state.entities[id[0]][id[1]][name].linked
+    const childrenTypeIds =
+      !this.state.entities[type][id][name] || !this.state.entities[type][id][name].linked
         ? []
-        : this.state.entities[id[0]][id[1]][name].linked;
+        : this.state.entities[type][id][name].linked;
 
-    return new Selector(this.state, childrenIds);
+    return new Selector(this.state, childrenTypeIds);
   }
 }
