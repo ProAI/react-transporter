@@ -24,7 +24,7 @@
     "eslint": "4.9.0",
     "react": "16.1.0",
     "react-dom": "16.1.0",
-    "react-kickstarter": "0.2.24",
+    "react-kickstarter": "0.3.0",
     "react-redux": "5.0.6",
     "redux": "3.7.2",
     "redux-thunk": "2.2.0"
