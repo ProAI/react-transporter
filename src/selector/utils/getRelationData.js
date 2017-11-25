@@ -4,7 +4,7 @@ import formatData from './formatData';
 import { logSelectRelationWarning } from './handleErrors';
 
 export default function getRelationData(type, id, name, state, constraints, shallow) {
-  // relation does not exist
+  // log warning if relation does not exist
   if (
     !state.entities[type][id][name] ||
     (state.entities[type][id][name] && state.entities[type][id][name].linked === undefined)
@@ -22,14 +22,18 @@ export default function getRelationData(type, id, name, state, constraints, shal
 
   const childrenTypeIds = state.entities[type][id][name].linked;
 
+  // only select shallow linked entities
   if (shallow) {
     if (!hasManyEntities(childrenTypeIds)) {
       return formatData(childrenTypeIds[0], childrenTypeIds[1]);
     }
 
-    return childrenTypeIds.map(childrenId => formatData(childrenId[0], childrenId[1]));
+    return childrenTypeIds
+      .map(childrenId => formatData(childrenId[0], childrenId[1]))
+      .filter(item => item !== undefined);
   }
 
+  // select full entity
   const selector = constraints
     ? constraints(new Selector(state, childrenTypeIds))
     : new Selector(state, childrenTypeIds);

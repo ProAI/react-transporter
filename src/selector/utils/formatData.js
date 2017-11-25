@@ -1,14 +1,16 @@
 import { logSelectLinkedEntityWarning } from './handleErrors';
 
-export default function formatData(type, id, entities) {
+export default function formatData(type, id, entities, shallow = false) {
   const attributes = {};
 
-  if (entities) {
-    if (!entities[type] || (entities[type] && !entities[type][id])) {
-      logSelectLinkedEntityWarning(type, id);
-      return undefined;
-    }
+  // log warning if entity does not exist
+  if (!entities[type] || (entities[type] && !entities[type][id])) {
+    logSelectLinkedEntityWarning(type, id);
+    return undefined;
+  }
 
+  // get full entity
+  if (!shallow) {
     const entity = entities[type][id];
 
     if (entity) {
@@ -20,7 +22,8 @@ export default function formatData(type, id, entities) {
     }
   }
 
-  if (!entities) {
+  // only get shallow entity, i.e. __typename and id
+  if (shallow) {
     // eslint-disable-next-line no-underscore-dangle
     attributes.__shadow = true;
   }
