@@ -25,11 +25,11 @@ export default function getRelationData(type, id, name, state, constraints, shal
   // only select shallow linked entities
   if (shallow) {
     if (!hasManyEntities(childrenTypeIds)) {
-      return formatData(childrenTypeIds[0], childrenTypeIds[1]);
+      return formatData(childrenTypeIds[0], childrenTypeIds[1], state.entities, true);
     }
 
     return childrenTypeIds
-      .map(childrenId => formatData(childrenId[0], childrenId[1]))
+      .map(childrenId => formatData(childrenId[0], childrenId[1], state.entities, true))
       .filter(item => item !== undefined);
   }
 
