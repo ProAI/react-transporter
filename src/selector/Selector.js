@@ -20,12 +20,12 @@ export default class Selector {
     const value = inputValue || inputOperator;
     const operator = inputValue ? inputOperator : '=';
 
-    if (!hasManyEntities) {
+    if (!this.hasManyEntities) {
       if (!compareValues(this.data[attribute], operator, value)) {
         this.data = null;
       }
     }
-    if (hasManyEntities) {
+    if (this.hasManyEntities) {
       this.data = this.data.filter(data => compareValues(data[attribute], operator, value));
     }
 
