@@ -15,7 +15,7 @@ export default class SelectorFactory {
       throwSelectRootError(name);
     }
 
-    const rootIds = this.state.roots[name];
+    const rootIds = this.state.roots[name].linked;
 
     return new Selector(this.state, rootIds);
   }
