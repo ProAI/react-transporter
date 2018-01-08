@@ -1,12 +1,11 @@
-import { logSelectLinkedEntityWarning } from './handleErrors';
+import SelectorError from '../SelectorError';
 
 export default function formatData(type, id, entities, shallow = false) {
   const attributes = {};
 
   // log warning if entity does not exist
-  if (!entities[type] || (entities[type] && !entities[type][id])) {
-    logSelectLinkedEntityWarning(type, id);
-    return undefined;
+  if (!entities[type] || !entities[type][id]) {
+    throw new SelectorError('MISSING_JOINED_ENTITY', { type, id });
   }
 
   // get full entity

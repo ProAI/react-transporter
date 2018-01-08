@@ -1,13 +1,13 @@
-import hasManyEntities from '../utils/hasManyEntities';
+import isManyLink from '../utils/isManyLink';
 import compareValues from './utils/compareValues';
 import formatData from './utils/formatData';
 import getRelationData from './utils/getRelationData';
 
 export default class Selector {
   constructor(state, data) {
-    this.hasManyEntities = hasManyEntities(data);
+    this.isManyLink = isManyLink(data);
 
-    this.data = this.hasManyEntities
+    this.data = this.isManyLink
       ? data
         .map(typeId => formatData(typeId[0], typeId[1], state.entities))
         .filter(item => item !== undefined)
@@ -20,12 +20,12 @@ export default class Selector {
     const value = inputValue || inputOperator;
     const operator = inputValue ? inputOperator : '=';
 
-    if (!this.hasManyEntities) {
+    if (!this.isManyLink) {
       if (!compareValues(this.data[attribute], operator, value)) {
         this.data = null;
       }
     }
-    if (this.hasManyEntities) {
+    if (this.isManyLink) {
       this.data = this.data.filter(data => compareValues(data[attribute], operator, value));
     }
 
@@ -49,7 +49,7 @@ export default class Selector {
   }
 
   join(name, constraints = null, shallow = false) {
-    if (this.hasManyEntities) {
+    if (this.isManyLink) {
       this.data.forEach((attributes, key) => {
         if (this.data[key]) {
           this.data[key][name] = getRelationData(

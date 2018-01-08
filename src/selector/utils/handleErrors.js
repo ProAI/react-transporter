@@ -13,5 +13,5 @@ export function logSelectRelationWarning(type, id, name) {
 
 export function logSelectLinkedEntityWarning(type, id) {
   // eslint-disable-next-line no-console
-  console.error(`Warning: Could not find linked entity [${type}, ${id}]`);
+  console.error(`Warning: Cannot find linked entity [${type}, ${id}]`);
 }

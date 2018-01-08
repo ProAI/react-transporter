@@ -1,7 +1,7 @@
 import Selector from './../Selector';
-import hasManyEntities from '../../utils/hasManyEntities';
+import isManyLink from '../../utils/isManyLink';
 import formatData from './formatData';
-import { logSelectRelationWarning } from './handleErrors';
+import SelectorError from '../SelectorError';
 
 export default function getRelationData(type, id, name, state, constraints, shallow) {
   // log warning if relation does not exist
@@ -9,10 +9,7 @@ export default function getRelationData(type, id, name, state, constraints, shal
     !state.entities[type][id][name] ||
     (state.entities[type][id][name] && state.entities[type][id][name].linked === undefined)
   ) {
-    // eslint-disable-next-line no-console
-    console.log(state.entities[type][id][name]);
-    logSelectRelationWarning(type, id, name);
-    return undefined;
+    throw new SelectorError('MISSING_JOINED_RELATION', { type, id, name });
   }
 
   // relation is set to null
@@ -24,7 +21,7 @@ export default function getRelationData(type, id, name, state, constraints, shal
 
   // only select shallow linked entities
   if (shallow) {
-    if (!hasManyEntities(childrenTypeIds)) {
+    if (!isManyLink(childrenTypeIds)) {
       return formatData(childrenTypeIds[0], childrenTypeIds[1], state.entities, true);
     }
 

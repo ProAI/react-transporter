@@ -1,18 +1,22 @@
 import Selector from './Selector';
-import { throwSelectRootError, throwSelectEntityError } from './utils/handleErrors';
+import SelectorError from './SelectorError';
 
-export default class SelectorFactory {
+export default class ReadStore {
   constructor(state) {
     this.state = state;
   }
 
   select(type, id) {
+    if (!this.state.entities[type] || !this.state.entities[type][id]) {
+      throw new SelectorError('MISSING_ENTITY', { type, id });
+    }
+
     return new Selector(this.state, [type, id]);
   }
 
   selectFromRoot(name) {
     if (!this.state.roots[name]) {
-      throwSelectRootError(name);
+      throw new SelectorError('MISSING_ROOT', { name });
     }
 
     const rootIds = this.state.roots[name].linked;
@@ -22,7 +26,7 @@ export default class SelectorFactory {
 
   selectFromRelation(type, id, name) {
     if (!this.state.entities[type] || !this.state.entities[type][id]) {
-      throwSelectEntityError(type, id);
+      throw new SelectorError('MISSING_RELATION', { type, id, name });
     }
 
     const childrenTypeIds =

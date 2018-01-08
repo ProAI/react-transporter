@@ -6,7 +6,7 @@ export default class Updater {
     this.actions = actions;
   }
 
-  root(name) {
+  updateRoot(name) {
     const ref = {
       root: true,
       name,
@@ -15,14 +15,12 @@ export default class Updater {
     return new ConnectionUpdater(ref, this.actions);
   }
 
-  insert(entityType, entityId) {
-    this.actions.insertEntity([entityType, entityId]);
-
-    return new EntityUpdater(entityType, entityId, this.actions);
+  insert(entityType, entityId, createEntity) {
+    this.actions.insertEntity([entityType, entityId], createEntity);
   }
 
-  update(entityType, entityId) {
-    return new EntityUpdater(entityType, entityId, this.actions);
+  update(entityType, entityId, updateEntity) {
+    this.actions.updateEntity([entityType, entityId], updateEntity);
   }
 
   delete(entityType, entityId) {
