@@ -1,184 +1,136 @@
-import hasManyEntities from '../utils/hasManyEntities';
-import prependEntities from './utils/prependEntities';
-import appendEntities from './utils/appendEntities';
-import detachEntities from './utils/detachEntities';
-import mergeEntities from './utils/mergeEntities';
-import {
-  throwInsertEntityError,
-  throwUpdateEntityError,
-  throwDeleteEntityError,
-  throwUpdateConnectionError,
-  throwWrongConnectionFormatError,
-  throwWrongManyConnectionFormatError,
-} from './utils/handleErrors';
+function getValuePosition(id, values) {
+  let position = 0;
+  values.forEach((key) => {
+    if (values[key].id === id) position = key;
+  });
 
-export default function createReducer(entities) {
-  const initialState = entities;
+  return position;
+}
+
+function fieldExists(action, type, id, field) {
+  if (
+    action.data &&
+    action.data.entities &&
+    action.data.entities[type] &&
+    action.data.entities[type][id] &&
+    action.data.entities[type][id][field]
+  ) {
+    return true;
+  }
+
+  return false;
+}
+
+export default function createEntitiesReducer(data) {
+  const initialState = {
+    data,
+    optimistic: {},
+  };
 
   return function reducer(state = initialState, baseAction) {
-    if (
-      (baseAction.type === 'TRANSPORTER_REQUEST_START' ||
-        baseAction.type === 'TRANSPORTER_REQUEST_COMPLETED') &&
-      baseAction.actions.entities &&
-      baseAction.actions.entities.length > 0
-    ) {
-      const nextState = { ...state };
+    const nextState = { ...state };
+    const action = { ...baseAction };
 
-      baseAction.actions.entities.forEach((action) => {
-        switch (action.type) {
-          // apply response
-          case 'APPLY_RESPONSE': {
-            // merge entities
-            Object.keys(action.entities).forEach((type) => {
-              if (!nextState[type]) {
-                nextState[type] = {};
-              }
-              Object.keys(action.entities[type]).forEach((id) => {
-                if (!nextState[type][id]) {
-                  // insert new entity
-                  nextState[type][id] = action.entities[type][id];
-                } else {
-                  // update entity
-                  nextState[type][id] = mergeEntities(state[type][id], action.entities[type][id]);
-                }
-              });
-            });
-            break;
+    // TRANSPORTER_REQUEST_START
+    // apply optimistic data
+    if (action.type === 'TRANSPORTER_REQUEST_START' && action.optimisticData) {
+      Object.keys(action.optimisticData.entities).forEach((type) => {
+        Object.keys(action.optimisticData.entities[type]).forEach((id) => {
+          // create optimistic data history
+          if (!nextState.optimistic[type]) nextState.optimistic[type] = {};
+          if (!nextState.optimistic[type][id]) {
+            nextState.optimistic[type][id] = {};
           }
-          // insert entity
-          case 'INSERT_ENTITY': {
-            const { 0: type, 1: id } = action.entity;
+          Object.keys(action.optimisticData.entities[type][id]).forEach((field) => {
+            // create entry for optimistic value
+            const value = {
+              id: action.id,
+              value: action.optimisticData.entities[type][id][field],
+            };
 
-            // error checks
-            if (nextState[type] && nextState[type][id]) {
-              throwInsertEntityError(type, id);
+            // insert entry
+            if (nextState.optimistic[type][id][field]) {
+              nextState.optimistic[type][id][field].values.push(value);
+            } else {
+              nextState.optimistic[type][id][field] = {
+                originalValue: nextState.data[type][id],
+                values: [value],
+              };
             }
+          });
 
-            nextState[type][id] = {};
-            break;
-          }
-          // update entity
-          case 'UPDATE_ENTITY': {
-            const { 0: type, 1: id } = action.entity;
-
-            // error checks
-            if (!nextState[type] || (nextState[type] && !nextState[type][id])) {
-              throwUpdateEntityError(type, id);
-            }
-
-            nextState[type][id] = Object.assign({}, nextState[type][id], action.data);
-            break;
-          }
-          // delete entity
-          case 'DELETE_ENTITY': {
-            const { 0: type, 1: id } = action.entity;
-
-            // error checks
-            if (!nextState[type] || (nextState[type] && !nextState[type][id])) {
-              throwDeleteEntityError(type, id);
-            }
-
-            nextState[type][id] = undefined;
-            break;
-          }
-          // update connection
-          case 'UPDATE_CONNECTION': {
-            const { entity: { 0: type, 1: id }, name, linkedEntity } = action;
-
-            // error checks
-            if (!nextState[type] || (nextState[type] && !nextState[type][id])) {
-              throwUpdateConnectionError(type, id, name);
-            }
-            if (
-              nextState[type][id][name] &&
-              nextState[type][id][name].linked &&
-              hasManyEntities(nextState[type][id][name].linked)
-            ) {
-              throwWrongConnectionFormatError(type, id, name);
-            }
-
-            // create relation if relation does not exist
-            if (!nextState[type][id][name]) {
-              nextState[type][id][name] = {};
-            }
-
-            nextState[type][id][name].linked = linkedEntity;
-            break;
-          }
-          // update many connection
-          case 'UPDATE_MANY_CONNECTION': {
-            const { entity: { 0: type, 1: id }, name, linkedEntities } = action;
-
-            // error checks
-            if (!nextState[type] || (nextState[type] && !nextState[type][id])) {
-              throwUpdateConnectionError(type, id, name);
-            }
-            if (
-              nextState[type][id][name] &&
-              nextState[type][id][name].linked &&
-              !hasManyEntities(nextState[type][id][name].linked)
-            ) {
-              throwWrongManyConnectionFormatError(type, id, name);
-            }
-
-            // create relation if relation does not exist
-            if (!nextState[type][id][name]) {
-              nextState[type][id][name] = {};
-            }
-
-            switch (action.method) {
-              case 'sync_prepend': {
-                nextState[type][id][name].linked = prependEntities(
-                  linkedEntities,
-                  nextState[type][id][name].linked,
-                  true,
-                );
-                break;
-              }
-              case 'sync_append': {
-                nextState[type][id][name].linked = appendEntities(
-                  linkedEntities,
-                  nextState[type][id][name].linked,
-                  true,
-                );
-                break;
-              }
-              case 'prepend': {
-                nextState[type][id][name].linked = prependEntities(
-                  linkedEntities,
-                  nextState[type][id][name].linked,
-                );
-                break;
-              }
-              case 'append': {
-                nextState[type][id][name].linked = appendEntities(
-                  linkedEntities,
-                  nextState[type][id][name].linked,
-                );
-                break;
-              }
-              case 'detach': {
-                nextState[type][id][name].linked = detachEntities(
-                  linkedEntities,
-                  nextState[type][id][name].linked,
-                );
-                break;
-              }
-              default: {
-                // do nothing
-              }
-            }
-            break;
-          }
-          default: {
-            // do nothing
-          }
-        }
+          // add entity to store
+          if (!nextState.data[type]) nextState.data[type] = {};
+          nextState.data[type][id] = Object.assign(
+            {},
+            nextState.data[type][id],
+            action.optimisticData.entities[type][id],
+          );
+        });
       });
-
-      return nextState;
     }
 
-    return state;
+    // TRANSPORTER_REQUEST_COMPLETED || TRANSPORTER_REQUEST_ERROR
+    // revert optimistic data & apply response data for specified fields
+    if (
+      (action.type === 'TRANSPORTER_REQUEST_COMPLETED' ||
+        action.type === 'TRANSPORTER_REQUEST_ERROR') &&
+      action.optimisticData
+    ) {
+      Object.keys(action.optimisticData.entities).forEach((type) => {
+        Object.keys(action.optimisticData.entities[type]).forEach((id) => {
+          Object.keys(action.optimisticData.entities[type][id]).forEach((field) => {
+            const optimisticValues = nextState.optimistic[type][id][field].values;
+            const position = getValuePosition(action.id, optimisticValues);
+
+            if (position === optimisticValues.length - 1) {
+              // if selected value is the last one, we need to delete the
+              // complete optimistic entry and set the real value to the
+              // response value.
+
+              // delete all optimistic values if value is the last one
+              delete nextState.optimistic[type][id][field];
+              // set response value
+              if (fieldExists(action, type, id, field)) {
+                nextState.data[type][id][field] = action.data.entities[type][id][field];
+                delete action.data.entities[type][id][field];
+              }
+            } else {
+              // if selected value is not the last one, we need to delete this
+              // optimistic value and all previous values from the optimistic
+              // entry. also the original value of the optimistic entry needs
+              // to be refreshed.
+
+              // update optimistic values
+              nextState.optimistic[type][id][field].values.slice(position + 1);
+              // update original value
+              if (fieldExists(action, type, id, field)) {
+                nextState.optimistic[type][id][field].originalValue =
+                  action.data.entities[type][id][field];
+                delete action.data.entities[type][id][field];
+              }
+            }
+          });
+        });
+      });
+    }
+
+    // TRANSPORTER_REQUEST_COMPLETED
+    // apply response data
+    if (action.type === 'TRANSPORTER_REQUEST_COMPLETED') {
+      Object.keys(action.data.entities).forEach((type) => {
+        Object.keys(action.data.entities[type]).forEach((id) => {
+          // add entity to store
+          if (!nextState.data[type]) nextState.data[type] = {};
+          nextState.data[type][id] = Object.assign(
+            {},
+            nextState.data[type][id],
+            action.data.entities[type][id],
+          );
+        });
+      });
+    }
+
+    return nextState;
   };
 }

@@ -1,7 +1,17 @@
 import TransporterNetwork from './core/Network';
 import TransporterClient from './core/Client';
-import createTransporterSelector from './selector/createSelector';
 import Provider from './react/Provider';
 import load from './react/load';
+import Link from './request/Link';
+import ManyLink from './request/ManyLink';
+import createTransporterSelector from './selector/createSelector';
 
-export { TransporterNetwork, TransporterClient, createTransporterSelector, Provider, load };
+export {
+  TransporterNetwork,
+  TransporterClient,
+  Provider,
+  load,
+  Link,
+  ManyLink,
+  createTransporterSelector,
+};

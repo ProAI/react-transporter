@@ -1,51 +1,55 @@
-import ActionCollector from './ActionCollector';
+import WriteStore from './WriteStore';
 
 // TODO
 // parse a real graphql schema
 const parseSchema = schema => schema;
-const getRequestName = schema => schema;
-const getRootNames = schema => [schema];
+const getRequestId = schema => schema;
+const getOptimisticResponse = schema => ({ roots: { schema } });
 
-const createOptimistcResponse = rootNames => ({
-  roots: rootNames.map(rootName => ({
-    [rootName]: {
-      linked: null,
-    },
-  })),
-});
+function makeData(updater, getState, response, optimistic = false) {
+  if (!updater) {
+    return response;
+  }
+
+  const store = new WriteStore(getState().transporter, response, optimistic);
+  updater(store, response); // TODO only pass in root and trashed ids of response
+  return store.data;
+}
 
 export default function createRequest(request, fetch) {
-  const schema = parseSchema(request.schema);
-  const requestName = getRequestName(schema);
-  const rootNames = getRootNames(schema);
-
-  return (dispatch) => {
-    // init request and apply optimistc response if set
-    const optimisticActions = new ActionCollector();
-
-    // add optimistic response for mutations
-    if (request.type === 'TRANSPORTER_MUTATION' && request.optimisticUpdater) {
-      optimisticActions.applyResponse(createOptimistcResponse(rootNames));
-      optimisticActions.applyUpdater(request.optimisticUpdater);
-    }
+  return (dispatch, getState) => {
+    const schema = parseSchema(request.schema);
+    const requestId = getRequestId(schema);
+    const optimisticResponse = getOptimisticResponse(schema);
+    const startTime = new Date();
 
     try {
       dispatch({
         type: 'TRANSPORTER_REQUEST_START',
-        name: requestName,
-        actions: optimisticActions.getActions(),
+        id: requestId,
+        startTime,
+        optimisticData:
+          request.type === 'TRANSPORTER_MUTATION'
+            ? makeData(request.optimisticUpdater, getState, optimisticResponse, true)
+            : null,
       });
     } catch (error) {
-      // eslint-disable-next-line no-console
-      console.error(error.message);
-
       dispatch({
         type: 'TRANSPORTER_REQUEST_ERROR',
-        name: requestName,
+        id: requestId,
+        startTime,
+        endTime: new Date(),
         error,
       });
 
-      return;
+      // console log error message if error is RequestError
+      if (error.constructor.name === 'RequestError') {
+        // eslint-disable-next-line no-console
+        console.error(error.getMessage());
+        return;
+      }
+
+      throw error;
     }
 
     // immediately stop request on server for now
@@ -53,8 +57,13 @@ export default function createRequest(request, fetch) {
     if (typeof window === 'undefined') {
       dispatch({
         type: 'TRANSPORTER_REQUEST_COMPLETED',
-        name: requestName,
-        actions: [],
+        id: requestId,
+        startTime,
+        endTime: new Date(),
+        data: {
+          entities: {},
+          roots: {},
+        },
       });
     }
 
@@ -64,33 +73,40 @@ export default function createRequest(request, fetch) {
       // dispatch query
       fetch(request.schema, request.variables).then(
         (response) => {
-          // integrate response into store on success
-          const actions = new ActionCollector();
-          if (response) actions.applyResponse(response);
-          if (request.updater) actions.applyUpdater(request.updater, response);
-
           try {
             dispatch({
               type: 'TRANSPORTER_REQUEST_COMPLETED',
-              name: requestName,
-              actions: actions.getActions(),
+              id: requestId,
+              startTime,
+              endTime: new Date(),
+              data: makeData(request.updater, getState, response),
             });
           } catch (error) {
-            // eslint-disable-next-line no-console
-            console.error(error);
-
             dispatch({
               type: 'TRANSPORTER_REQUEST_ERROR',
-              name: requestName,
+              id: requestId,
+              startTime,
+              endTime: new Date(),
               error,
             });
+
+            // console log error message if error is RequestError
+            if (error.constructor.name === 'RequestError') {
+              // eslint-disable-next-line no-console
+              console.error(error.getMessage());
+              return;
+            }
+
+            throw error;
           }
         },
         (error) => {
           // update request status on error
           dispatch({
             type: 'TRANSPORTER_REQUEST_ERROR',
-            name: requestName,
+            id: requestId,
+            startTime,
+            endTime: new Date(),
             error,
           });
         },
