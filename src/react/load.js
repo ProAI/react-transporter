@@ -1,22 +1,29 @@
 import { connect } from 'react-redux';
+import nanoid from 'nanoid';
+import getPosition from '../utils/getPosition';
 
-// TODO
-// parse a real graphql schema
-const parseSchema = schema => schema;
-const getRequestName = schema => schema;
+const TRANSPORTER_STATE = 'transporter';
 
-function load(requestFunc, config = {}) {
+function getStoredRequestById(id, requests) {
+  const position = getPosition(id, requests);
+
+  return position ? requests[position] : null;
+}
+
+function load(createRequest, config = {}) {
   const mapStateToProps = (state, props) => {
     const fromState = selector => selector(state, props);
-    const request = requestFunc(props, fromState);
-    const schema = parseSchema(request.schema);
-    const requestName = getRequestName(schema);
+    const request = createRequest(props, fromState);
 
-    const { requests } = state.transporter;
+    // create request id if not present
+    if (!request.id) request.id = nanoid();
+
+    const storedRequest = getStoredRequestById(request.id, state[TRANSPORTER_STATE].requests);
+
     return {
       request,
-      loading: requests[requestName] ? requests[requestName].loading : undefined,
-      error: requests[requestName] ? requests[requestName].error : undefined,
+      loading: storedRequest ? storedRequest.loading : undefined,
+      error: storedRequest ? storedRequest.error : undefined,
     };
   };
 

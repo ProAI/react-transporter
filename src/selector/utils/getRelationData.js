@@ -6,27 +6,28 @@ import SelectorError from '../SelectorError';
 export default function getRelationData(type, id, name, state, constraints, shallow) {
   // log warning if relation does not exist
   if (
-    !state.entities[type][id][name] ||
-    (state.entities[type][id][name] && state.entities[type][id][name].linked === undefined)
+    !state.entities.data[type][id][name] ||
+    (state.entities.data[type][id][name] &&
+      state.entities.data[type][id][name].linked === undefined)
   ) {
     throw new SelectorError('MISSING_JOINED_RELATION', { type, id, name });
   }
 
   // relation is set to null
-  if (state.entities[type][id][name].linked === null) {
+  if (state.entities.data[type][id][name].linked === null) {
     return null;
   }
 
-  const childrenTypeIds = state.entities[type][id][name].linked;
+  const childrenTypeIds = state.entities.data[type][id][name].linked;
 
   // only select shallow linked entities
   if (shallow) {
     if (!isManyLink(childrenTypeIds)) {
-      return formatData(childrenTypeIds[0], childrenTypeIds[1], state.entities, true);
+      return formatData(childrenTypeIds[0], childrenTypeIds[1], state.entities.data, true);
     }
 
     return childrenTypeIds
-      .map(childrenId => formatData(childrenId[0], childrenId[1], state.entities, true))
+      .map(childrenId => formatData(childrenId[0], childrenId[1], state.entities.data, true))
       .filter(item => item !== undefined);
   }
 

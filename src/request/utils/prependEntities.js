@@ -1,4 +1,4 @@
-import isSameEntity from './isSameEntity';
+import isSameEntity from '../../utils/isSameEntity';
 
 export default function prependEntities(addEntities, entities, sync = false) {
   // prepend, don't sync

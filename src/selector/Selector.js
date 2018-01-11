@@ -9,9 +9,9 @@ export default class Selector {
 
     this.data = this.isManyLink
       ? data
-        .map(typeId => formatData(typeId[0], typeId[1], state.entities))
+        .map(typeId => formatData(typeId[0], typeId[1], state.entities.data))
         .filter(item => item !== undefined)
-      : formatData(data[0], data[1], state.entities);
+      : formatData(data[0], data[1], state.entities.data);
 
     this.state = state;
   }

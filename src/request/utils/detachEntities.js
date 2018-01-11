@@ -1,4 +1,4 @@
-import isSameEntity from './isSameEntity';
+import isSameEntity from '../../utils/isSameEntity';
 
 export default function detachEntities(removeEntities, entities) {
   // detach all entities

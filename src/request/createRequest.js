@@ -1,47 +1,37 @@
+import nanoid from 'nanoid';
 import WriteStore from './WriteStore';
 
-// TODO
-// parse a real graphql schema
-const parseSchema = schema => schema;
-const getRequestId = schema => schema;
-const getOptimisticResponse = schema => ({ roots: { schema } });
+const TRANSPORTER_STATE = 'transporter';
 
-function makeData(updater, getState, response, optimistic = false) {
+function makeData(updater, getState, response) {
   if (!updater) {
     return response;
   }
 
-  const store = new WriteStore(getState().transporter, response, optimistic);
+  const state = getState();
+
+  const store = new WriteStore(state[TRANSPORTER_STATE], response);
   updater(store, response); // TODO only pass in root and trashed ids of response
   return store.data;
 }
 
 export default function createRequest(request, fetch) {
   return (dispatch, getState) => {
-    const schema = parseSchema(request.schema);
-    const requestId = getRequestId(schema);
-    const optimisticResponse = getOptimisticResponse(schema);
+    // create request id if not present
+    if (!request.id) request.id = nanoid();
     const startTime = new Date();
 
     try {
       dispatch({
         type: 'TRANSPORTER_REQUEST_START',
-        id: requestId,
+        id: request.id,
         startTime,
         optimisticData:
           request.type === 'TRANSPORTER_MUTATION'
-            ? makeData(request.optimisticUpdater, getState, optimisticResponse, true)
+            ? makeData(request.optimisticUpdater, getState)
             : null,
       });
     } catch (error) {
-      dispatch({
-        type: 'TRANSPORTER_REQUEST_ERROR',
-        id: requestId,
-        startTime,
-        endTime: new Date(),
-        error,
-      });
-
       // console log error message if error is RequestError
       if (error.constructor.name === 'RequestError') {
         // eslint-disable-next-line no-console
@@ -57,13 +47,13 @@ export default function createRequest(request, fetch) {
     if (typeof window === 'undefined') {
       dispatch({
         type: 'TRANSPORTER_REQUEST_COMPLETED',
-        id: requestId,
+        id: request.id,
         startTime,
         endTime: new Date(),
-        data: {
-          entities: {},
-          roots: {},
-        },
+        data:
+          request.type === 'TRANSPORTER_MUTATION'
+            ? makeData(request.optimisticUpdater, getState)
+            : null,
       });
     }
 
@@ -76,7 +66,7 @@ export default function createRequest(request, fetch) {
           try {
             dispatch({
               type: 'TRANSPORTER_REQUEST_COMPLETED',
-              id: requestId,
+              id: request.id,
               startTime,
               endTime: new Date(),
               data: makeData(request.updater, getState, response),
@@ -84,7 +74,7 @@ export default function createRequest(request, fetch) {
           } catch (error) {
             dispatch({
               type: 'TRANSPORTER_REQUEST_ERROR',
-              id: requestId,
+              id: request.id,
               startTime,
               endTime: new Date(),
               error,
@@ -104,7 +94,7 @@ export default function createRequest(request, fetch) {
           // update request status on error
           dispatch({
             type: 'TRANSPORTER_REQUEST_ERROR',
-            id: requestId,
+            id: request.id,
             startTime,
             endTime: new Date(),
             error,

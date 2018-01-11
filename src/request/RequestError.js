@@ -17,8 +17,6 @@ export default class RequestError extends Error {
         return `Failed to update entity: Entity [${v.type}, ${v.id}] does not exist.`;
       case 'MISSING_ENTITY_DELETE':
         return `Failed to delete entity: Entity [${v.type}, ${v.id}] does not exist.`;
-      case 'MISSING_ROOT':
-        return `Failed to set root: Root '${v.name}' does not exist.`;
       // entity field errors
       case 'WRONG_CONNECTION_FIELD_VALUE':
         return `Failed to set field: Field '${v.name}' of entity [${v.type}, ${

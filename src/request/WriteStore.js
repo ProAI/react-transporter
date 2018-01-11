@@ -13,10 +13,6 @@ function entityExists(type, id, stateData, data) {
   );
 }
 
-function rootExists(name, stateData, data) {
-  return stateData.roots[name] || data.roots[name];
-}
-
 function prepareRootValue(tempValue, currentValue) {
   const value =
     typeof tempValue === 'function'
@@ -42,10 +38,10 @@ function checkRootValue(name, originalValue, value) {
 }
 
 export default class WriteStore {
-  constructor(state, response, optimistic) {
+  constructor(state, response) {
     this.state = state.transporter;
     this.data = response;
-    this.optimistic = optimistic;
+    this.optimistic = !!response;
   }
 
   insert(type, id, setAttributes) {
@@ -82,10 +78,6 @@ export default class WriteStore {
 
   setRoot(baseName, args, tempValue) {
     const name = createNameWithArgs(baseName, args);
-
-    if (!rootExists(name, this.state.data, this.data)) {
-      throw new RequestError('MISSING_ROOT', { name });
-    }
 
     const value = prepareRootValue(tempValue || args, this.state.data.roots[name]);
 

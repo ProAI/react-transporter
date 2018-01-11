@@ -16,15 +16,14 @@
     "lint": "./node_modules/.bin/eslint src"
   },
   "dependencies": {
-    "graphql": "^0.11.7",
-    "graphql-tag": "^2.5.0"
+    "nanoid": "1.0.1"
   },
   "devDependencies": {
     "babel-cli": "6.26.0",
     "eslint": "4.9.0",
-    "react": "16.1.0",
-    "react-dom": "16.1.0",
-    "react-kickstarter": "0.3.1",
+    "react": "16.2.0",
+    "react-dom": "16.2.0",
+    "react-kickstarter": "0.3.4",
     "react-redux": "5.0.6",
     "redux": "3.7.2",
     "redux-thunk": "2.2.0"

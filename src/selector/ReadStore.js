@@ -7,7 +7,7 @@ export default class ReadStore {
   }
 
   select(type, id) {
-    if (!this.state.entities[type] || !this.state.entities[type][id]) {
+    if (!this.state.entities.data[type] || !this.state.entities.data[type][id]) {
       throw new SelectorError('MISSING_ENTITY', { type, id });
     }
 
@@ -25,14 +25,14 @@ export default class ReadStore {
   }
 
   selectFromRelation(type, id, name) {
-    if (!this.state.entities[type] || !this.state.entities[type][id]) {
+    if (!this.state.entities.data[type] || !this.state.entities.data[type][id]) {
       throw new SelectorError('MISSING_RELATION', { type, id, name });
     }
 
     const childrenTypeIds =
-      !this.state.entities[type][id][name] || !this.state.entities[type][id][name].linked
+      !this.state.entities.data[type][id][name] || !this.state.entities.data[type][id][name].linked
         ? []
-        : this.state.entities[type][id][name].linked;
+        : this.state.entities.data[type][id][name].linked;
 
     return new Selector(this.state, childrenTypeIds);
   }
