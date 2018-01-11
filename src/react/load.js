@@ -1,5 +1,5 @@
 import { connect } from 'react-redux';
-import nanoid from 'nanoid';
+import generateId from '../utils/generateId';
 import getPosition from '../utils/getPosition';
 
 const TRANSPORTER_STATE = 'transporter';
@@ -16,7 +16,7 @@ function load(createRequest, config = {}) {
     const request = createRequest(props, fromState);
 
     // create request id if not present
-    if (!request.id) request.id = nanoid();
+    if (!request.id) request.id = generateId();
 
     const storedRequest = getStoredRequestById(request.id, state[TRANSPORTER_STATE].requests);
 

@@ -5,7 +5,12 @@
   "description": "React.js Redux GraphQL client",
   "author": "Markus Wetzel <markuswetzel@gmx.net>",
   "license": "MIT",
-  "keywords": ["react", "redux", "graphql", "api"],
+  "keywords": [
+    "react",
+    "redux",
+    "graphql",
+    "api"
+  ],
   "repository": "https://github.com/ProAI/react-transporter.git",
   "bugs": {
     "url": "https://github.com/ProAI/react-transporter/issues"
@@ -15,9 +20,7 @@
     "watch": "./node_modules/.bin/babel -d lib/ -w src/",
     "lint": "./node_modules/.bin/eslint src"
   },
-  "dependencies": {
-    "nanoid": "1.0.1"
-  },
+  "dependencies": {},
   "devDependencies": {
     "babel-cli": "6.26.0",
     "eslint": "4.9.0",

@@ -1,4 +1,4 @@
-import nanoid from 'nanoid';
+import generateId from '../utils/generateId';
 import WriteStore from './WriteStore';
 
 const TRANSPORTER_STATE = 'transporter';
@@ -18,7 +18,7 @@ function makeData(updater, getState, response) {
 export default function createRequest(request, fetch) {
   return (dispatch, getState) => {
     // create request id if not present
-    if (!request.id) request.id = nanoid();
+    if (!request.id) request.id = generateId();
     const startTime = new Date();
 
     try {
