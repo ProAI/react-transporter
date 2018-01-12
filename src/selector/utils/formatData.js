@@ -1,11 +1,12 @@
-import SelectorError from '../SelectorError';
+import makeSelectorError from '../makeSelectorError';
+import isConnection from '../../utils/isConnection';
 
 export default function formatData(type, id, entities, shallow = false) {
   const attributes = {};
 
   // log warning if entity does not exist
   if (!entities[type] || !entities[type][id]) {
-    throw new SelectorError('MISSING_JOINED_ENTITY', { type, id });
+    throw makeSelectorError('MISSING_JOINED_ENTITY', { type, id });
   }
 
   // get full entity
@@ -14,7 +15,7 @@ export default function formatData(type, id, entities, shallow = false) {
 
     if (entity) {
       Object.keys(entity).forEach((key) => {
-        if (entity[key] !== null && entity[key] !== undefined && !entity[key].linked) {
+        if (!isConnection(entity[key])) {
           attributes[key] = entity[key];
         }
       });

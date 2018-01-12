@@ -1,6 +1,6 @@
 export default function revertOptimisticUpdate(position, state, action, getField, isRoot = false) {
   const dataType = isRoot ? 'roots' : 'entities';
-  const optimistic = { ...getField(state.optimsitic.updates) };
+  const optimistic = getField(state.optimistic.updates);
   const responseValue =
     action.data && action.data[dataType] ? getField(action.data[dataType]) : undefined;
 

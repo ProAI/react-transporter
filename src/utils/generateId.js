@@ -8,4 +8,6 @@ class IdentifierGenerator {
   }
 }
 
-export default IdentifierGenerator.generate;
+export default function generateId() {
+  return IdentifierGenerator.generate();
+}

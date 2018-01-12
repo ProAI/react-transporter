@@ -20,27 +20,16 @@ export default function createRequest(request, fetch) {
     // create request id if not present
     if (!request.id) request.id = generateId();
     const startTime = new Date();
+    const data =
+      request.type === 'TRANSPORTER_MUTATION' ? makeData(request.optimisticUpdater, getState) : {};
+    const optimisticData = request.type === 'TRANSPORTER_MUTATION' ? data : null;
 
-    try {
-      dispatch({
-        type: 'TRANSPORTER_REQUEST_START',
-        id: request.id,
-        startTime,
-        optimisticData:
-          request.type === 'TRANSPORTER_MUTATION'
-            ? makeData(request.optimisticUpdater, getState)
-            : null,
-      });
-    } catch (error) {
-      // console log error message if error is RequestError
-      if (error.constructor.name === 'RequestError') {
-        // eslint-disable-next-line no-console
-        console.error(error.getMessage());
-        return;
-      }
-
-      throw error;
-    }
+    dispatch({
+      type: 'TRANSPORTER_REQUEST_START',
+      id: request.id,
+      startTime,
+      optimisticData,
+    });
 
     // immediately stop request on server for now
     // TODO
@@ -50,10 +39,7 @@ export default function createRequest(request, fetch) {
         id: request.id,
         startTime,
         endTime: new Date(),
-        data:
-          request.type === 'TRANSPORTER_MUTATION'
-            ? makeData(request.optimisticUpdater, getState)
-            : null,
+        data,
       });
     }
 
@@ -62,30 +48,23 @@ export default function createRequest(request, fetch) {
     if (typeof window !== 'undefined') {
       // dispatch query
       fetch(request.schema, request.variables).then(
-        (response) => {
+        () => {
           try {
             dispatch({
               type: 'TRANSPORTER_REQUEST_COMPLETED',
               id: request.id,
-              startTime,
               endTime: new Date(),
-              data: makeData(request.updater, getState, response),
+              optimisticData,
+              data,
             });
           } catch (error) {
             dispatch({
               type: 'TRANSPORTER_REQUEST_ERROR',
               id: request.id,
-              startTime,
               endTime: new Date(),
-              error,
+              optimisticData,
+              error: 'Internal error',
             });
-
-            // console log error message if error is RequestError
-            if (error.constructor.name === 'RequestError') {
-              // eslint-disable-next-line no-console
-              console.error(error.getMessage());
-              return;
-            }
 
             throw error;
           }
@@ -95,8 +74,8 @@ export default function createRequest(request, fetch) {
           dispatch({
             type: 'TRANSPORTER_REQUEST_ERROR',
             id: request.id,
-            startTime,
             endTime: new Date(),
+            optimisticData,
             error,
           });
         },

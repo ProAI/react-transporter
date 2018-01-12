@@ -1,6 +1,3 @@
 export default function isManyLink(value) {
-  return !(
-    value.link === null ||
-    (typeof value.link[0] === 'string' || value.link[0] instanceof String)
-  );
+  return !(value === null || (typeof value[0] === 'string' || value[0] instanceof String));
 }

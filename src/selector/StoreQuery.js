@@ -3,7 +3,7 @@ import compareValues from './utils/compareValues';
 import formatData from './utils/formatData';
 import getRelationData from './utils/getRelationData';
 
-export default class Selector {
+export default class StoreQuery {
   constructor(state, data) {
     this.isManyLink = isManyLink(data);
 

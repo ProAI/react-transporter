@@ -1,7 +1,7 @@
 import getPosition from '../utils/getPosition';
 
 export default function createRequestsReducer() {
-  const initialState = {};
+  const initialState = [];
 
   return function reducer(state = initialState, action) {
     const nextState = [...state];

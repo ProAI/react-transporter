@@ -4,7 +4,7 @@ export default function updateValueBeforeRevertingOptimisticUpdate(
   action,
   getField,
 ) {
-  const optimistic = { ...getField(state.optimsitic.updates) };
+  const optimistic = getField(state.optimistic.updates);
   const responseValue =
     action.data && action.data.entities ? getField(action.data.entities) : undefined;
 

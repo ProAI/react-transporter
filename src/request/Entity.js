@@ -1,36 +1,37 @@
 import createNameWithArgs from './utils/createNameWithArgs';
+import isConnection from '../utils/isConnection';
 import isManyLink from '../utils/isManyLink';
 import getRawLink from './utils/getRawLink';
 import Link from './Link';
 import ManyLink from './ManyLink';
-import RequestError from './RequestError';
+import makeRequestError from './makeRequestError';
 
-function prepareValue(tempValue, currentValue) {
-  const value = typeof tempValue === 'function' ? tempValue(currentValue) : tempValue;
+function prepareValue(value, entity, name) {
+  const returnValue = typeof value === 'function' ? value(entity.get(name)) : value;
 
-  if (value.link) {
-    return getRawLink(value);
+  if (isConnection(returnValue)) {
+    return getRawLink(returnValue);
   }
 
-  return value;
+  return returnValue;
 }
 
-function checkValue(type, id, name, originalValue, value) {
+function checkValue(value, originalValue, variables) {
   // check field type
-  if (originalValue.link && !value.link) {
-    throw new RequestError('WRONG_CONNECTION_FIELD_VALUE', { type, id, name });
+  if (isConnection(originalValue) && !isConnection(value)) {
+    throw makeRequestError('WRONG_CONNECTION_FIELD_VALUE');
   }
-  if (!originalValue.link && value.link) {
-    throw new RequestError('WRONG_SCALAR_FIELD_VALUE', { type, id, name });
+  if (!isConnection(originalValue) && isConnection(value)) {
+    throw makeRequestError('WRONG_SCALAR_FIELD_VALUE', variables);
   }
 
   // check connection type
-  if (originalValue.link && value.link) {
-    if (isManyLink(originalValue) && !isManyLink(value)) {
-      throw new RequestError('WRONG_CONNECTION_MANYLINK_FIELD_VALUE', { type, id, name });
+  if (isConnection(originalValue) && isConnection(value)) {
+    if (isManyLink(originalValue.link) && !isManyLink(value.link)) {
+      throw makeRequestError('WRONG_CONNECTION_MANYLINK_FIELD_VALUE', variables);
     }
-    if (!isManyLink(originalValue) && isManyLink(value)) {
-      throw new RequestError('WRONG_CONNECTION_LINK_FIELD_VALUE', { type, id, name });
+    if (!isManyLink(originalValue.link) && isManyLink(value.link)) {
+      throw makeRequestError('WRONG_CONNECTION_LINK_FIELD_VALUE', variables);
     }
   }
 }
@@ -45,15 +46,15 @@ export default class Entity {
 
   get(name) {
     if (!this.values[name] && (this.originalValues && !this.originalValues[name])) {
-      throw new RequestError('MISSING_FIELD', { type: this.type, id: this.id, name });
+      throw makeRequestError('MISSING_FIELD', { type: this.type, id: this.id, name });
     }
 
     // get new or original value
     const value = this.values[name] || this.originalValues[name];
 
     // return connection value
-    if (value.link) {
-      return isManyLink(value) ? new ManyLink(value) : new Link(value);
+    if (isConnection(value)) {
+      return isManyLink(value.link) ? new ManyLink(value) : new Link(value);
     }
 
     // return scalar value
@@ -61,12 +62,12 @@ export default class Entity {
   }
 
   set(baseName, args, tempValue = null) {
-    const name = createNameWithArgs(baseName, args);
-    const value = prepareValue(tempValue || args, this.get(name));
+    const name = createNameWithArgs(baseName, tempValue ? args : undefined);
+    const value = prepareValue(tempValue || args, this, name);
 
     // check correct type
     if (this.originalValues && this.originalValues[name]) {
-      checkValue(this.type, this.id, name, this.originalValues[name], value);
+      checkValue(value, this.originalValues[name], { type: this.type, id: this.id, name });
     }
 
     this.values[name] = value;
@@ -74,11 +75,11 @@ export default class Entity {
 
   fill(values) {
     Object.keys(values).forEach((name) => {
-      const value = prepareValue(values[name], this.get(name));
+      const value = prepareValue(values[name], this, name);
 
       // check correct type
       if (this.originalValues && this.originalValues[name]) {
-        checkValue(this.type, this.id, name, this.originalValues[name], value);
+        checkValue(value, this.originalValues[name], { type: this.type, id: this.id, name });
       }
 
       this.values[name] = value;

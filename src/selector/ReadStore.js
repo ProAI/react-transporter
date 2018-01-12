@@ -1,5 +1,5 @@
-import Selector from './Selector';
-import SelectorError from './SelectorError';
+import StoreQuery from './StoreQuery';
+import makeSelectorError from './makeSelectorError';
 
 export default class ReadStore {
   constructor(state) {
@@ -8,32 +8,29 @@ export default class ReadStore {
 
   select(type, id) {
     if (!this.state.entities.data[type] || !this.state.entities.data[type][id]) {
-      throw new SelectorError('MISSING_ENTITY', { type, id });
+      throw makeSelectorError('MISSING_ENTITY', { type, id });
     }
 
-    return new Selector(this.state, [type, id]);
+    return new StoreQuery(this.state, [type, id]);
   }
 
   selectFromRoot(name) {
-    if (!this.state.roots[name]) {
-      throw new SelectorError('MISSING_ROOT', { name });
+    if (!this.state.roots.data[name]) {
+      throw makeSelectorError('MISSING_ROOT', { name });
     }
 
-    const rootIds = this.state.roots[name].linked;
+    const rootIds = this.state.roots.data[name].link;
 
-    return new Selector(this.state, rootIds);
+    return new StoreQuery(this.state, rootIds);
   }
 
   selectFromRelation(type, id, name) {
     if (!this.state.entities.data[type] || !this.state.entities.data[type][id]) {
-      throw new SelectorError('MISSING_RELATION', { type, id, name });
+      throw makeSelectorError('MISSING_RELATION', { type, id, name });
     }
 
-    const childrenTypeIds =
-      !this.state.entities.data[type][id][name] || !this.state.entities.data[type][id][name].linked
-        ? []
-        : this.state.entities.data[type][id][name].linked;
+    const childrenTypeIds = this.state.entities.data[type][id][name].link;
 
-    return new Selector(this.state, childrenTypeIds);
+    return new StoreQuery(this.state, childrenTypeIds);
   }
 }

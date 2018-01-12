@@ -1,6 +1,6 @@
 export default function addOptimisticUpdate(state, action, getField, isRoot = false) {
   const dataType = isRoot ? 'roots' : 'entities';
-  const optimistic = { ...getField(state.optimsitic.updates) };
+  const optimistic = getField(state.optimistic.updates);
   const value = {
     active: true,
     id: action.id,

@@ -1,13 +1,14 @@
-/* eslint-disable no-underscore-dangle */
+import isConnection from '../utils/isConnection';
+
 export default class Link {
   constructor(type, id) {
     // object passed to constructor
-    if (id === undefined && type.link) {
+    if (id === undefined && isConnection(type)) {
       this.meta = type.meta;
       this.link = type.link;
+      return;
     }
 
-    this.meta = undefined;
     this.link = [type, id];
   }
 

@@ -7,7 +7,10 @@ import updateValueBeforeRevertingOptimisticUpdate from './utils/updateValueBefor
 export default function createEntitiesReducer(data) {
   const initialState = {
     data,
-    optimistic: {},
+    optimistic: {
+      updates: {},
+      deletions: {},
+    },
   };
 
   return function reducer(state = initialState, baseAction) {
@@ -16,7 +19,7 @@ export default function createEntitiesReducer(data) {
 
     // TRANSPORTER_REQUEST_START
     // apply optimistic data
-    if (action.optimisticData && action.type === 'TRANSPORTER_REQUEST_START') {
+    if (action.type === 'TRANSPORTER_REQUEST_START' && action.optimisticData) {
       // insertions/updates
       if (action.optimisticData.entities) {
         Object.keys(action.optimisticData.entities).forEach((type) => {
@@ -57,8 +60,7 @@ export default function createEntitiesReducer(data) {
 
       // deletions
       if (action.optimisticData.trash) {
-        action.optimisticData.trash.forEach((key) => {
-          const [type, id] = action.optimisticData.trash[key];
+        action.optimisticData.trash.forEach(([type, id]) => {
           if (nextState.data[type] && nextState.data[type][id]) {
             // prerequisites / create optimistic type of entities if not present
             if (!nextState.optimistic.deletions[type]) nextState.optimistic.deletions[type] = {};
@@ -79,9 +81,9 @@ export default function createEntitiesReducer(data) {
     // TRANSPORTER_REQUEST_COMPLETED || TRANSPORTER_REQUEST_ERROR
     // revert optimistic data & apply response data for specified fields
     if (
-      action.optimisticData &&
       (action.type === 'TRANSPORTER_REQUEST_COMPLETED' ||
-        action.type === 'TRANSPORTER_REQUEST_ERROR')
+        action.type === 'TRANSPORTER_REQUEST_ERROR') &&
+      action.optimisticData
     ) {
       // insertions/updates
       if (action.optimisticData.entities) {
@@ -94,7 +96,10 @@ export default function createEntitiesReducer(data) {
               };
 
               // get position of optimistic value & throw error if optimistic value was not found
-              const position = getPosition(action.id, getField(action.optimisticData.entities));
+              const position = getPosition(
+                action.id,
+                getField(nextState.optimistic.updates).values,
+              );
               if (position === -1) {
                 throw new Error('Optimistic value not found.');
               }
@@ -103,22 +108,38 @@ export default function createEntitiesReducer(data) {
               updateValueBeforeRevertingOptimisticUpdate(position, state, action, getField);
 
               // revert optimistic value
-              revertOptimisticUpdate(position, state, action, getField);
+              nextState.optimistic.updates[type][id][field] = revertOptimisticUpdate(
+                position,
+                state,
+                action,
+                getField,
+              );
+              if (nextState.optimistic.updates[type][id][field] === undefined) {
+                delete nextState.optimistic.updates[type][id][field];
+              }
 
+              // delete value from response if present
               if (action.data && action.data.entities && getField(action.data.entities)) {
-                // delete value from response if there are newer optimsitic values
                 delete action.data.entities[type][id][field];
               }
             });
+
+            // garbage collection
+            if (Object.keys(nextState.optimistic.updates[type][id]).length === 0) {
+              delete nextState.optimistic.updates[type][id];
+            }
           });
+
+          // garbage collection
+          if (Object.keys(nextState.optimistic.updates[type]).length === 0) {
+            delete nextState.optimistic.updates[type];
+          }
         });
       }
 
       // deletions
       if (action.optimisticData.trash) {
-        action.optimisticData.trash.forEach((key) => {
-          const [type, id] = action.optimisticData.trash[key];
-
+        action.optimisticData.trash.forEach(([type, id]) => {
           // check if request id is correct
           if (nextState.optimistic.deletions[type][id].id !== action.id) {
             throw new Error('Optimistic deletion was processed by other request.');
@@ -141,6 +162,9 @@ export default function createEntitiesReducer(data) {
 
           // finally delete entity from optimistic data
           delete nextState.optimistic.deletions[type][id];
+          if (Object.keys(nextState.optimistic.deletions[type]).length === 0) {
+            delete nextState.optimistic.deletions[type];
+          }
         });
       }
     }
@@ -167,9 +191,7 @@ export default function createEntitiesReducer(data) {
 
       // deletions
       if (action.data.trash) {
-        action.data.trash.forEach((key) => {
-          const [type, id] = action.optimisticData.trash[key];
-
+        action.data.trash.forEach(([type, id]) => {
           // delete entity from store
           if (nextState.data[type] && nextState.data[type][id]) {
             delete nextState.data[type][id];
