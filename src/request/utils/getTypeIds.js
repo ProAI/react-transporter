@@ -1,14 +1,14 @@
-export default function getTypeIds(typeIds) {
-  if (typeof typeIds[0] === 'string' || typeIds[0] instanceof String) {
-    if (typeof typeIds[1] === 'string' || typeIds[1] instanceof String) {
+export default function getTypeIds(type, idOrIds) {
+  if (typeof type === 'string' || type instanceof String) {
+    if (typeof idOrIds === 'string' || idOrIds instanceof String) {
       // case 1) one type, one id
-      return [typeIds];
+      return [type, idOrIds];
     }
 
     // case 2) one type, many ids
-    return typeIds[1].map(id => [typeIds[0], id]);
+    return idOrIds.map(id => [type, id]);
   }
 
   // case 3) many types, many ids
-  return typeIds;
+  return type;
 }

@@ -5,39 +5,39 @@ import detachEntities from './utils/detachEntities';
 import isConnection from '../utils/isConnection';
 
 export default class ManyLink {
-  constructor(...args) {
+  constructor(type, idOrIds) {
     // object passed to constructor
-    if (args.length === 1 && isConnection(args[0])) {
-      this.meta = args[0].meta;
-      this.link = args[0].link;
+    if (idOrIds === undefined && isConnection(type)) {
+      this.meta = type.meta;
+      this.link = type.link;
       return;
     }
 
-    this.link = args ? getTypeIds(args) : [];
+    this.link = type ? getTypeIds(type) : [];
   }
 
-  prepend(...args) {
-    this.link = prependEntities(getTypeIds(args), this.link);
+  prepend(type, idOrIds) {
+    this.link = prependEntities(getTypeIds(type, idOrIds), this.link);
     return this;
   }
 
-  append(...args) {
-    this.link = appendEntities(getTypeIds(args), this.link);
+  append(type, idOrIds) {
+    this.link = appendEntities(getTypeIds(type, idOrIds), this.link);
     return this;
   }
 
-  syncPrepend(...args) {
-    this.link = prependEntities(getTypeIds(args), this.link, true);
+  syncPrepend(type, idOrIds) {
+    this.link = prependEntities(getTypeIds(type, idOrIds), this.link, true);
     return this;
   }
 
-  syncAppend(...args) {
-    this.link = appendEntities(getTypeIds(args), this.link, true);
+  syncAppend(type, idOrIds) {
+    this.link = appendEntities(getTypeIds(type, idOrIds), this.link, true);
     return this;
   }
 
-  detach(...args) {
-    this.link = detachEntities(getTypeIds(args), this.link);
+  detach(type, idOrIds) {
+    this.link = detachEntities(getTypeIds(type, idOrIds), this.link);
     return this;
   }
 
