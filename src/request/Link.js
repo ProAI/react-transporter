@@ -3,7 +3,7 @@ import isConnection from '../utils/isConnection';
 export default class Link {
   constructor(type, id) {
     // object passed to constructor
-    if (id === undefined && isConnection(type)) {
+    if (id === undefined && type !== undefined && isConnection(type)) {
       this.meta = type.meta;
       this.link = type.link;
       return;

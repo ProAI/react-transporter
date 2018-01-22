@@ -5,12 +5,17 @@ import getRawLink from './utils/getRawLink';
 import Link from './Link';
 import ManyLink from './ManyLink';
 import makeRequestError from './makeRequestError';
+import isDate from './utils/isDate';
 
 function prepareValue(value, entity, name) {
   const returnValue = typeof value === 'function' ? value(entity.get(name)) : value;
 
   if (isConnection(returnValue)) {
     return getRawLink(returnValue);
+  }
+
+  if (isDate(returnValue)) {
+    return returnValue.toISOString();
   }
 
   return returnValue;

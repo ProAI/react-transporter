@@ -5,6 +5,9 @@ import load from './react/load';
 import Link from './request/Link';
 import ManyLink from './request/ManyLink';
 import createTransporterSelector from './selector/createSelector';
+import get from './selector/get';
+import getFromRelation from './selector/getFromRelation';
+import getFromRoot from './selector/getFromRoot';
 
 export {
   TransporterNetwork,
@@ -14,4 +17,7 @@ export {
   Link,
   ManyLink,
   createTransporterSelector,
+  get,
+  getFromRelation,
+  getFromRoot,
 };

@@ -7,7 +7,7 @@ import isConnection from '../utils/isConnection';
 export default class ManyLink {
   constructor(type, idOrIds) {
     // object passed to constructor
-    if (idOrIds === undefined && isConnection(type)) {
+    if (idOrIds === undefined && type !== undefined && isConnection(type)) {
       this.meta = type.meta;
       this.link = type.link;
       return;
