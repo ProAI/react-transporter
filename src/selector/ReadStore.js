@@ -1,36 +1,46 @@
 import StoreQuery from './StoreQuery';
 import makeSelectorError from './makeSelectorError';
 
+function getData(state, typeIdOrIds, query) {
+  const store = new StoreQuery(state, typeIdOrIds);
+
+  return (query ? query(store) : store).getData();
+}
+
 export default class ReadStore {
   constructor(state) {
     this.state = state;
   }
 
-  select(type, id) {
+  select(type, id, query) {
     if (!this.state.entities.data[type] || !this.state.entities.data[type][id]) {
       throw makeSelectorError('MISSING_ENTITY', { type, id });
     }
 
-    return new StoreQuery(this.state, [type, id]);
+    return getData(this.state, [type, id], query);
   }
 
-  selectFromRoot(name) {
+  selectByRoot(name, query) {
     if (!this.state.roots.data[name]) {
       throw makeSelectorError('MISSING_ROOT', { name });
     }
 
-    const rootIds = this.state.roots.data[name].link;
+    const rootTypeIdOrIds = this.state.roots.data[name].link;
 
-    return new StoreQuery(this.state, rootIds);
+    return getData(this.state, rootTypeIdOrIds, query);
   }
 
-  selectFromRelation(type, id, name) {
-    if (!this.state.entities.data[type] || !this.state.entities.data[type][id]) {
+  selectByRelation(type, id, name, query) {
+    if (
+      !this.state.entities.data[type] ||
+      !this.state.entities.data[type][id] ||
+      !this.state.entities.data[type][id][name]
+    ) {
       throw makeSelectorError('MISSING_RELATION', { type, id, name });
     }
 
-    const childrenTypeIds = this.state.entities.data[type][id][name].link;
+    const childrenTypeIdOrIds = this.state.entities.data[type][id][name].link;
 
-    return new StoreQuery(this.state, childrenTypeIds);
+    return getData(this.state, childrenTypeIdOrIds, query);
   }
 }

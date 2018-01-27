@@ -4,10 +4,10 @@ import Provider from './react/Provider';
 import load from './react/load';
 import Link from './request/Link';
 import ManyLink from './request/ManyLink';
-import createTransporterSelector from './selector/createSelector';
-import get from './selector/get';
-import getFromRelation from './selector/getFromRelation';
-import getFromRoot from './selector/getFromRoot';
+import select from './selector/select';
+import selectByRelation from './selector/selectByRelation';
+import selectByRoot from './selector/selectByRoot';
+import selectAdvanced from './selector/selectAdvanced';
 
 export {
   TransporterNetwork,
@@ -16,8 +16,8 @@ export {
   load,
   Link,
   ManyLink,
-  createTransporterSelector,
-  get,
-  getFromRelation,
-  getFromRoot,
+  select,
+  selectByRelation,
+  selectByRoot,
+  selectAdvanced,
 };

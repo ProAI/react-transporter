@@ -1,10 +1,11 @@
 import React from 'react';
 
+/* eslint-disable react/prop-types */
 class Provider extends React.Component {
   render() {
-    // eslint-disable-next-line react/prop-types
     return this.props.children;
   }
 }
+/* eslint-enable */
 
 export default Provider;

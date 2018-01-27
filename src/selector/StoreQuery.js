@@ -4,14 +4,14 @@ import formatData from './utils/formatData';
 import getRelationData from './utils/getRelationData';
 
 export default class StoreQuery {
-  constructor(state, data) {
-    this.isManyLink = isManyLink(data);
+  constructor(state, typeIdOrIds) {
+    this.isManyLink = isManyLink(typeIdOrIds);
 
     this.data = this.isManyLink
-      ? data
+      ? typeIdOrIds
         .map(typeId => formatData(typeId[0], typeId[1], state.entities.data))
         .filter(item => item !== undefined)
-      : formatData(data[0], data[1], state.entities.data);
+      : formatData(typeIdOrIds[0], typeIdOrIds[1], state.entities.data);
 
     this.state = state;
   }
