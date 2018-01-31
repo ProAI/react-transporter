@@ -9,6 +9,12 @@ export default class Link {
       return;
     }
 
+    // value is null
+    if (id === undefined && type === undefined) {
+      this.link = null;
+      return;
+    }
+
     this.link = [type, id];
   }
 

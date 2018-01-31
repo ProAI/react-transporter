@@ -1,4 +1,4 @@
-import Selector from './../Selector';
+import StoreQuery from './../StoreQuery';
 import isConnection from '../../utils/isConnection';
 import isManyLink from '../../utils/isManyLink';
 import formatData from './formatData';
@@ -10,12 +10,12 @@ export default function getRelationData(type, id, name, state, constraints, shal
     throw makeSelectorError('MISSING_JOINED_RELATION', { type, id, name });
   }
 
+  const childrenTypeIds = state.entities.data[type][id][name].link;
+
   // relation is set to null
-  if (state.entities.data[type][id][name].link === null) {
+  if (childrenTypeIds === null) {
     return null;
   }
-
-  const childrenTypeIds = state.entities.data[type][id][name].link;
 
   // only select shallow link entities
   if (shallow) {
@@ -30,8 +30,8 @@ export default function getRelationData(type, id, name, state, constraints, shal
 
   // select full entity
   const selector = constraints
-    ? constraints(new Selector(state, childrenTypeIds))
-    : new Selector(state, childrenTypeIds);
+    ? constraints(new StoreQuery(state, childrenTypeIds))
+    : new StoreQuery(state, childrenTypeIds);
 
   return selector.getData();
 }

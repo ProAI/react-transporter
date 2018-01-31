@@ -1,4 +1,4 @@
-import SelectorError from '../SelectorError';
+import makeSelectorError from '../makeSelectorError';
 
 export default function compareValues(valueA, operator, valueB) {
   if (operator === '=') {
@@ -17,5 +17,5 @@ export default function compareValues(valueA, operator, valueB) {
     return valueA <= valueB;
   }
 
-  throw new SelectorError('UNKNOWN_WHERE_OPERATOR', { operator });
+  throw makeSelectorError('UNKNOWN_WHERE_OPERATOR', { operator });
 }
