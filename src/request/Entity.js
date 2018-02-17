@@ -50,7 +50,10 @@ export default class Entity {
   }
 
   get(name) {
-    if (!this.values[name] && (this.originalValues && !this.originalValues[name])) {
+    if (
+      this.values[name] === undefined &&
+      (this.originalValues && this.originalValues[name] === undefined)
+    ) {
       throw makeRequestError('MISSING_FIELD', { type: this.type, id: this.id, name });
     }
 
