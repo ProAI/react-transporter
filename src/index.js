@@ -1,5 +1,6 @@
 import TransporterNetwork from './core/Network';
 import TransporterClient from './core/Client';
+import bootstrapper from './loader/bootstrapper';
 import Provider from './react/Provider';
 import load from './react/load';
 import Link from './request/Link';
@@ -12,6 +13,7 @@ import selectAdvanced from './selector/selectAdvanced';
 export {
   TransporterNetwork,
   TransporterClient,
+  bootstrapper,
   Provider,
   load,
   Link,
