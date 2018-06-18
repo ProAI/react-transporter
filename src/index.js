@@ -1,6 +1,7 @@
 import TransporterNetwork from './core/Network';
 import TransporterClient from './core/Client';
 import bootstrapper from './loader/bootstrapper';
+import createContainer from './loader/createContainer';
 import Provider from './react/Provider';
 import load from './react/load';
 import Link from './request/Link';
@@ -14,6 +15,7 @@ export {
   TransporterNetwork,
   TransporterClient,
   bootstrapper,
+  createContainer,
   Provider,
   load,
   Link,

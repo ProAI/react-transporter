@@ -28,10 +28,12 @@ class RenderManager {
 
   setPhaseToFirstRender() {
     this.phase = 'FIRST_RENDER';
+    this.ids = {};
   }
 
   setPhaseToRender() {
     this.phase = 'RENDER';
+    this.ids = {};
   }
 
   addError(id, key, error) {
@@ -45,6 +47,8 @@ class RenderManager {
   }
 
   getError(id, key) {
+    if (!this.errors[id] || !this.errors[id][key]) return null;
+
     return this.errors[id][key];
   }
 
