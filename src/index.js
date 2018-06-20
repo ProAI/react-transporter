@@ -2,8 +2,7 @@ import TransporterNetwork from './core/Network';
 import TransporterClient from './core/Client';
 import bootstrapper from './loader/bootstrapper';
 import createContainer from './loader/createContainer';
-import Provider from './react/Provider';
-import load from './react/load';
+import query from './loader/query';
 import Link from './request/Link';
 import ManyLink from './request/ManyLink';
 import select from './selector/select';
@@ -16,8 +15,7 @@ export {
   TransporterClient,
   bootstrapper,
   createContainer,
-  Provider,
-  load,
+  query,
   Link,
   ManyLink,
   select,

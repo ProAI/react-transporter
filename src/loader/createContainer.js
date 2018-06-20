@@ -2,6 +2,17 @@ import React from 'react';
 import PropTypes from 'prop-types';
 import RenderManager from './RenderManager';
 
+const defaultOptions = {
+  split: false,
+  defer: true,
+  name: 'Test',
+};
+
+const defaultFallbacks = {
+  loading: () => null,
+  error: () => null,
+};
+
 const contextTypes = {
   store: PropTypes.object,
 };
@@ -9,16 +20,8 @@ const contextTypes = {
 export default function createContainer(component, customConfig) {
   const config = {
     loaders: customConfig.loaders || {},
-    fallbacks: customConfig.fallbacks || {},
-    options: Object.assign(
-      {},
-      {
-        split: false,
-        defer: true,
-        name: 'Test',
-      },
-      customConfig.options,
-    ),
+    fallbacks: Object.assign({}, defaultFallbacks, customConfig.fallbacks),
+    options: Object.assign({}, defaultOptions, customConfig.options),
   };
 
   const phase = RenderManager.getPhase();
@@ -48,7 +51,7 @@ export default function createContainer(component, customConfig) {
       // Set bundle loading & errors
       const loading = config.options.split
         ? {
-          bundle: isPreload ? false : !!getComponent(),
+          bundle: isPreload ? false : !getComponent(),
         }
         : {};
       const errors = config.options.split
@@ -75,8 +78,6 @@ export default function createContainer(component, customConfig) {
 
     // eslint-disable-next-line react/sort-comp
     bootstrap() {
-      console.log('bootstrap called');
-
       // We don't need to do something during bootstrapping if loading is deferred
       if (!isPreload) {
         return false;
@@ -125,7 +126,7 @@ export default function createContainer(component, customConfig) {
     }
 
     load(key, action, options = {}) {
-      const promise = options.isReduxAction ? this.context.store.dispatch(action) : action();
+      const promise = options.isReduxThunkAction ? this.context.store.dispatch(action) : action();
 
       return promise
         .then((result) => {
@@ -160,12 +161,12 @@ export default function createContainer(component, customConfig) {
     setRequestState(key, updatedLoading, updatedError) {
       this.setState(({ loading, errors }) => ({
         loading: {
-          [key]: updatedLoading,
           ...loading,
+          [key]: updatedLoading,
         },
         errors: {
-          [key]: updatedError === undefined ? errors[key] : updatedError,
           ...errors,
+          [key]: updatedError === undefined ? errors[key] : updatedError,
         },
       }));
     }
@@ -176,16 +177,18 @@ export default function createContainer(component, customConfig) {
       Object.keys(config.loaders).forEach((key) => {
         const loader = config.loaders[key];
 
-        loaderProps[key] = loader.props((action, options) => {
-          if (this.state.loading[key]) {
-            // eslint-disable-next-line no-console
-            console.error(`Resource ${config.options.name} ${key} is already loading.`);
-          } else {
-            this.setRequestState(key, true);
+        if (loader.props) {
+          loaderProps[key] = loader.props((action, options) => {
+            if (this.state.loading[key]) {
+              // eslint-disable-next-line no-console
+              console.error(`Resource ${config.options.name} ${key} is already loading.`);
+            } else {
+              this.setRequestState(key, true);
 
-            this.load(key, action, options);
-          }
-        });
+              this.load(key, action, options);
+            }
+          });
+        }
       });
 
       // Some resources are loading
@@ -203,8 +206,6 @@ export default function createContainer(component, customConfig) {
       }
 
       const Component = config.options.split ? getComponent() : component;
-      console.log(this.containerName);
-      console.log(Component);
 
       return <Component {...loaderProps} {...this.props} />;
     }

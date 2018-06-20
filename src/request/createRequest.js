@@ -31,55 +31,39 @@ export default function createRequest(request, fetch) {
       optimisticData,
     });
 
-    // immediately stop request on server for now
-    // TODO
-    if (typeof window === 'undefined') {
-      dispatch({
-        type: 'TRANSPORTER_REQUEST_COMPLETED',
-        id: request.id,
-        startTime,
-        endTime: new Date(),
-        data,
-      });
-    }
-
-    // pseudo fetch data on client for now
-    // TODO
-    if (typeof window !== 'undefined') {
-      // dispatch query
-      fetch(request.schema, request.variables).then(
-        () => {
-          try {
-            dispatch({
-              type: 'TRANSPORTER_REQUEST_COMPLETED',
-              id: request.id,
-              endTime: new Date(),
-              optimisticData,
-              data,
-            });
-          } catch (error) {
-            dispatch({
-              type: 'TRANSPORTER_REQUEST_ERROR',
-              id: request.id,
-              endTime: new Date(),
-              optimisticData,
-              error: 'Internal error',
-            });
-
-            throw error;
-          }
-        },
-        (error) => {
-          // update request status on error
+    // dispatch query
+    return fetch(request.schema, request.variables).then(
+      () => {
+        try {
+          dispatch({
+            type: 'TRANSPORTER_REQUEST_COMPLETED',
+            id: request.id,
+            endTime: new Date(),
+            optimisticData,
+            data,
+          });
+        } catch (error) {
           dispatch({
             type: 'TRANSPORTER_REQUEST_ERROR',
             id: request.id,
             endTime: new Date(),
             optimisticData,
-            error,
+            error: 'Internal error',
           });
-        },
-      );
-    }
+
+          throw error;
+        }
+      },
+      (error) => {
+        // update request status on error
+        dispatch({
+          type: 'TRANSPORTER_REQUEST_ERROR',
+          id: request.id,
+          endTime: new Date(),
+          optimisticData,
+          error,
+        });
+      },
+    );
   };
 }
