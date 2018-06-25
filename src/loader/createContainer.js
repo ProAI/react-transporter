@@ -1,11 +1,10 @@
 import React from 'react';
 import PropTypes from 'prop-types';
-import RenderManager from './RenderManager';
+import AsyncManager from './AsyncManager';
 
 const defaultOptions = {
-  split: false,
   defer: true,
-  name: 'Test',
+  boundary: false,
 };
 
 const defaultFallbacks = {
@@ -15,6 +14,11 @@ const defaultFallbacks = {
 
 const contextTypes = {
   store: PropTypes.object,
+  isInBoundary: PropTypes.bool,
+};
+
+const childContextTypes = {
+  isInBoundary: PropTypes.bool,
 };
 
 export default function createContainer(component, customConfig) {
@@ -24,46 +28,61 @@ export default function createContainer(component, customConfig) {
     options: Object.assign({}, defaultOptions, customConfig.options),
   };
 
-  const phase = RenderManager.getPhase();
+  const hasCodeSplit = component.name && component.bundle;
+  const name = component.displayName || component.name || 'Component';
 
-  const isPreload =
-    !config.options.defer && (phase === 'BOOTSTRAPPING' || phase === 'FIRST_RENDER');
-  const isServer = RenderManager.getEnv() === 'node';
+  if (!component.displayName && !component.name) {
+    // eslint-disable-next-line no-console
+    console.warn('Loadable component has no name.');
+  }
 
-  const getComponent = () => RenderManager.getComponent(config.options.name);
-  const addComponent = module => RenderManager.addComponent(config.options.name, module);
+  const phase = AsyncManager.getPhase();
+  const isServer = AsyncManager.getEnv() === 'node';
 
-  const getError = (name, key) => (isPreload ? RenderManager.getError(name, key) : null);
-  const addError = (name, key, error) => RenderManager.addError(name, key, error);
+  const getComponent = () => AsyncManager.getComponent(name);
+  const addComponent = module => AsyncManager.addComponent(name, module);
+
+  const getError = (containerName, key) => AsyncManager.getError(containerName, key);
+  const addError = (containerName, key, error) => AsyncManager.addError(containerName, key, error);
+
+  const generateContainerName = () => `${name}-${AsyncManager.generateId(name)}`;
 
   class Container extends React.Component {
     constructor(props, context) {
       super(props, context);
 
+      if (context.isInBoundary && !config.options.defer) {
+        // eslint-disable-next-line no-console
+        console.warn('Option "defer" is set to false inside a boundary.');
+      }
+
+      const defer = context.isInBoundary || config.options.defer;
+      this.isPreload = !defer && (phase === 'BOOTSTRAPPING' || phase === 'FIRST_RENDER');
+
       // Set unmounted to false
       this.hasUnmounted = false;
 
       // Set containerName
-      if (isPreload) {
-        this.containerName = `${config.options.name}-${RenderManager.generateId(config.options.name)}`;
+      if (this.isPreload) {
+        this.containerName = generateContainerName();
       }
 
       // Set bundle loading & errors
-      const loading = config.options.split
+      const loading = hasCodeSplit
         ? {
-          bundle: isPreload ? false : !getComponent(),
+          bundle: this.isPreload ? false : !getComponent(),
         }
         : {};
-      const errors = config.options.split
+      const errors = hasCodeSplit
         ? {
-          bundle: getError(this.containerName, 'bundle'),
+          bundle: this.isPreload ? getError(this.containerName, 'bundle') : null,
         }
         : {};
 
       // Set resources loading & errors
       Object.keys(config.loaders).forEach((key) => {
-        loading[key] = !isPreload;
-        errors[key] = getError(this.containerName, key);
+        loading[key] = !this.isPreload ? 'block' : null;
+        errors[key] = this.isPreload ? getError(this.containerName, key) : null;
       });
 
       // Set state
@@ -76,10 +95,14 @@ export default function createContainer(component, customConfig) {
       this.load = this.load.bind(this);
     }
 
+    getChildContext() {
+      return { isInBoundary: config.options.boundary };
+    }
+
     // eslint-disable-next-line react/sort-comp
     bootstrap() {
       // We don't need to do something during bootstrapping if loading is deferred
-      if (!isPreload) {
+      if (!this.isPreload) {
         return false;
       }
 
@@ -98,17 +121,17 @@ export default function createContainer(component, customConfig) {
       }
 
       // Load code bundle if present on server & client
-      if (config.options.split) {
-        promises.push(this.load('bundle', component));
+      if (hasCodeSplit) {
+        promises.push(this.load('bundle', component.bundle));
       }
 
-      // Return composed promises
-      return Promise.all(promises);
+      // Return composed promises and return false if this is a boundary
+      return Promise.all(promises).then(() => !config.options.boundary);
     }
 
     componentDidMount() {
       // We don't need to do something if resources were preloaded
-      if (isPreload) {
+      if (this.isPreload) {
         return;
       }
 
@@ -120,8 +143,8 @@ export default function createContainer(component, customConfig) {
       });
 
       // Load code bundle if present on server & client
-      if (config.options.split && !getComponent()) {
-        this.load('bundle', component);
+      if (hasCodeSplit && !getComponent()) {
+        this.load('bundle', component.bundle);
       }
     }
 
@@ -136,15 +159,15 @@ export default function createContainer(component, customConfig) {
           }
 
           // Update state if component did mount
-          if (!isPreload && !this.hasUnmounted) {
-            this.setRequestState(key, false, null);
+          if (!this.isPreload && !this.hasUnmounted) {
+            this.setRequestState(key, null, null);
           }
         })
         .catch((error) => {
           // Update state if component did mount
-          if (!isPreload) {
+          if (!this.isPreload) {
             if (!this.hasUnmounted) {
-              this.setRequestState(key, false, error);
+              this.setRequestState(key, null, error);
             }
           } else {
             addError(this.containerName, key, error);
@@ -178,21 +201,25 @@ export default function createContainer(component, customConfig) {
         const loader = config.loaders[key];
 
         if (loader.props) {
-          loaderProps[key] = loader.props((action, options) => {
-            if (this.state.loading[key]) {
-              // eslint-disable-next-line no-console
-              console.error(`Resource ${config.options.name} ${key} is already loading.`);
-            } else {
-              this.setRequestState(key, true);
+          loaderProps[key] = {
+            loading: !!this.state.loading[key],
+            error: this.state.errors[key],
+            ...loader.props((action, options) => {
+              if (this.state.loading[key]) {
+                // eslint-disable-next-line no-console
+                console.error(`Resource ${name} ${key} is already loading.`);
+              } else {
+                this.setRequestState(key, options && options.showWhileLoading ? 'show' : 'block');
 
-              this.load(key, action, options);
-            }
-          });
+                this.load(key, action, options);
+              }
+            }),
+          };
         }
       });
 
       // Some resources are loading
-      if (Object.values(this.state.loading).some(element => element)) {
+      if (Object.values(this.state.loading).some(element => element === 'block')) {
         const LoadingComponent = config.fallbacks.loading;
 
         return <LoadingComponent {...loaderProps} {...this.props} />;
@@ -205,13 +232,14 @@ export default function createContainer(component, customConfig) {
         return <ErrorComponent {...loaderProps} {...this.props} />;
       }
 
-      const Component = config.options.split ? getComponent() : component;
+      const Component = hasCodeSplit ? getComponent() : component;
 
       return <Component {...loaderProps} {...this.props} />;
     }
   }
 
   Container.contextTypes = contextTypes;
+  Container.childContextTypes = childContextTypes;
 
   return Container;
 }

@@ -4,7 +4,7 @@ const canUseDOM = typeof window !== 'undefined';
 const resolveES6 = x =>
   (x != null && (typeof x === 'function' || typeof x === 'object') && x.default ? x.default : x);
 
-class RenderManager {
+class AsyncManager {
   env: 'browser' | 'node';
   phase: 'BOOTSTRAPPING' | 'FIRST_RENDER' | 'RENDER';
 
@@ -69,6 +69,6 @@ class RenderManager {
   }
 }
 
-const RenderManagerInstance = new RenderManager();
+const AsyncManagerInstance = new AsyncManager();
 
-export default RenderManagerInstance;
+export default AsyncManagerInstance;
