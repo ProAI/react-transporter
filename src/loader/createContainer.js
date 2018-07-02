@@ -22,12 +22,6 @@ const childContextTypes = {
 };
 
 export default function createContainer(component, customConfig) {
-  const config = {
-    loaders: customConfig.loaders || {},
-    fallbacks: Object.assign({}, defaultFallbacks, customConfig.fallbacks),
-    options: Object.assign({}, defaultOptions, customConfig.options),
-  };
-
   const hasCodeSplit = component.name && component.bundle;
   const name = component.displayName || component.name || 'Component';
 
@@ -42,7 +36,15 @@ export default function createContainer(component, customConfig) {
   const getComponent = () => AsyncManager.getComponent(name);
   const addComponent = module => AsyncManager.addComponent(name, module);
 
-  const getError = (containerName, key) => AsyncManager.getError(containerName, key);
+  const getError = (containerName, key) => {
+    const errors = AsyncManager.getError(containerName, key);
+
+    if (!errors || Object.keys(errors).length === 0) {
+      return null;
+    }
+
+    return errors;
+  };
   const addError = (containerName, key, error) => AsyncManager.addError(containerName, key, error);
 
   const generateContainerName = () => `${name}-${AsyncManager.generateId(name)}`;
@@ -51,38 +53,38 @@ export default function createContainer(component, customConfig) {
     constructor(props, context) {
       super(props, context);
 
+      const config = this.getConfig();
+      const isPreload = this.isPreload(config);
+
       if (context.isInBoundary && !config.options.defer) {
         // eslint-disable-next-line no-console
         console.warn('Option "defer" is set to false inside a boundary.');
       }
 
-      const defer = context.isInBoundary || config.options.defer;
-      this.isPreload = !defer && (phase === 'BOOTSTRAPPING' || phase === 'FIRST_RENDER');
-
       // Set unmounted to false
       this.hasUnmounted = false;
 
       // Set containerName
-      if (this.isPreload) {
+      if (isPreload) {
         this.containerName = generateContainerName();
       }
 
       // Set bundle loading & errors
       const loading = hasCodeSplit
         ? {
-          bundle: this.isPreload ? false : !getComponent(),
+          bundle: isPreload || getComponent() ? null : 'block',
         }
         : {};
       const errors = hasCodeSplit
         ? {
-          bundle: this.isPreload ? getError(this.containerName, 'bundle') : null,
+          bundle: isPreload ? getError(this.containerName, 'bundle') : null,
         }
         : {};
 
       // Set resources loading & errors
       Object.keys(config.loaders).forEach((key) => {
-        loading[key] = !this.isPreload ? 'block' : null;
-        errors[key] = this.isPreload ? getError(this.containerName, key) : null;
+        loading[key] = !isPreload ? 'block' : null;
+        errors[key] = isPreload ? getError(this.containerName, key) : null;
       });
 
       // Set state
@@ -96,13 +98,16 @@ export default function createContainer(component, customConfig) {
     }
 
     getChildContext() {
-      return { isInBoundary: config.options.boundary };
+      return { isInBoundary: this.getConfig().options.boundary };
     }
 
     // eslint-disable-next-line react/sort-comp
     bootstrap() {
+      const config = this.getConfig();
+      const isPreload = this.isPreload(config);
+
       // We don't need to do something during bootstrapping if loading is deferred
-      if (!this.isPreload) {
+      if (!isPreload) {
         return false;
       }
 
@@ -115,14 +120,14 @@ export default function createContainer(component, customConfig) {
           const loader = config.loaders[key];
 
           loader.init((action, options) => {
-            promises.push(this.load(key, action, options));
+            promises.push(this.load(key, action, isPreload, options));
           });
         });
       }
 
       // Load code bundle if present on server & client
       if (hasCodeSplit) {
-        promises.push(this.load('bundle', component.bundle));
+        promises.push(this.load('bundle', component.bundle, isPreload));
       }
 
       // Return composed promises and return false if this is a boundary
@@ -130,8 +135,11 @@ export default function createContainer(component, customConfig) {
     }
 
     componentDidMount() {
+      const config = this.getConfig();
+      const isPreload = this.isPreload(config);
+
       // We don't need to do something if resources were preloaded
-      if (this.isPreload) {
+      if (isPreload) {
         return;
       }
 
@@ -139,16 +147,16 @@ export default function createContainer(component, customConfig) {
       Object.keys(config.loaders).forEach((key) => {
         const loader = config.loaders[key];
 
-        loader.init((action, options) => this.load(key, action, options));
+        loader.init((action, options) => this.load(key, action, isPreload, options));
       });
 
       // Load code bundle if present on server & client
       if (hasCodeSplit && !getComponent()) {
-        this.load('bundle', component.bundle);
+        this.load('bundle', component.bundle, isPreload);
       }
     }
 
-    load(key, action, options = {}) {
+    load(key, action, isPreload, options = {}) {
       const promise = options.isReduxThunkAction ? this.context.store.dispatch(action) : action();
 
       return promise
@@ -159,13 +167,13 @@ export default function createContainer(component, customConfig) {
           }
 
           // Update state if component did mount
-          if (!this.isPreload && !this.hasUnmounted) {
+          if (!isPreload && !this.hasUnmounted) {
             this.setRequestState(key, null, null);
           }
         })
         .catch((error) => {
           // Update state if component did mount
-          if (!this.isPreload) {
+          if (!isPreload) {
             if (!this.hasUnmounted) {
               this.setRequestState(key, null, error);
             }
@@ -194,7 +202,27 @@ export default function createContainer(component, customConfig) {
       }));
     }
 
+    getConfig() {
+      // TODO memoize this function
+      const tempConfig =
+        typeof customConfig === 'function' ? customConfig(this.props) : customConfig;
+
+      return {
+        loaders: tempConfig.loaders || {},
+        fallbacks: Object.assign({}, defaultFallbacks, tempConfig.fallbacks),
+        options: Object.assign({}, defaultOptions, tempConfig.options),
+      };
+    }
+
+    isPreload(config) {
+      const defer = this.context.isInBoundary || config.options.defer;
+
+      return !defer && (phase === 'BOOTSTRAPPING' || phase === 'FIRST_RENDER');
+    }
+
     render() {
+      const config = this.getConfig();
+
       // Create loader props
       const loaderProps = {};
       Object.keys(config.loaders).forEach((key) => {
@@ -211,7 +239,7 @@ export default function createContainer(component, customConfig) {
               } else {
                 this.setRequestState(key, options && options.showWhileLoading ? 'show' : 'block');
 
-                this.load(key, action, options);
+                this.load(key, action, false, options);
               }
             }),
           };
@@ -226,7 +254,7 @@ export default function createContainer(component, customConfig) {
       }
 
       // Some resources have an error
-      if (Object.keys(this.state.errors).some(element => element === null)) {
+      if (Object.values(this.state.errors).some(element => element !== null)) {
         const ErrorComponent = config.fallbacks.error;
 
         return <ErrorComponent {...loaderProps} {...this.props} />;

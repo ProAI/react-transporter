@@ -20,9 +20,9 @@ export default function createRequest(request, fetch) {
     // create request id if not present
     if (!request.id) request.id = generateId();
     const startTime = new Date();
-    const data =
+    const storeData =
       request.type === 'TRANSPORTER_MUTATION' ? makeData(request.optimisticUpdater, getState) : {};
-    const optimisticData = request.type === 'TRANSPORTER_MUTATION' ? data : null;
+    const optimisticData = request.type === 'TRANSPORTER_MUTATION' ? storeData : null;
 
     dispatch({
       type: 'TRANSPORTER_REQUEST_START',
@@ -33,27 +33,30 @@ export default function createRequest(request, fetch) {
 
     // dispatch query
     return fetch(request.schema, request.variables).then(
-      () => {
-        try {
-          dispatch({
-            type: 'TRANSPORTER_REQUEST_COMPLETED',
-            id: request.id,
-            endTime: new Date(),
-            optimisticData,
-            data,
-          });
-        } catch (error) {
-          dispatch({
-            type: 'TRANSPORTER_REQUEST_ERROR',
-            id: request.id,
-            endTime: new Date(),
-            optimisticData,
-            error: 'Internal error',
-          });
+      result =>
+        result.json().then((responseData) => {
+          try {
+            dispatch({
+              type: 'TRANSPORTER_REQUEST_COMPLETED',
+              id: request.id,
+              endTime: new Date(),
+              optimisticData,
+              data: responseData,
+            });
+          } catch (error) {
+            dispatch({
+              type: 'TRANSPORTER_REQUEST_ERROR',
+              id: request.id,
+              endTime: new Date(),
+              optimisticData,
+              error: 'Internal error',
+            });
 
-          throw error;
-        }
-      },
+            throw error;
+          }
+
+          return responseData;
+        }),
       (error) => {
         // update request status on error
         dispatch({
@@ -63,6 +66,8 @@ export default function createRequest(request, fetch) {
           optimisticData,
           error,
         });
+
+        throw error;
       },
     );
   };
