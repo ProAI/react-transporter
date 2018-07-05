@@ -35,30 +35,45 @@ export default function createRequest(request, fetch) {
     return fetch(request.schema, request.variables).then(
       result =>
         result.json().then((responseData) => {
-          try {
-            dispatch({
-              type: 'TRANSPORTER_REQUEST_COMPLETED',
-              id: request.id,
-              endTime: new Date(),
-              optimisticData,
-              data: responseData,
-            });
-          } catch (error) {
+          if (responseData.errors && responseData.errors.length > 0) {
+            // Log and throw GraphQL error(s)
             dispatch({
               type: 'TRANSPORTER_REQUEST_ERROR',
               id: request.id,
               endTime: new Date(),
               optimisticData,
-              error: 'Internal error',
+              error: responseData.errors,
             });
 
-            throw error;
+            throw responseData.errors;
+          } else {
+            try {
+              // Try to add response to store
+              dispatch({
+                type: 'TRANSPORTER_REQUEST_COMPLETED',
+                id: request.id,
+                endTime: new Date(),
+                optimisticData,
+                data: responseData.data,
+              });
+            } catch (error) {
+              // Log and throw internal error
+              dispatch({
+                type: 'TRANSPORTER_REQUEST_ERROR',
+                id: request.id,
+                endTime: new Date(),
+                optimisticData,
+                error: 'Internal error',
+              });
+
+              throw error;
+            }
           }
 
           return responseData;
         }),
       (error) => {
-        // update request status on error
+        // Log and throw request error
         dispatch({
           type: 'TRANSPORTER_REQUEST_ERROR',
           id: request.id,

@@ -1,9 +1,6 @@
 // @flow
 const canUseDOM = typeof window !== 'undefined';
 
-const resolveES6 = x =>
-  (x != null && (typeof x === 'function' || typeof x === 'object') && x.default ? x.default : x);
-
 class AsyncManager {
   env: 'browser' | 'node';
   phase: 'BOOTSTRAPPING' | 'FIRST_RENDER' | 'RENDER';
@@ -14,7 +11,6 @@ class AsyncManager {
 
     // eslint-disable-next-line
     this.errors = canUseDOM ? window.__LOADER_ERRORS__ : {};
-    this.components = {};
     this.ids = {};
   }
 
@@ -42,10 +38,6 @@ class AsyncManager {
     this.errors[id][key] = error;
   }
 
-  addComponent(id, Component) {
-    this.components[id] = resolveES6(Component);
-  }
-
   getError(id, key) {
     if (!this.errors[id] || !this.errors[id][key]) return null;
 
@@ -54,10 +46,6 @@ class AsyncManager {
 
   getErrors() {
     return this.errors;
-  }
-
-  getComponent(id) {
-    return this.components[id];
   }
 
   getEnv() {
