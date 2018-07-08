@@ -8,10 +8,7 @@ const defaultOptions = {
   boundary: false,
 };
 
-const defaultFallbacks = {
-  Loading: () => null,
-  Error: () => null,
-};
+const getTimestamp = () => new Date().getTime();
 
 const resolveES6 = x =>
   (x != null && (typeof x === 'function' || typeof x === 'object') && x.default ? x.default : x);
@@ -34,12 +31,12 @@ export default function createAsyncContainer(component, customConfig) {
     console.warn('Loadable component has no name.');
   }
 
-  const phase = AsyncManager.getPhase();
+  const getPhase = () => AsyncManager.getPhase();
   const isServer = AsyncManager.getEnv() === 'node';
 
   // init component statics
-  const Component = !component.bundle ? component : null;
-  const EnhancedComponent = !component.bundle ? enhance(component) : null;
+  const Component = !hasCodeSplit ? component : null;
+  const EnhancedComponent = !hasCodeSplit ? enhance(component) : null;
 
   const getError = (containerName, key) => {
     const errors = AsyncManager.getError(containerName, key);
@@ -74,32 +71,36 @@ export default function createAsyncContainer(component, customConfig) {
         this.containerName = generateContainerName();
       }
 
+      const loaderState = {
+        startTime: !isPreload ? getTimestamp() : null,
+        endTime: null,
+      };
+
       // Set bundle loading & errors
-      const loading = hasCodeSplit
+      const initialState = hasCodeSplit
         ? {
-          bundle: isPreload || Container.Component ? null : 'block',
-        }
-        : {};
-      const errors = hasCodeSplit
-        ? {
-          bundle: isPreload ? getError(this.containerName, 'bundle') : null,
+          bundle: {
+            ...loaderState,
+            loading: isPreload || Container.Component ? null : 'block',
+            error: isPreload ? getError(this.containerName, 'bundle') : null,
+          },
         }
         : {};
 
       // Set resources loading & errors
       Object.keys(config.loaders).forEach((key) => {
-        loading[key] = !isPreload ? 'block' : null;
-        errors[key] = isPreload ? getError(this.containerName, key) : null;
+        initialState[key] = {
+          ...loaderState,
+          loading: !isPreload ? 'block' : null,
+          error: isPreload ? getError(this.containerName, key) : null,
+        };
       });
 
       // Set state
-      this.state = {
-        loading,
-        errors,
-      };
+      this.state = initialState;
 
       // Bind load method
-      this.load = this.load.bind(this);
+      this.handleLoad = this.handleLoad.bind(this);
     }
 
     getChildContext() {
@@ -123,16 +124,17 @@ export default function createAsyncContainer(component, customConfig) {
         // Iterate over loaders to load resources initially
         Object.keys(config.loaders).forEach((key) => {
           const loader = config.loaders[key];
+          const load = (promise) => {
+            promises.push(this.handleLoad(key, promise, isPreload));
+          };
 
-          loader.init((action, options) => {
-            promises.push(this.load(key, action, isPreload, options));
-          });
+          loader.request(load, this.context.store.dispatch);
         });
       }
 
       // Load code bundle if present on server & client
       if (hasCodeSplit) {
-        promises.push(this.load('bundle', component.bundle, isPreload));
+        promises.push(this.handleLoad('bundle', component.bundle(), isPreload));
       }
 
       // Return composed promises and return false if this is a boundary
@@ -151,19 +153,37 @@ export default function createAsyncContainer(component, customConfig) {
       // Iterate over loaders to load resources initially
       Object.keys(config.loaders).forEach((key) => {
         const loader = config.loaders[key];
+        const load = promise => this.handleLoad(key, promise, false);
 
-        loader.init((action, options) => this.load(key, action, isPreload, options));
+        loader.request(load, this.context.store.dispatch);
       });
 
       // Load code bundle if present on server & client
       if (hasCodeSplit && !Container.Component) {
-        this.load('bundle', component.bundle, isPreload);
+        this.handleLoad('bundle', component.bundle(), false);
       }
     }
 
-    load(key, action, isPreload, options = {}) {
-      const promise = options.isReduxThunkAction ? this.context.store.dispatch(action) : action();
+    componentWillReceiveProps(nextProps, nextContext) {
+      const config = this.getConfig();
 
+      Object.keys(config.loaders).forEach((key) => {
+        const loader = config.loaders[key];
+
+        // If a shouldUpdate function is defined, then we will check whether we need to reload the
+        // resource or not.
+        if (loader.shouldUpdate && !this.state[key].loading) {
+          if (loader.shouldUpdate(this.state[key], nextProps, nextContext.store.getState())) {
+            this.setRequestState(key, 'block', null);
+
+            const load = (promise, options) => this.handleLoad(key, promise, false, options);
+            loader.request(load, this.context.store.dispatch);
+          }
+        }
+      });
+    }
+
+    handleLoad(key, promise, isPreload) {
       return promise
         .then((result) => {
           // Save component if request was done for a component
@@ -186,7 +206,7 @@ export default function createAsyncContainer(component, customConfig) {
           } else {
             addError(this.containerName, key, error);
 
-            this.state.errors[key] = error;
+            this.state[key].error = error;
           }
         });
     }
@@ -195,15 +215,17 @@ export default function createAsyncContainer(component, customConfig) {
       this.hasUnmounted = true;
     }
 
-    setRequestState(key, updatedLoading, updatedError) {
-      this.setState(({ loading, errors }) => ({
-        loading: {
-          ...loading,
-          [key]: updatedLoading,
-        },
-        errors: {
-          ...errors,
-          [key]: updatedError === undefined ? errors[key] : updatedError,
+    setRequestState(key, loading, error) {
+      // Set loading and errors state. For start and end time we assume that if updatedLoading is
+      // true, a new request will begin and if updatedLoading is false, a request will end.
+      const time = getTimestamp();
+
+      this.setState(state => ({
+        [key]: {
+          startTime: loading ? time : state[key].startTime,
+          endTime: !loading ? time : state[key].endTime,
+          loading,
+          error: error === undefined ? state[key].error : error,
         },
       }));
     }
@@ -216,12 +238,13 @@ export default function createAsyncContainer(component, customConfig) {
       return {
         ...tempConfig,
         loaders: tempConfig.loaders || {},
-        fallbacks: Object.assign({}, defaultFallbacks, tempConfig.fallbacks),
+        fallbacks: tempConfig.fallbacks || {},
         options: Object.assign({}, defaultOptions, tempConfig.options),
       };
     }
 
     isPreload(config) {
+      const phase = getPhase();
       const defer = this.context.isInBoundary || config.options.defer;
 
       return !defer && (phase === 'BOOTSTRAPPING' || phase === 'FIRST_RENDER');
@@ -236,38 +259,55 @@ export default function createAsyncContainer(component, customConfig) {
         const loader = config.loaders[key];
 
         if (loader.props) {
-          loaderProps[key] = {
-            loading: !!this.state.loading[key],
-            error: this.state.errors[key],
-            ...loader.props((action, options) => {
-              if (this.state.loading[key]) {
-                // eslint-disable-next-line no-console
-                console.error(`Resource ${name} ${key} is already loading.`);
-              } else {
-                this.setRequestState(key, options && options.showWhileLoading ? 'show' : 'block');
+          const load = (promise, options) => {
+            if (this.state.loading[key]) {
+              // eslint-disable-next-line no-console
+              console.error(`Resource ${name} ${key} is already loading.`);
+            } else {
+              // Start request
+              this.setRequestState(key, options && options.showWhileLoading ? 'show' : 'block');
 
-                this.load(key, action, false, options);
-              }
-            }),
+              this.handleLoad(key, promise, false);
+            }
+          };
+
+          loaderProps[key] = {
+            ...this.state[key],
+            ...loader.props(load, this.context.store.dispatch),
           };
         }
       });
 
       // Some resources are loading
-      if (Object.values(this.state.loading).some(element => element === 'block')) {
+      if (Object.values(this.state).some(info => info.loading === 'block')) {
+        if (!config.fallbacks.Loading) {
+          return null;
+        }
+
         const LoadingComponent = config.fallbacks.Loading;
 
         return <LoadingComponent {...loaderProps} {...this.props} />;
       }
 
       // Some resources have an error
-      if (Object.values(this.state.errors).some(element => element !== null)) {
-        const ErrorComponent = config.fallbacks.Error;
+      if (Object.values(this.state).some(info => info.error !== null)) {
+        if (process.env.NODE_ENV !== 'production' && getPhase() !== 'BOOTSTRAPPING') {
+          const errors = {};
+          Object.keys(this.state).forEach((key) => {
+            if (this.state[key].error) {
+              errors[key] = this.state[key].error;
+            }
+          });
 
-        if (process.env.NODE_ENV !== 'production') {
           // eslint-disable-next-line no-console
-          console.error(`Some loaders of component ${name} have errors:\n`, this.state.errors);
+          console.error(`Some loaders of component ${name} have errors:\n`, errors);
         }
+
+        if (!config.fallbacks.Error) {
+          return null;
+        }
+
+        const ErrorComponent = config.fallbacks.Error;
 
         return <ErrorComponent {...loaderProps} {...this.props} />;
       }

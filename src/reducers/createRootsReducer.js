@@ -76,6 +76,16 @@ export default function createRootsReducer(data) {
       nextState.data = Object.assign({}, nextState.data, action.data.roots);
     }
 
+    if (action.type === 'TRANSPORTER_STORE_RESET') {
+      return {
+        data: {},
+        optimistic: {
+          updates: {},
+          deletions: {},
+        },
+      };
+    }
+
     return nextState;
   };
 }

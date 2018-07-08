@@ -1,41 +1,33 @@
-function createQuery(schema, options) {
-  return {
-    type: 'TRANSPORTER_QUERY',
-    schema,
-    ...options,
-  };
-}
+import createQuery from '../actions/createQuery';
 
 export default function query(schema, { skip, ...options }) {
+  const schemaBody = schema.loc.source.body;
   // TODO integrate cache into (load, cache) => function
   let timeout = null;
 
   return {
-    init: load =>
+    request: (load, dispatch) =>
       (skip
         ? load(new Promise(resolve => resolve()))
-        : load(createQuery(schema.loc.source.body, options), { isReduxThunkAction: true })),
-    props: load => ({
+        : load(dispatch(createQuery(schemaBody, options)))),
+    props: (load, dispatch) => ({
       refetch: (...localOptions) =>
-        load(createQuery(schema.loc.source.body, { ...options, ...localOptions }), {
-          isReduxThunkAction: true,
-        }),
+        load(dispatch(createQuery(schemaBody, { ...options, ...localOptions }))),
       fetchMore: (...localOptions) =>
-        load(createQuery(schema.loc.source.body, { ...options, ...localOptions }), {
-          isReduxThunkAction: true,
+        load(dispatch(createQuery(schemaBody, { ...options, ...localOptions }), {
           showWhileLoading: true,
-        }),
+        })),
       startPolling: (interval) => {
         timeout = setInterval(() => {
-          load(createQuery(schema.loc.source.body, options), {
-            isReduxThunkAction: true,
+          load(dispatch(createQuery(schemaBody, options), {
             showWhileLoading: true,
-          });
+          }));
         }, interval);
       },
       endPolling: () => {
         clearInterval(timeout);
       },
     }),
+    shouldReload: (info, props, state) => info.startTime < state.transporter.info.lastReset,
   };
 }

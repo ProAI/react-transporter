@@ -200,6 +200,16 @@ export default function createEntitiesReducer(data) {
       }
     }
 
+    if (action.type === 'TRANSPORTER_STORE_RESET') {
+      return {
+        data: {},
+        optimistic: {
+          updates: {},
+          deletions: {},
+        },
+      };
+    }
+
     return nextState;
   };
 }
