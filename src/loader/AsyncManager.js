@@ -10,8 +10,14 @@ class AsyncManager {
     this.phase = 'BOOTSTRAPPING';
 
     // eslint-disable-next-line
-    this.errors = canUseDOM ? window.__LOADER_ERRORS__ : {};
+    this.errors = canUseDOM && window.__ASYNC_DATA__ ? window.__ASYNC_DATA__.errors : {};
+    // eslint-disable-next-line
+    this.ssr = !canUseDOM || (canUseDOM && window.__ASYNC_DATA__ && !!window.__ASYNC_DATA__.errors);
     this.ids = {};
+  }
+
+  isSSREnabled() {
+    return this.ssr;
   }
 
   generateId(name) {

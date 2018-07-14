@@ -16,14 +16,18 @@ export default function bootstrapper(app, render, context = {}) {
     .then(() => {
       RenderManager.setPhaseToFirstRender();
 
-      const errors = RenderManager.getErrors();
-
       if (RenderManager.getEnv() === 'node') {
+        const errors = RenderManager.getErrors();
+
+        const data = {
+          errors,
+        };
+
         render({
           getScriptTag: () =>
-            `<script charset="UTF-8">window.__LOADER_ERRORS__=${serialize(errors)};</script>`,
+            `<script charset="UTF-8">window.__ASYNC_DATA__=${serialize(data)};</script>`,
           /* eslint-disable react/no-danger */
-          getScriptElement: () => <script dangerouslySetInnerHTML={{ __html: errors }} />,
+          getScriptElement: () => <script dangerouslySetInnerHTML={{ __html: data }} />,
           /* eslint-enable */
         });
       } else {

@@ -33,6 +33,7 @@ export default function createAsyncContainer(component, customConfig) {
 
   const getPhase = () => AsyncManager.getPhase();
   const isServer = AsyncManager.getEnv() === 'node';
+  const isSSREnabled = AsyncManager.isSSREnabled();
 
   // init component statics
   const Component = !hasCodeSplit ? component : null;
@@ -245,7 +246,7 @@ export default function createAsyncContainer(component, customConfig) {
 
     isPreload(config) {
       const phase = getPhase();
-      const defer = this.context.isInBoundary || config.options.defer;
+      const defer = !isSSREnabled || this.context.isInBoundary || config.options.defer;
 
       return !defer && (phase === 'BOOTSTRAPPING' || phase === 'FIRST_RENDER');
     }
