@@ -1,17 +1,28 @@
 import React from 'react';
 import PropTypes from 'prop-types';
+import { compose } from 'redux';
 import AsyncManager from './AsyncManager';
-import enhance from './utils/enhance';
-
-const defaultOptions = {
-  defer: true,
-  boundary: false,
-};
+import enhanceWithConnect from './utils/enhanceWithConnect';
 
 const getTimestamp = () => new Date().getTime();
 
 const resolveES6 = x =>
   (x != null && (typeof x === 'function' || typeof x === 'object') && x.default ? x.default : x);
+
+const defaultAsyncOptions = {
+  disabled: false,
+  defer: true,
+  error: null,
+  loading: null,
+};
+
+const getAsyncOptions = (options) => {
+  if (options && options.async) {
+    return Object.assign({}, options.async, defaultAsyncOptions);
+  }
+
+  return defaultAsyncOptions;
+};
 
 const contextTypes = {
   store: PropTypes.object,
@@ -22,54 +33,45 @@ const childContextTypes = {
   isInBoundary: PropTypes.bool,
 };
 
-export default function createAsyncContainer(component, customConfig) {
-  const hasCodeSplit = component.name && component.bundle;
-  const name = component.displayName || component.name || 'Component';
+export default function createAsyncComponent(component, makeConfig, customOptions) {
+  const options = {
+    middleware: customOptions.middleware || null,
+    async: getAsyncOptions(customOptions),
+  };
 
   if (!component.displayName && !component.name) {
     // eslint-disable-next-line no-console
     console.warn('Loadable component has no name.');
   }
 
-  const getPhase = () => AsyncManager.getPhase();
-  const isServer = AsyncManager.getEnv() === 'node';
-  const isSSREnabled = AsyncManager.isSSREnabled();
+  const hasCodeSplit = component.name && component.bundle;
+  const name = component.displayName || component.name || 'Component';
 
   // init component statics
   const Component = !hasCodeSplit ? component : null;
-  const EnhancedComponent = !hasCodeSplit ? enhance(component) : null;
-
-  const getError = (containerName, key) => {
-    const errors = AsyncManager.getError(containerName, key);
-
-    if (!errors || Object.keys(errors).length === 0) {
-      return null;
-    }
-
-    return errors;
-  };
-  const addError = (containerName, key, error) => AsyncManager.addError(containerName, key, error);
-
-  const generateContainerName = () => `${name}-${AsyncManager.generateId(name)}`;
+  const EnhancedComponent = !hasCodeSplit ? enhanceWithConnect(component) : null;
 
   class Container extends React.Component {
     constructor(props, context) {
       super(props, context);
 
       const config = this.getConfig();
-      const isPreload = this.isPreload(config);
+      const isPreload = this.isPreload();
 
-      if (context.isInBoundary && !config.options.defer) {
+      if (context.isInBoundary && !options.async.defer) {
         // eslint-disable-next-line no-console
         console.warn('Option "defer" is set to false inside a boundary.');
       }
+
+      // Set phase
+      this.phase = AsyncManager.getPhase();
 
       // Set unmounted to false
       this.hasUnmounted = false;
 
       // Set containerName
       if (isPreload) {
-        this.containerName = generateContainerName();
+        this.containerName = `${name}-${AsyncManager.generateId(name)}`;
       }
 
       const loaderState = {
@@ -83,7 +85,7 @@ export default function createAsyncContainer(component, customConfig) {
           bundle: {
             ...loaderState,
             loading: isPreload || Container.Component ? null : 'block',
-            error: isPreload ? getError(this.containerName, 'bundle') : null,
+            error: isPreload ? AsyncManager.getError(this.containerName, 'bundle') : null,
           },
         }
         : {};
@@ -93,7 +95,7 @@ export default function createAsyncContainer(component, customConfig) {
         initialState[key] = {
           ...loaderState,
           loading: !isPreload ? 'block' : null,
-          error: isPreload ? getError(this.containerName, key) : null,
+          error: isPreload ? AsyncManager.getError(this.containerName, key) : null,
         };
       });
 
@@ -105,13 +107,13 @@ export default function createAsyncContainer(component, customConfig) {
     }
 
     getChildContext() {
-      return { isInBoundary: this.getConfig().options.boundary };
+      return { isInBoundary: options.async.boundary };
     }
 
     // eslint-disable-next-line react/sort-comp
     bootstrap() {
       const config = this.getConfig();
-      const isPreload = this.isPreload(config);
+      const isPreload = this.isPreload();
 
       // We don't need to do something during bootstrapping if loading is deferred
       if (!isPreload) {
@@ -121,7 +123,7 @@ export default function createAsyncContainer(component, customConfig) {
       const promises = [];
 
       // Load resources on server
-      if (isServer) {
+      if (AsyncManager.getEnv() === 'node') {
         // Iterate over loaders to load resources initially
         Object.keys(config.loaders).forEach((key) => {
           const loader = config.loaders[key];
@@ -139,12 +141,12 @@ export default function createAsyncContainer(component, customConfig) {
       }
 
       // Return composed promises and return false if this is a boundary
-      return Promise.all(promises).then(() => !config.options.boundary);
+      return Promise.all(promises).then(() => !options.async.boundary);
     }
 
     componentDidMount() {
       const config = this.getConfig();
-      const isPreload = this.isPreload(config);
+      const isPreload = this.isPreload();
 
       // We don't need to do something if resources were preloaded
       if (isPreload) {
@@ -177,7 +179,8 @@ export default function createAsyncContainer(component, customConfig) {
           if (loader.shouldUpdate(this.state[key], nextProps, nextContext.store.getState())) {
             this.setRequestState(key, 'block', null);
 
-            const load = (promise, options) => this.handleLoad(key, promise, false, options);
+            const load = (promise, loadOptions) =>
+              this.handleLoad(key, promise, false, loadOptions);
             loader.request(load, this.context.store.dispatch);
           }
         }
@@ -190,7 +193,7 @@ export default function createAsyncContainer(component, customConfig) {
           // Save component if request was done for a component
           if (key === 'bundle') {
             Container.Component = resolveES6(result);
-            Container.EnhancedComponent = enhance(Container.Component);
+            Container.EnhancedComponent = enhanceWithConnect(Container.Component);
           }
 
           // Update state if component did mount
@@ -205,7 +208,7 @@ export default function createAsyncContainer(component, customConfig) {
               this.setRequestState(key, null, error);
             }
           } else {
-            addError(this.containerName, key, error);
+            AsyncManager.addError(this.containerName, key, error);
 
             this.state[key].error = error;
           }
@@ -233,22 +236,19 @@ export default function createAsyncContainer(component, customConfig) {
 
     getConfig() {
       // TODO memoize this function
-      const tempConfig =
-        typeof customConfig === 'function' ? customConfig(this.props) : customConfig;
+      const tempConfig = makeConfig(this.props);
 
       return {
         ...tempConfig,
         loaders: tempConfig.loaders || {},
-        fallbacks: tempConfig.fallbacks || {},
-        options: Object.assign({}, defaultOptions, tempConfig.options),
       };
     }
 
-    isPreload(config) {
-      const phase = getPhase();
-      const defer = !isSSREnabled || this.context.isInBoundary || config.options.defer;
+    isPreload() {
+      const defer =
+        !AsyncManager.isSSREnabled() || this.context.isInBoundary || options.async.defer;
 
-      return !defer && (phase === 'BOOTSTRAPPING' || phase === 'FIRST_RENDER');
+      return !defer && (this.phase === 'BOOTSTRAPPING' || this.phase === 'FIRST_RENDER');
     }
 
     render() {
@@ -260,13 +260,16 @@ export default function createAsyncContainer(component, customConfig) {
         const loader = config.loaders[key];
 
         if (loader.props) {
-          const load = (promise, options) => {
+          const load = (promise, loadOptions) => {
             if (this.state.loading[key]) {
               // eslint-disable-next-line no-console
               console.error(`Resource ${name} ${key} is already loading.`);
             } else {
               // Start request
-              this.setRequestState(key, options && options.showWhileLoading ? 'show' : 'block');
+              this.setRequestState(
+                key,
+                loadOptions && loadOptions.showWhileLoading ? 'show' : 'block',
+              );
 
               this.handleLoad(key, promise, false);
             }
@@ -281,18 +284,18 @@ export default function createAsyncContainer(component, customConfig) {
 
       // Some resources are loading
       if (Object.values(this.state).some(info => info.loading === 'block')) {
-        if (!config.fallbacks.Loading) {
+        if (!options.async.loading) {
           return null;
         }
 
-        const LoadingComponent = config.fallbacks.Loading;
+        const LoadingComponent = options.async.loading;
 
         return <LoadingComponent {...loaderProps} {...this.props} />;
       }
 
       // Some resources have an error
       if (Object.values(this.state).some(info => info.error !== null)) {
-        if (process.env.NODE_ENV !== 'production' && getPhase() !== 'BOOTSTRAPPING') {
+        if (process.env.NODE_ENV !== 'production' && this.phase !== 'BOOTSTRAPPING') {
           const errors = {};
           Object.keys(this.state).forEach((key) => {
             if (this.state[key].error) {
@@ -304,11 +307,11 @@ export default function createAsyncContainer(component, customConfig) {
           console.error(`Some loaders of component ${name} have errors:\n`, errors);
         }
 
-        if (!config.fallbacks.Error) {
+        if (!options.async.error) {
           return null;
         }
 
-        const ErrorComponent = config.fallbacks.Error;
+        const ErrorComponent = options.async.error;
 
         return <ErrorComponent {...loaderProps} {...this.props} />;
       }
@@ -336,6 +339,12 @@ export default function createAsyncContainer(component, customConfig) {
 
   Container.Component = Component;
   Container.EnhancedComponent = EnhancedComponent;
+
+  if (options.middleware) {
+    const enhance = compose(...options.middleware);
+
+    return enhance(Container);
+  }
 
   return Container;
 }

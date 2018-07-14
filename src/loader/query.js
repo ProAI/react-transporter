@@ -1,13 +1,14 @@
 import createQuery from '../actions/createQuery';
 
-export default function query(schema, { skip, ...options }) {
+export default function query(schema, allOptions = {}) {
+  const { loaderOptions, ...options } = allOptions;
   const schemaBody = schema.loc.source.body;
   // TODO integrate cache into (load, cache) => function
   let timeout = null;
 
   return {
     request: (load, dispatch) =>
-      (skip
+      (loaderOptions && loaderOptions.skip
         ? load(new Promise(resolve => resolve()))
         : load(dispatch(createQuery(schemaBody, options)))),
     props: (load, dispatch) => ({

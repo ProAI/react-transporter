@@ -4,7 +4,8 @@ import resetStore from './actions/resetStore';
 import TransporterNetwork from './core/Network';
 import TransporterClient from './core/Client';
 import bootstrapper from './loader/bootstrapper';
-import createContainer from './loader/createAsyncContainer';
+import createAsyncContainer from './loader/createAsyncContainer';
+import createContainer from './loader/createContainer';
 import query from './loader/query';
 import Link from './request/Link';
 import ManyLink from './request/ManyLink';
@@ -20,6 +21,7 @@ export {
   TransporterNetwork,
   TransporterClient,
   bootstrapper,
+  createAsyncContainer,
   createContainer,
   query,
   Link,

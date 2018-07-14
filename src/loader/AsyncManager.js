@@ -45,7 +45,13 @@ class AsyncManager {
   }
 
   getError(id, key) {
-    if (!this.errors[id] || !this.errors[id][key]) return null;
+    if (
+      !this.errors[id] ||
+      !this.errors[id][key] ||
+      Object.keys(this.errors[id][key]).length === 0
+    ) {
+      return null;
+    }
 
     return this.errors[id][key];
   }
