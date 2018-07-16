@@ -22,6 +22,11 @@
     "prepublishOnly": "yarn clean && yarn build",
     "lint": "./node_modules/.bin/eslint src"
   },
+  "files": [
+    "dist",
+    "es",
+    "lib"
+  ],
   "dependencies": {
     "prop-types": "^15.6.1",
     "react-tree-walker": "^4.0.2",
