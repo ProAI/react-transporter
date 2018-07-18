@@ -18,7 +18,7 @@ const defaultAsyncOptions = {
 
 const getAsyncOptions = (options) => {
   if (options && options.async) {
-    return Object.assign({}, options.async, defaultAsyncOptions);
+    return Object.assign({}, defaultAsyncOptions, options.async);
   }
 
   return defaultAsyncOptions;
