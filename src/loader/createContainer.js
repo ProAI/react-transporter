@@ -5,7 +5,7 @@ import prepareSelectors from './utils/prepareSelectors';
 
 export default function createComponent(Component, makeConfig, customOptions) {
   const options = {
-    middleware: customOptions.middleware || null,
+    middleware: (customOptions && customOptions.middleware) || null,
   };
 
   const enhanceWithConnect = connect(

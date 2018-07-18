@@ -35,7 +35,7 @@ const childContextTypes = {
 
 export default function createAsyncComponent(component, makeConfig, customOptions) {
   const options = {
-    middleware: customOptions.middleware || null,
+    middleware: (customOptions && customOptions.middleware) || null,
     async: getAsyncOptions(customOptions),
   };
 
