@@ -16,8 +16,6 @@ const defaultAsyncOptions = {
   loading: null,
 };
 
-const production = process.env.NODE_ENV === 'production';
-
 const getAsyncOptions = (options) => {
   if (options && options.async) {
     return Object.assign({}, defaultAsyncOptions, options.async);
@@ -40,11 +38,6 @@ export default function createAsyncComponent(component, makeConfig, customOption
     middleware: (customOptions && customOptions.middleware) || null,
     async: getAsyncOptions(customOptions),
   };
-
-  if (!production && !component.displayName && !component.name) {
-    // eslint-disable-next-line no-console
-    console.warn('Loadable component has no name.');
-  }
 
   const hasCodeSplit = component.name && component.bundle;
   const name = component.displayName || component.name || 'Component';
