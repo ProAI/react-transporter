@@ -102,6 +102,9 @@ export default function createAsyncComponent(component, makeConfig, customOption
       // Set state
       this.state = initialState;
 
+      // Set cache
+      this.cache = {};
+
       // Bind load method
       this.handleLoad = this.handleLoad.bind(this);
     }
@@ -130,8 +133,9 @@ export default function createAsyncComponent(component, makeConfig, customOption
           const load = (promise) => {
             promises.push(this.handleLoad(key, promise, isPreload));
           };
+          const cache = this.getCacheProvider();
 
-          loader.request(load, this.context.store.dispatch);
+          loader.request({ load, cache }, this.context.store.dispatch);
         });
       }
 
@@ -157,8 +161,9 @@ export default function createAsyncComponent(component, makeConfig, customOption
       Object.keys(config.loaders).forEach((key) => {
         const loader = config.loaders[key];
         const load = promise => this.handleLoad(key, promise, false);
+        const cache = this.getCacheProvider();
 
-        loader.request(load, this.context.store.dispatch);
+        loader.request({ load, cache }, this.context.store.dispatch);
       });
 
       // Load code bundle if present on server & client
@@ -176,12 +181,23 @@ export default function createAsyncComponent(component, makeConfig, customOption
         // If a shouldUpdate function is defined, then we will check whether we need to reload the
         // resource or not.
         if (loader.shouldUpdate && !this.state[key].loading) {
-          if (loader.shouldUpdate(this.state[key], nextProps, nextContext.store.getState())) {
+          if (
+            loader.shouldUpdate(
+              {
+                info: this.state[key],
+                cache: this.getCacheProvider(),
+              },
+              nextProps,
+              nextContext.store.getState(),
+            )
+          ) {
             this.setRequestState(key, 'block', null);
 
             const load = (promise, loadOptions) =>
               this.handleLoad(key, promise, false, loadOptions);
-            loader.request(load, this.context.store.dispatch);
+            const cache = this.getCacheProvider();
+
+            loader.request({ load, cache }, this.context.store.dispatch);
           }
         }
       });
@@ -217,6 +233,15 @@ export default function createAsyncComponent(component, makeConfig, customOption
 
     componentWillUnmount() {
       this.hasUnmounted = true;
+    }
+
+    getCacheProvider() {
+      return {
+        get: cacheKey => this.cache[cacheKey],
+        set: (cacheKey, cacheValue) => {
+          this.cache[cacheKey] = cacheValue;
+        },
+      };
     }
 
     setRequestState(key, loading, error) {
@@ -274,10 +299,11 @@ export default function createAsyncComponent(component, makeConfig, customOption
               this.handleLoad(key, promise, false);
             }
           };
+          const cache = this.getCacheProvider();
 
           loaderProps[key] = {
             ...this.state[key],
-            ...loader.props(load, this.context.store.dispatch),
+            ...loader.props({ load, cache }, this.context.store.dispatch),
           };
         }
       });
