@@ -39,6 +39,16 @@ export default function createAsyncComponent(component, makeConfig, customOption
     async: getAsyncOptions(customOptions),
   };
 
+  const getConfig = (props) => {
+    // TODO memoize this function
+    const tempConfig = makeConfig(props);
+
+    return {
+      ...tempConfig,
+      loaders: tempConfig.loaders || {},
+    };
+  };
+
   const hasCodeSplit = component.name && component.bundle;
   const name = component.displayName || component.name || 'Component';
 
@@ -50,7 +60,7 @@ export default function createAsyncComponent(component, makeConfig, customOption
     constructor(props, context) {
       super(props, context);
 
-      const config = this.getConfig();
+      const config = getConfig(this.props);
       const isPreload = this.isPreload();
 
       if (context.isInBoundary && !options.async.defer) {
@@ -110,7 +120,7 @@ export default function createAsyncComponent(component, makeConfig, customOption
 
     // eslint-disable-next-line react/sort-comp
     bootstrap() {
-      const config = this.getConfig();
+      const config = getConfig(this.props);
       const isPreload = this.isPreload();
 
       // We don't need to do something during bootstrapping if loading is deferred
@@ -144,7 +154,7 @@ export default function createAsyncComponent(component, makeConfig, customOption
     }
 
     componentDidMount() {
-      const config = this.getConfig();
+      const config = getConfig(this.props);
       const isPreload = this.isPreload();
 
       // We don't need to do something if resources were preloaded
@@ -168,16 +178,16 @@ export default function createAsyncComponent(component, makeConfig, customOption
     }
 
     componentWillReceiveProps(nextProps, nextContext) {
-      const config = this.getConfig();
+      const config = getConfig(nextProps);
 
       Object.keys(config.loaders).forEach((key) => {
         const loader = config.loaders[key];
 
         // If a shouldUpdate function is defined, then we will check whether we need to reload the
         // resource or not.
-        if (loader.shouldUpdate && !this.state[key].loading) {
+        if (loader.shouldReload && !this.state[key].loading) {
           if (
-            loader.shouldUpdate(
+            loader.shouldReload(
               {
                 info: this.state[key],
                 cache: this.getCacheProvider(),
@@ -254,16 +264,6 @@ export default function createAsyncComponent(component, makeConfig, customOption
       }));
     }
 
-    getConfig() {
-      // TODO memoize this function
-      const tempConfig = makeConfig(this.props);
-
-      return {
-        ...tempConfig,
-        loaders: tempConfig.loaders || {},
-      };
-    }
-
     isPreload() {
       const defer =
         !AsyncManager.isSSREnabled() || this.context.isInBoundary || options.async.defer;
@@ -272,7 +272,7 @@ export default function createAsyncComponent(component, makeConfig, customOption
     }
 
     render() {
-      const config = this.getConfig();
+      const config = getConfig(this.props);
 
       // Create loader props
       const loaderProps = {};
