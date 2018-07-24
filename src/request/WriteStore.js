@@ -1,4 +1,4 @@
-import createNameWithArgs from './utils/createNameWithArgs';
+import getName from '../utils/getName';
 import isConnection from '../utils/isConnection';
 import isManyLink from '../utils/isManyLink';
 import getRawLink from './utils/getRawLink';
@@ -79,10 +79,10 @@ export default class WriteStore {
     this.data.trash.push([type, id]);
   }
 
-  setRoot(baseName, args, tempValue) {
-    const name = createNameWithArgs(baseName, tempValue ? args : undefined);
+  setRoot(rawName, rawValue) {
+    const name = getName(rawName);
 
-    const value = prepareRootValue(tempValue || args, this.state.roots.data[name]);
+    const value = prepareRootValue(rawValue, this.state.roots.data[name]);
 
     checkRootValue(value, this.state.roots.data[name], { name });
 

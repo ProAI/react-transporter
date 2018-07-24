@@ -1,5 +1,6 @@
 import StoreQuery from './StoreQuery';
 import makeSelectorError from './makeSelectorError';
+import getName from '../utils/getName';
 
 function getData(state, typeIdOrIds, query) {
   const store = new StoreQuery(state, typeIdOrIds);
@@ -20,7 +21,9 @@ export default class ReadStore {
     return getData(this.state, [type, id], query);
   }
 
-  selectByRoot(name, query) {
+  selectByRoot(rawName, query) {
+    const name = getName(rawName);
+
     if (!this.state.roots.data[name]) {
       throw makeSelectorError('MISSING_ROOT', { name });
     }
@@ -30,7 +33,9 @@ export default class ReadStore {
     return getData(this.state, rootTypeIdOrIds, query);
   }
 
-  selectByRelation(type, id, name, query) {
+  selectByRelation(type, id, rawName, query) {
+    const name = getName(rawName);
+
     if (
       !this.state.entities.data[type] ||
       !this.state.entities.data[type][id] ||

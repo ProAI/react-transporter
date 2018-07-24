@@ -1,4 +1,4 @@
-import createNameWithArgs from './utils/createNameWithArgs';
+import getName from '../utils/getName';
 import isConnection from '../utils/isConnection';
 import isManyLink from '../utils/isManyLink';
 import getRawLink from './utils/getRawLink';
@@ -69,9 +69,9 @@ export default class Entity {
     return value;
   }
 
-  set(baseName, args, tempValue = null) {
-    const name = createNameWithArgs(baseName, tempValue ? args : undefined);
-    const value = prepareValue(tempValue || args, this, name);
+  set(rawName, rawValue = null) {
+    const name = getName(rawName);
+    const value = prepareValue(rawValue, this, name);
 
     // check correct type
     if (this.originalValues && this.originalValues[name]) {
