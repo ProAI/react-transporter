@@ -104,6 +104,7 @@ export default function createAsyncComponent(component, makeConfig, customOption
       this.state = {
         loaders: initialState,
         Component: !hasCodeSplit ? component : null,
+        EnhancedComponent: !hasCodeSplit ? enhanceWithConnect(component) : null,
       };
 
       // Set cache
@@ -212,9 +213,8 @@ export default function createAsyncComponent(component, makeConfig, customOption
         .then((result) => {
           // Save component if request was done for a component
           if (key === 'bundle') {
-            this.setState({
-              Component: resolveES6(result),
-            });
+            this.state.Component = resolveES6(result);
+            this.state.EnhancedComponent = enhanceWithConnect(this.state.Component);
           }
 
           // Update state if component did mount
@@ -342,16 +342,17 @@ export default function createAsyncComponent(component, makeConfig, customOption
       }
 
       const props = { ...loaderProps, ...this.props };
-      const { Component } = this.state;
 
       // connect selectors and actions if present
       if (config.selectors || config.actions) {
-        const EnhancedComponent = enhanceWithConnect(Component);
+        const { EnhancedComponent } = this.state;
 
         return (
           <EnhancedComponent selectors={config.selectors} actions={config.actions} props={props} />
         );
       }
+
+      const { Component } = this.state;
 
       return <Component {...props} />;
     }
