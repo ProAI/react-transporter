@@ -52,10 +52,6 @@ export default function createAsyncComponent(component, makeConfig, customOption
   const hasCodeSplit = component.name && component.bundle;
   const name = component.displayName || component.name || 'Component';
 
-  // init component statics
-  const Component = !hasCodeSplit ? component : null;
-  const EnhancedComponent = !hasCodeSplit ? enhanceWithConnect(component) : null;
-
   class Container extends React.Component {
     constructor(props, context) {
       super(props, context);
@@ -89,7 +85,7 @@ export default function createAsyncComponent(component, makeConfig, customOption
         ? {
           bundle: {
             ...loaderState,
-            loading: isPreload || Container.Component ? null : 'block',
+            loading: isPreload || hasCodeSplit ? 'block' : null,
             error: isPreload ? AsyncManager.getError(this.containerName, 'bundle') : null,
           },
         }
@@ -105,7 +101,10 @@ export default function createAsyncComponent(component, makeConfig, customOption
       });
 
       // Set state
-      this.state = initialState;
+      this.state = {
+        loaders: initialState,
+        Component: !hasCodeSplit ? component : null,
+      };
 
       // Set cache
       this.cache = {};
@@ -172,7 +171,7 @@ export default function createAsyncComponent(component, makeConfig, customOption
       });
 
       // Load code bundle if present on server & client
-      if (hasCodeSplit && !Container.Component) {
+      if (hasCodeSplit && !this.state.Component) {
         this.handleLoad('bundle', component.bundle(), false);
       }
     }
@@ -185,11 +184,11 @@ export default function createAsyncComponent(component, makeConfig, customOption
 
         // If a shouldUpdate function is defined, then we will check whether we need to reload the
         // resource or not.
-        if (loader.shouldReload && !this.state[key].loading) {
+        if (loader.shouldReload && !this.state.loaders[key].loading) {
           if (
             loader.shouldReload(
               {
-                info: this.state[key],
+                info: this.state.loaders[key],
                 cache: this.getCacheProvider(),
               },
               nextProps,
@@ -213,8 +212,9 @@ export default function createAsyncComponent(component, makeConfig, customOption
         .then((result) => {
           // Save component if request was done for a component
           if (key === 'bundle') {
-            Container.Component = resolveES6(result);
-            Container.EnhancedComponent = enhanceWithConnect(Container.Component);
+            this.setState({
+              Component: resolveES6(result),
+            });
           }
 
           // Update state if component did mount
@@ -231,7 +231,7 @@ export default function createAsyncComponent(component, makeConfig, customOption
           } else {
             AsyncManager.addError(this.containerName, key, error);
 
-            this.state[key].error = error;
+            this.state.loaders[key].error = error;
           }
         });
     }
@@ -255,11 +255,14 @@ export default function createAsyncComponent(component, makeConfig, customOption
       const time = getTimestamp();
 
       this.setState(state => ({
-        [key]: {
-          startTime: loading ? time : state[key].startTime,
-          endTime: !loading ? time : state[key].endTime,
-          loading,
-          error: error === undefined ? state[key].error : error,
+        loaders: {
+          ...state.loaders,
+          [key]: {
+            startTime: loading ? time : state.loaders[key].startTime,
+            endTime: !loading ? time : state.loaders[key].endTime,
+            loading,
+            error: error === undefined ? state.loaders[key].error : error,
+          },
         },
       }));
     }
@@ -281,7 +284,7 @@ export default function createAsyncComponent(component, makeConfig, customOption
 
         if (loader.props) {
           const load = (promise, loadOptions) => {
-            if (this.state.loading[key]) {
+            if (this.state.loaders[key].loading) {
               // eslint-disable-next-line no-console
               console.error(`Resource ${name} ${key} is already loading.`);
             } else {
@@ -297,14 +300,14 @@ export default function createAsyncComponent(component, makeConfig, customOption
           const cache = this.getCacheProvider();
 
           loaderProps[key] = {
-            ...this.state[key],
+            ...this.state.loaders[key],
             ...loader.props({ load, cache }, this.context.store.dispatch),
           };
         }
       });
 
       // Some resources are loading
-      if (Object.values(this.state).some(info => info.loading === 'block')) {
+      if (Object.values(this.state.loaders).some(info => info.loading === 'block')) {
         if (!options.async.loading) {
           return null;
         }
@@ -315,12 +318,13 @@ export default function createAsyncComponent(component, makeConfig, customOption
       }
 
       // Some resources have an error
-      if (Object.values(this.state).some(info => info.error !== null)) {
+      if (Object.values(this.state.loaders).some(info => info.error !== null)) {
         if (process.env.NODE_ENV !== 'production' && this.phase !== 'BOOTSTRAPPING') {
           const errors = {};
-          Object.keys(this.state).forEach((key) => {
-            if (this.state[key].error) {
-              errors[key] = this.state[key].error;
+
+          Object.keys(this.state.loaders).forEach((key) => {
+            if (this.state.loaders[key].error) {
+              errors[key] = this.state.loaders[key].error;
             }
           });
 
@@ -338,19 +342,18 @@ export default function createAsyncComponent(component, makeConfig, customOption
       }
 
       const props = { ...loaderProps, ...this.props };
+      const { Component } = this.state;
 
       // connect selectors and actions if present
       if (config.selectors || config.actions) {
+        const EnhancedComponent = enhanceWithConnect(Component);
+
         return (
-          <Container.EnhancedComponent
-            selectors={config.selectors}
-            actions={config.actions}
-            props={props}
-          />
+          <EnhancedComponent selectors={config.selectors} actions={config.actions} props={props} />
         );
       }
 
-      return <Container.Component {...props} />;
+      return <Component {...props} />;
     }
   }
 
@@ -358,13 +361,12 @@ export default function createAsyncComponent(component, makeConfig, customOption
   Container.contextTypes = contextTypes;
   Container.childContextTypes = childContextTypes;
 
-  Container.Component = Component;
-  Container.EnhancedComponent = EnhancedComponent;
-
   if (options.middleware) {
     const enhance = compose(...options.middleware);
 
-    return enhance(Container);
+    const EnhancedContainer = enhance(Container);
+
+    return EnhancedContainer;
   }
 
   return Container;
