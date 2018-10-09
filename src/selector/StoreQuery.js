@@ -51,11 +51,13 @@ export default class StoreQuery {
 
   join(rawName, constraints = null, shallow = false) {
     const name = getName(rawName);
+    const isStringName = typeof rawName === 'string' || rawName instanceof String;
+    const resultName = isStringName ? rawName : rawName[0];
 
     if (this.isManyLink) {
       this.data.forEach((attributes, key) => {
         if (this.data[key]) {
-          this.data[key][name] = getRelationData(
+          this.data[key][resultName] = getRelationData(
             // eslint-disable-next-line no-underscore-dangle
             this.data[key].__typename,
             this.data[key].id,
@@ -67,7 +69,7 @@ export default class StoreQuery {
         }
       });
     } else if (this.data) {
-      this.data[name] = getRelationData(
+      this.data[resultName] = getRelationData(
         // eslint-disable-next-line no-underscore-dangle
         this.data.__typename,
         this.data.id,
