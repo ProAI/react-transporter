@@ -344,6 +344,7 @@ export default function createAsyncComponent(component, makeConfig, customOption
 
       // connect selectors and actions if present
       if (config.selectors || config.actions) {
+        // TODO: cache function call to enhanceWithConnect in production
         const EnhancedComponent = enhanceWithConnect(Component);
 
         return (
