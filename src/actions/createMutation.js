@@ -1,7 +1,7 @@
-export default function createMutation(schema, options) {
+export default function createMutation(mutation, options) {
   return {
     type: 'TRANSPORTER_MUTATION',
-    schema,
+    mutation,
     ...options,
   };
 }

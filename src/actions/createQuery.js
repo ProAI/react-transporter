@@ -1,7 +1,7 @@
-export default function createQuery(schema, options) {
+export default function createQuery(query, options) {
   return {
     type: 'TRANSPORTER_QUERY',
-    schema,
+    query,
     ...options,
   };
 }

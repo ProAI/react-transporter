@@ -14,28 +14,28 @@ export default function createEntitiesReducer(data) {
   };
 
   return function reducer(state = initialState, baseAction) {
-    const nextState = { ...state };
-    const action = { ...baseAction };
+    const nextState = JSON.parse(JSON.stringify(state));
+    const action = JSON.parse(JSON.stringify(baseAction));
 
     // TRANSPORTER_REQUEST_START
     // apply optimistic data
     if (action.type === 'TRANSPORTER_REQUEST_START' && action.optimisticData) {
       // insertions/updates
       if (action.optimisticData.entities) {
-        Object.keys(action.optimisticData.entities).forEach((type) => {
+        Object.keys(action.optimisticData.entities).forEach(type => {
           // prerequisites / create (optimistic) type of entities if not present
           if (!nextState.data[type]) nextState.data[type] = {};
           if (!nextState.optimistic.updates[type]) nextState.optimistic.updates[type] = {};
 
-          Object.keys(action.optimisticData.entities[type]).forEach((id) => {
+          Object.keys(action.optimisticData.entities[type]).forEach(id => {
             // prerequisites / create optimistic entity if not present
             if (!nextState.optimistic.updates[type][id]) {
               nextState.optimistic.updates[type][id] = {};
             }
 
             // add optimistic values
-            Object.keys(action.optimisticData.entities[type][id]).forEach((field) => {
-              const getField = (object) => {
+            Object.keys(action.optimisticData.entities[type][id]).forEach(field => {
+              const getField = object => {
                 if (!object[type] || !object[type][id]) return undefined;
                 return object[type][id][field];
               };
@@ -87,10 +87,10 @@ export default function createEntitiesReducer(data) {
     ) {
       // insertions/updates
       if (action.optimisticData.entities) {
-        Object.keys(action.optimisticData.entities).forEach((type) => {
-          Object.keys(action.optimisticData.entities[type]).forEach((id) => {
-            Object.keys(action.optimisticData.entities[type][id]).forEach((field) => {
-              const getField = (object) => {
+        Object.keys(action.optimisticData.entities).forEach(type => {
+          Object.keys(action.optimisticData.entities[type]).forEach(id => {
+            Object.keys(action.optimisticData.entities[type][id]).forEach(field => {
+              const getField = object => {
                 if (!object[type] || !object[type][id]) return undefined;
                 return object[type][id][field];
               };
@@ -105,12 +105,28 @@ export default function createEntitiesReducer(data) {
               }
 
               // update stored value
-              updateValueBeforeRevertingOptimisticUpdate(position, state, action, getField);
+              const value = updateValueBeforeRevertingOptimisticUpdate(
+                position,
+                nextState,
+                action,
+                getField,
+              );
+              if (value) {
+                if (!nextState.data[type]) {
+                  nextState.data[type] = {};
+                }
+
+                if (!nextState.data[type][id]) {
+                  nextState.data[type][id] = {};
+                }
+
+                nextState.data[type][id][field] = value;
+              }
 
               // revert optimistic value
               nextState.optimistic.updates[type][id][field] = revertOptimisticUpdate(
                 position,
-                state,
+                nextState,
                 action,
                 getField,
               );
@@ -174,11 +190,11 @@ export default function createEntitiesReducer(data) {
     if (action.type === 'TRANSPORTER_REQUEST_COMPLETED') {
       // insertions/updates
       if (action.data.entities) {
-        Object.keys(action.data.entities).forEach((type) => {
+        Object.keys(action.data.entities).forEach(type => {
           // prerequisites / create type of entities if not present
           if (!nextState.data[type]) nextState.data[type] = {};
 
-          Object.keys(action.data.entities[type]).forEach((id) => {
+          Object.keys(action.data.entities[type]).forEach(id => {
             // add entity to store
             nextState.data[type][id] = Object.assign(
               {},

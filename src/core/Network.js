@@ -3,5 +3,5 @@ export default class Network {
     this.request = request;
   }
 
-  fetch = (schema, variables) => this.request(schema, variables);
+  fetch = (query, variables) => this.request(query, variables);
 }

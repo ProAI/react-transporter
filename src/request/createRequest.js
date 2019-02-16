@@ -33,10 +33,15 @@ export default function createRequest(request, fetch) {
       optimisticData,
     });
 
+    const queryBody =
+      request.type === 'TRANSPORTER_MUTATION'
+        ? request.mutation.loc.source.body
+        : request.query.loc.source.body;
+
     // dispatch query
-    return fetch(request.schema, request.variables).then(
+    return fetch(queryBody, request.variables).then(
       result =>
-        result.json().then((responseData) => {
+        result.json().then(responseData => {
           const state = getState();
 
           // Only apply response if store was not reset in the meantime
@@ -69,13 +74,15 @@ export default function createRequest(request, fetch) {
 
           // Response is okay
           try {
+            const data = makeData(request.updater, getState, responseData.data);
+
             // Try to add response to store
             dispatch({
               type: 'TRANSPORTER_REQUEST_COMPLETED',
               id: request.id,
               endTime: getTimestamp(),
               optimisticData,
-              data: responseData.data,
+              data,
             });
           } catch (error) {
             // Log and throw internal error
@@ -92,7 +99,7 @@ export default function createRequest(request, fetch) {
 
           return responseData;
         }),
-      (error) => {
+      error => {
         // Something else went wrong
         dispatch({
           type: 'TRANSPORTER_REQUEST_ERROR',

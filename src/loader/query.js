@@ -18,9 +18,8 @@ const compareVariables = (a, b) => {
   return true;
 };
 
-export default function query(schema, allOptions = {}) {
+export default function query(queryParam, allOptions = {}) {
   const { loaderOptions, ...options } = allOptions;
-  const schemaBody = schema.loc.source.body;
 
   return {
     request: ({ load, cache }, dispatch) => {
@@ -28,26 +27,30 @@ export default function query(schema, allOptions = {}) {
 
       return loaderOptions && loaderOptions.skip
         ? load(new Promise(resolve => resolve()))
-        : load(dispatch(createQuery(schemaBody, options)));
+        : load(dispatch(createQuery(queryParam, options)));
     },
     props: ({ load, cache }, dispatch) => ({
       refetch: (...localOptions) => {
         cache.set('variables', options.variables);
 
-        return load(dispatch(createQuery(schemaBody, { ...options, ...localOptions })));
+        return load(dispatch(createQuery(queryParam, { ...options, ...localOptions })));
       },
       fetchMore: (...localOptions) => {
         cache.set('variables', options.variables);
 
-        return load(dispatch(createQuery(schemaBody, { ...options, ...localOptions }), {
-          showWhileLoading: true,
-        }));
-      },
-      startPolling: (interval) => {
-        const timeout = setInterval(() => {
-          load(dispatch(createQuery(schemaBody, options), {
+        return load(
+          dispatch(createQuery(queryParam, { ...options, ...localOptions }), {
             showWhileLoading: true,
-          }));
+          }),
+        );
+      },
+      startPolling: interval => {
+        const timeout = setInterval(() => {
+          load(
+            dispatch(createQuery(queryParam, options), {
+              showWhileLoading: true,
+            }),
+          );
         }, interval);
 
         cache.set('timeout', timeout);

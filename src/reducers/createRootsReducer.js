@@ -12,8 +12,8 @@ export default function createRootsReducer(data) {
   };
 
   return function reducer(state = initialState, baseAction) {
-    const nextState = { ...state };
-    const action = { ...baseAction };
+    const nextState = JSON.parse(JSON.stringify(state));
+    const action = JSON.parse(JSON.stringify(baseAction));
 
     // TRANSPORTER_REQUEST_START
     // apply optimistic data
@@ -22,7 +22,7 @@ export default function createRootsReducer(data) {
       action.optimisticData &&
       action.optimisticData.roots
     ) {
-      Object.keys(action.optimisticData.roots).forEach((root) => {
+      Object.keys(action.optimisticData.roots).forEach(root => {
         const getRoot = object => object[root];
 
         // add optimistic update value
@@ -41,7 +41,7 @@ export default function createRootsReducer(data) {
       action.optimisticData &&
       action.optimisticData.roots
     ) {
-      Object.keys(action.optimisticData.roots).forEach((root) => {
+      Object.keys(action.optimisticData.roots).forEach(root => {
         const getRoot = object => object[root];
 
         // get position of optimistic value & throw error if optimistic value was not found

@@ -82,7 +82,7 @@ export default class Entity {
   }
 
   fill(values) {
-    Object.keys(values).forEach((name) => {
+    Object.keys(values).forEach(name => {
       const value = prepareValue(values[name], this, name);
 
       // check correct type

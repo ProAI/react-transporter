@@ -15,9 +15,13 @@ function entityExists(type, id, storedEntities, data) {
 }
 
 function prepareRootValue(value, originalValue) {
-  return getRawLink(typeof value === 'function'
-    ? value(isManyLink(originalValue.link) ? new ManyLink(originalValue) : new Link(originalValue))
-    : value);
+  return getRawLink(
+    typeof value === 'function'
+      ? value(
+          isManyLink(originalValue.link) ? new ManyLink(originalValue) : new Link(originalValue),
+        )
+      : value,
+  );
 }
 
 function checkRootValue(value, originalValue, variables) {
@@ -68,7 +72,10 @@ export default class WriteStore {
 
     setAttributes(entity);
     if (!this.data.entities[type]) this.data.entities[type] = {};
-    this.data.entities[type][id] = entity.values;
+
+    this.data.entities[type][id] = this.data.entities[type][id]
+      ? Object.assign({}, this.data.entities[type][id], entity.values)
+      : entity.values;
   }
 
   delete(type, id) {
