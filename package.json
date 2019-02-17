@@ -34,11 +34,10 @@
   },
   "devDependencies": {
     "babel-cli": "6.26.0",
-    "eslint": "5.14.0",
     "react": "16.8.2",
     "react-dom": "16.8.2",
-    "react-kickstarter": "0.4.4",
-    "react-redux": "6.0.0",
+    "react-kickstarter": "0.4.5",
+    "react-redux": "5.1.1",
     "redux": "4.0.1",
     "redux-thunk": "2.3.0",
     "rimraf": "2.6.3"
