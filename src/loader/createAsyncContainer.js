@@ -7,7 +7,7 @@ import enhanceWithConnect from './utils/enhanceWithConnect';
 const getTimestamp = () => new Date().getTime();
 
 const resolveES6 = x =>
-  (x != null && (typeof x === 'function' || typeof x === 'object') && x.default ? x.default : x);
+  x != null && (typeof x === 'function' || typeof x === 'object') && x.default ? x.default : x;
 
 const defaultAsyncOptions = {
   disabled: false,
@@ -16,7 +16,7 @@ const defaultAsyncOptions = {
   loading: null,
 };
 
-const getAsyncOptions = (options) => {
+const getAsyncOptions = options => {
   if (options && options.async) {
     return Object.assign({}, defaultAsyncOptions, options.async);
   }
@@ -25,6 +25,7 @@ const getAsyncOptions = (options) => {
 };
 
 const contextTypes = {
+  // eslint-disable-next-line react/forbid-prop-types
   store: PropTypes.object,
   isInBoundary: PropTypes.bool,
 };
@@ -39,7 +40,7 @@ export default function createAsyncComponent(component, makeConfig, customOption
     async: getAsyncOptions(customOptions),
   };
 
-  const getConfig = (props) => {
+  const getConfig = props => {
     // TODO memoize this function
     const tempConfig = makeConfig(props);
 
@@ -52,6 +53,7 @@ export default function createAsyncComponent(component, makeConfig, customOption
   const hasCodeSplit = component.name && component.bundle;
   const name = component.displayName || component.name || 'Component';
 
+  /* eslint-disable react/destructuring-assignment */
   class Container extends React.Component {
     constructor(props, context) {
       super(props, context);
@@ -83,16 +85,16 @@ export default function createAsyncComponent(component, makeConfig, customOption
       // Set bundle loading & errors
       const initialState = hasCodeSplit
         ? {
-          bundle: {
-            ...loaderState,
-            loading: isPreload || hasCodeSplit ? 'block' : null,
-            error: isPreload ? AsyncManager.getError(this.containerName, 'bundle') : null,
-          },
-        }
+            bundle: {
+              ...loaderState,
+              loading: isPreload || hasCodeSplit ? 'block' : null,
+              error: isPreload ? AsyncManager.getError(this.containerName, 'bundle') : null,
+            },
+          }
         : {};
 
       // Set resources loading & errors
-      Object.keys(config.loaders).forEach((key) => {
+      Object.keys(config.loaders).forEach(key => {
         initialState[key] = {
           ...loaderState,
           loading: !isPreload ? 'block' : null,
@@ -103,7 +105,12 @@ export default function createAsyncComponent(component, makeConfig, customOption
       // Set state
       this.state = {
         loaders: initialState,
+      };
+
+      // Set component
+      this.component = {
         Component: !hasCodeSplit ? component : null,
+        isConnected: false,
       };
 
       // Set cache
@@ -132,9 +139,9 @@ export default function createAsyncComponent(component, makeConfig, customOption
       // Load resources on server
       if (AsyncManager.getEnv() === 'node') {
         // Iterate over loaders to load resources initially
-        Object.keys(config.loaders).forEach((key) => {
+        Object.keys(config.loaders).forEach(key => {
           const loader = config.loaders[key];
-          const load = (promise) => {
+          const load = promise => {
             promises.push(this.handleLoad(key, promise, isPreload));
           };
           const cache = this.getCacheProvider();
@@ -162,7 +169,7 @@ export default function createAsyncComponent(component, makeConfig, customOption
       }
 
       // Iterate over loaders to load resources initially
-      Object.keys(config.loaders).forEach((key) => {
+      Object.keys(config.loaders).forEach(key => {
         const loader = config.loaders[key];
         const load = promise => this.handleLoad(key, promise, false);
         const cache = this.getCacheProvider();
@@ -171,7 +178,7 @@ export default function createAsyncComponent(component, makeConfig, customOption
       });
 
       // Load code bundle if present on server & client
-      if (hasCodeSplit && !this.state.Component) {
+      if (hasCodeSplit && !this.component.Component) {
         this.handleLoad('bundle', component.bundle(), false);
       }
     }
@@ -179,7 +186,7 @@ export default function createAsyncComponent(component, makeConfig, customOption
     componentWillReceiveProps(nextProps, nextContext) {
       const config = getConfig(nextProps);
 
-      Object.keys(config.loaders).forEach((key) => {
+      Object.keys(config.loaders).forEach(key => {
         const loader = config.loaders[key];
 
         // If a shouldUpdate function is defined, then we will check whether we need to reload the
@@ -209,10 +216,10 @@ export default function createAsyncComponent(component, makeConfig, customOption
 
     handleLoad(key, promise, isPreload) {
       return promise
-        .then((result) => {
+        .then(result => {
           // Save component if request was done for a component
           if (key === 'bundle') {
-            this.state.Component = resolveES6(result);
+            this.component.Component = resolveES6(result);
           }
 
           // Update state if component did mount
@@ -220,7 +227,7 @@ export default function createAsyncComponent(component, makeConfig, customOption
             this.setRequestState(key, null, null);
           }
         })
-        .catch((error) => {
+        .catch(error => {
           // Update state if component did mount
           if (!isPreload) {
             if (!this.hasUnmounted) {
@@ -277,7 +284,7 @@ export default function createAsyncComponent(component, makeConfig, customOption
 
       // Create loader props
       const loaderProps = {};
-      Object.keys(config.loaders).forEach((key) => {
+      Object.keys(config.loaders).forEach(key => {
         const loader = config.loaders[key];
 
         if (loader.props) {
@@ -320,7 +327,7 @@ export default function createAsyncComponent(component, makeConfig, customOption
         if (process.env.NODE_ENV !== 'production' && this.phase !== 'BOOTSTRAPPING') {
           const errors = {};
 
-          Object.keys(this.state.loaders).forEach((key) => {
+          Object.keys(this.state.loaders).forEach(key => {
             if (this.state.loaders[key].error) {
               errors[key] = this.state.loaders[key].error;
             }
@@ -340,21 +347,23 @@ export default function createAsyncComponent(component, makeConfig, customOption
       }
 
       const props = { ...loaderProps, ...this.props };
-      const { Component } = this.state;
 
       // connect selectors and actions if present
       if (config.selectors || config.actions) {
-        // TODO: cache function call to enhanceWithConnect in production
-        const EnhancedComponent = enhanceWithConnect(Component);
+        if (!this.component.isConnected) {
+          this.component.Component = enhanceWithConnect(this.component.Component);
+          this.component.isConnected = true;
+        }
 
-        return (
-          <EnhancedComponent selectors={config.selectors} actions={config.actions} props={props} />
-        );
+        const { Component } = this.component;
+        return <Component selectors={config.selectors} actions={config.actions} props={props} />;
       }
 
+      const { Component } = this.component;
       return <Component {...props} />;
     }
   }
+  /* eslint-enable */
 
   Container.displayName = `Load(${name})`;
   Container.contextTypes = contextTypes;

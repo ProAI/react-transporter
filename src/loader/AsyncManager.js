@@ -3,6 +3,7 @@ const canUseDOM = typeof window !== 'undefined';
 
 class AsyncManager {
   env: 'browser' | 'node';
+
   phase: 'BOOTSTRAPPING' | 'FIRST_RENDER' | 'RENDER';
 
   constructor() {

@@ -1,4 +1,4 @@
-import StoreQuery from './../StoreQuery';
+import StoreQuery from '../StoreQuery';
 import isConnection from '../../utils/isConnection';
 import isManyLink from '../../utils/isManyLink';
 import formatData from './formatData';
