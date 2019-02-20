@@ -10,9 +10,9 @@ export default class StoreQuery {
 
     this.data = this.isManyLink
       ? typeIdOrIds
-        .map(typeId => formatData(typeId[0], typeId[1], state.entities.data))
-        .filter(item => item !== undefined)
-      : formatData(typeIdOrIds[0], typeIdOrIds[1], state.entities.data);
+          .map(typeId => formatData(typeId[0], typeId[1], state.entities))
+          .filter(item => item !== undefined)
+      : formatData(typeIdOrIds[0], typeIdOrIds[1], state.entities);
 
     this.state = state;
   }
