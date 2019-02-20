@@ -22,10 +22,13 @@ export default function formatData(type, id, entities, shallow = false) {
     }
 
     // check if entity contains of optimistic data
-    // eslint-disable-next-line no-underscore-dangle
-    attributes.__optimistic = Boolean(
-      entities.optimistic.updates[type] && entities.optimistic.updates[type][id],
-    );
+    /* eslint-disable no-underscore-dangle */
+    if (entities.data[type][id].__optimistic === undefined) {
+      attributes.__optimistic = Boolean(
+        entities.optimistic.updates[type] && entities.optimistic.updates[type][id],
+      );
+    }
+    /* eslint-enable */
   }
 
   return {
