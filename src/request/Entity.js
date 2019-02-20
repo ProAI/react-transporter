@@ -41,11 +41,27 @@ function checkValue(value, originalValue, variables) {
   }
 }
 
+function makeValue(name, originalValues, optimistic) {
+  // return the reverted value if there is an optimistic update
+  if (optimistic.updates && optimistic.updates[name]) {
+    return optimistic.updates[name].originalValue;
+  }
+
+  // return the reverted value if there is an optimistic delete
+  if (optimistic.deletions) {
+    return optimistic.deletions[name];
+  }
+
+  // return the original value of this entity instance
+  return originalValues[name];
+}
+
 export default class Entity {
-  constructor(type, id, originalValues) {
+  constructor(type, id, originalValues, optimistic) {
     this.type = type;
     this.id = id;
     this.originalValues = originalValues;
+    this.optimistic = optimistic;
     this.values = {};
   }
 
@@ -58,7 +74,7 @@ export default class Entity {
     }
 
     // get new or original value
-    const value = this.values[name] || this.originalValues[name];
+    const value = this.values[name] || makeValue(name, this.originalValues, this.optimistic);
 
     // return connection value
     if (isConnection(value)) {

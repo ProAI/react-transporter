@@ -41,6 +41,20 @@ function checkRootValue(value, originalValue, variables) {
   }
 }
 
+function getOptimisticData(type, id, state) {
+  const updates =
+    state.entities.optimistic.updates[type] && state.entities.optimistic.updates[type][id]
+      ? state.entities.optimistic.updates[type][id]
+      : null;
+
+  const deletions =
+    state.entities.optimistic.deletions[type] && state.entities.optimistic.deletions[type][id]
+      ? state.entities.optimistic.deletions[type][id].value
+      : null;
+
+  return { updates, deletions };
+}
+
 export default class WriteStore {
   constructor(state, response) {
     this.state = state;
@@ -68,7 +82,12 @@ export default class WriteStore {
       throw makeRequestError('MISSING_ENTITY_UDPATE', { type, id });
     }
 
-    const entity = new Entity(type, id, this.state.entities.data[type][id]);
+    const entity = new Entity(
+      type,
+      id,
+      this.state.entities.data[type][id],
+      getOptimisticData(type, id, this.state),
+    );
 
     setAttributes(entity);
     if (!this.data.entities[type]) this.data.entities[type] = {};

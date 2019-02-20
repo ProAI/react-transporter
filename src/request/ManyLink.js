@@ -10,10 +10,9 @@ export default class ManyLink {
     if (idOrIds === undefined && type !== undefined && isConnection(type)) {
       this.meta = type.meta;
       this.link = type.link;
-      return;
+    } else {
+      this.link = type ? getTypeIds(type) : [];
     }
-
-    this.link = type ? getTypeIds(type) : [];
   }
 
   prepend(type, idOrIds) {
