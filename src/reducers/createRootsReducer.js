@@ -1,91 +1,70 @@
-import getPosition from '../utils/getPosition';
-import addOptimisticUpdate from './utils/addOptimisticUpdate';
+import applyOptimisticUpdate from './utils/applyOptimisticUpdate';
 import revertOptimisticUpdate from './utils/revertOptimisticUpdate';
+import filterOutOptimisticData from './utils/filterOutOptimisticData';
 
-export default function createRootsReducer(data) {
+export default function createRootsReducer(initialData) {
   const initialState = {
-    data,
-    optimistic: {
-      updates: {},
-      deletions: {},
-    },
+    data: initialData,
+    optimistic: null,
   };
 
-  return function reducer(state = initialState, baseAction) {
-    const nextState = JSON.parse(JSON.stringify(state));
-    const action = JSON.parse(JSON.stringify(baseAction));
+  return function reducer(state = initialState, action) {
+    if (action.type === 'TRANSPORTER_STORE_RESET') {
+      return initialState;
+    }
 
     // TRANSPORTER_REQUEST_START
-    // apply optimistic data
+    // Apply optimistic data from response.
     if (
       action.type === 'TRANSPORTER_REQUEST_START' &&
       action.optimisticData &&
       action.optimisticData.roots
     ) {
-      Object.keys(action.optimisticData.roots).forEach(root => {
-        const getRoot = object => object[root];
+      const nextState = JSON.parse(JSON.stringify(state));
 
-        // add optimistic update value
-        nextState.optimistic.updates[root] = addOptimisticUpdate(nextState, action, getRoot, true);
-      });
-
-      // temporarily set stored value to optimistic value
-      nextState.data = Object.assign({}, nextState.data, action.optimisticData.roots);
+      // apply optimistic update
+      return applyOptimisticUpdate(
+        action.id,
+        action.optimisticData.roots,
+        nextState.data,
+        nextState.optimistic,
+      );
     }
 
     // TRANSPORTER_REQUEST_COMPLETED || TRANSPORTER_REQUEST_ERROR
-    // revert optimistic data & apply response data for specified fields
+    // Revert optimistic data and apply response data.
     if (
-      (action.type === 'TRANSPORTER_REQUEST_COMPLETED' ||
-        action.type === 'TRANSPORTER_REQUEST_ERROR') &&
-      action.optimisticData &&
-      action.optimisticData.roots
+      action.type === 'TRANSPORTER_REQUEST_COMPLETED' ||
+      action.type === 'TRANSPORTER_REQUEST_ERROR'
     ) {
-      Object.keys(action.optimisticData.roots).forEach(root => {
-        const getRoot = object => object[root];
+      let nextState = JSON.parse(JSON.stringify(state));
 
-        // get position of optimistic value & throw error if optimistic value was not found
-        const position = getPosition(action.id, getRoot(nextState.optimistic.updates).values);
-        if (position === -1) {
-          throw new Error('Optimistic value not found.');
-        }
-
-        // revert optimistic value
-        nextState.optimistic.updates[root] = revertOptimisticUpdate(
-          position,
-          state,
-          action,
-          getRoot,
-          true,
+      if (action.optimisticData && action.optimisticData.roots) {
+        // revert optimistic update
+        nextState = revertOptimisticUpdate(
+          action.id,
+          action.optimisticData.roots,
+          action.data && action.data.roots,
+          nextState.data,
+          nextState.optimistic,
         );
-        if (nextState.optimistic.updates[root] === undefined) {
-          delete nextState.optimistic.updates[root];
-        }
+      }
 
-        // delete value from response if present
-        if (action.data && action.data.roots && getRoot(action.data.roots)) {
-          delete action.data.roots[root];
-        }
-      });
+      if (action.data && action.data.roots) {
+        // Filter out fields that are also in optimistic entity
+        const fields = filterOutOptimisticData(
+          action.data.roots,
+          action.optimisticData && action.optimisticData.roots,
+        );
+
+        fields.forEach(field => {
+          nextState.roots[field] = action.data.roots[field];
+        });
+      }
+
+      return nextState;
     }
 
-    // TRANSPORTER_REQUEST_COMPLETED
-    // apply response data
-    if (action.type === 'TRANSPORTER_REQUEST_COMPLETED' && action.data.roots) {
-      // add root to store
-      nextState.data = Object.assign({}, nextState.data, action.data.roots);
-    }
-
-    if (action.type === 'TRANSPORTER_STORE_RESET') {
-      return {
-        data: {},
-        optimistic: {
-          updates: {},
-          deletions: {},
-        },
-      };
-    }
-
-    return nextState;
+    return state;
   };
 }

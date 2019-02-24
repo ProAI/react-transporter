@@ -1,4 +1,4 @@
-import getPosition from '../utils/getPosition';
+import getPosition from './utils/getPosition';
 
 export default function createRequestsReducer() {
   const initialState = [];

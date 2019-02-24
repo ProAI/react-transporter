@@ -1,231 +1,186 @@
-import getPosition from '../utils/getPosition';
-import isAmongEntities from './utils/isAmongEntities';
-import addOptimisticUpdate from './utils/addOptimisticUpdate';
+import applyOptimisticCreate from './utils/applyOptimisticCreate';
+import applyOptimisticUpdate from './utils/applyOptimisticUpdate';
+import applyOptimisticDelete from './utils/applyOptimisticDelete';
 import revertOptimisticUpdate from './utils/revertOptimisticUpdate';
-import updateValueBeforeRevertingOptimisticUpdate from './utils/updateValueBeforeRevertingOptimisticUpdate';
+import revertOptimisticDelete from './utils/revertOptimisticDelete';
+import filterOutOptimisticData from './utils/filterOutOptimisticData';
+import filterOutOptimisticTrash from './utils/filterOutOptimisticTrash';
+import EntityMap from './EntityMap';
 
-export default function createEntitiesReducer(data) {
+export default function createEntitiesReducer(initialData) {
   const initialState = {
-    data,
-    optimistic: {
-      updates: {},
-      deletions: {},
-    },
+    data: initialData,
+    optimistic: {},
   };
 
-  return function reducer(state = initialState, baseAction) {
-    const nextState = JSON.parse(JSON.stringify(state));
-    const action = JSON.parse(JSON.stringify(baseAction));
+  return function reducer(state = initialState, action) {
+    if (action.type === 'TRANSPORTER_STORE_RESET') {
+      return initialState;
+    }
 
     // TRANSPORTER_REQUEST_START
-    // apply optimistic data
+    // Apply optimistic data from response.
     if (action.type === 'TRANSPORTER_REQUEST_START' && action.optimisticData) {
+      const entityMap = new EntityMap(JSON.parse(JSON.stringify(state.data)));
+      const optimisticMap = new EntityMap(JSON.parse(JSON.stringify(state.optimistic)));
+
       // insertions/updates
       if (action.optimisticData.entities) {
-        Object.keys(action.optimisticData.entities).forEach(type => {
-          // prerequisites / create (optimistic) type of entities if not present
-          if (!nextState.data[type]) nextState.data[type] = {};
-          if (!nextState.optimistic.updates[type]) nextState.optimistic.updates[type] = {};
+        const actionOptimisticEntityMap = new EntityMap(action.optimisticData.entities);
 
-          Object.keys(action.optimisticData.entities[type]).forEach(id => {
-            // prerequisites / create optimistic entity if not present
-            if (!nextState.optimistic.updates[type][id]) {
-              nextState.optimistic.updates[type][id] = {};
-            }
+        actionOptimisticEntityMap.forEach(([actionOptimisticEntity, type, id]) => {
+          const isOptimisticCreate = !entityMap.get(type, id);
 
-            // add optimistic values
-            Object.keys(action.optimisticData.entities[type][id]).forEach(field => {
-              const getField = object => {
-                if (!object[type] || !object[type][id]) return undefined;
-                return object[type][id][field];
-              };
-
-              // add optimistic update value
-              nextState.optimistic.updates[type][id][field] = addOptimisticUpdate(
-                nextState,
-                action,
-                getField,
-              );
-            });
-
-            // temporarily set stored value to optimistic value
-            nextState.data[type][id] = Object.assign(
-              {},
-              nextState.data[type][id],
-              action.optimisticData.entities[type][id],
+          if (isOptimisticCreate) {
+            // apply optimistic create
+            const { data, optimistic } = applyOptimisticCreate(
+              action.id,
+              actionOptimisticEntity,
+              entityMap.get(type, id),
             );
-          });
-        });
-      }
 
-      // deletions
-      if (action.optimisticData.trash) {
-        action.optimisticData.trash.forEach(([type, id]) => {
-          if (nextState.data[type] && nextState.data[type][id]) {
-            // prerequisites / create optimistic type of entities if not present
-            if (!nextState.optimistic.deletions[type]) nextState.optimistic.deletions[type] = {};
-
-            // add trashed entity to optimistically trashed entities
-            nextState.optimistic.deletions[type][id] = {
-              id: action.id,
-              value: nextState.data[type][id],
-            };
-
-            // temporarily delete entity
-            delete nextState.data[type][id];
-          }
-        });
-      }
-    }
-
-    // TRANSPORTER_REQUEST_COMPLETED || TRANSPORTER_REQUEST_ERROR
-    // revert optimistic data & apply response data for specified fields
-    if (
-      (action.type === 'TRANSPORTER_REQUEST_COMPLETED' ||
-        action.type === 'TRANSPORTER_REQUEST_ERROR') &&
-      action.optimisticData
-    ) {
-      // insertions/updates
-      if (action.optimisticData.entities) {
-        Object.keys(action.optimisticData.entities).forEach(type => {
-          Object.keys(action.optimisticData.entities[type]).forEach(id => {
-            Object.keys(action.optimisticData.entities[type][id]).forEach(field => {
-              const getField = object => {
-                if (!object[type] || !object[type][id]) return undefined;
-                return object[type][id][field];
-              };
-
-              // get position of optimistic value & throw error if optimistic value was not found
-              const position = getPosition(
-                action.id,
-                getField(nextState.optimistic.updates).values,
-              );
-              if (position === -1) {
-                throw new Error('Optimistic value not found.');
-              }
-
-              // update stored value
-              const value = updateValueBeforeRevertingOptimisticUpdate(
-                position,
-                nextState,
-                action,
-                getField,
-              );
-              if (value) {
-                if (!nextState.data[type]) {
-                  nextState.data[type] = {};
-                }
-
-                if (!nextState.data[type][id]) {
-                  nextState.data[type][id] = {};
-                }
-
-                nextState.data[type][id][field] = value;
-              }
-
-              // revert optimistic value
-              nextState.optimistic.updates[type][id][field] = revertOptimisticUpdate(
-                position,
-                nextState,
-                action,
-                getField,
-              );
-              if (nextState.optimistic.updates[type][id][field] === undefined) {
-                delete nextState.optimistic.updates[type][id][field];
-              }
-
-              // delete value from response if present
-              if (action.data && action.data.entities && getField(action.data.entities)) {
-                delete action.data.entities[type][id][field];
-              }
-            });
-
-            // garbage collection
-            if (Object.keys(nextState.optimistic.updates[type][id]).length === 0) {
-              delete nextState.optimistic.updates[type][id];
-            }
-          });
-
-          // garbage collection
-          if (Object.keys(nextState.optimistic.updates[type]).length === 0) {
-            delete nextState.optimistic.updates[type];
-          }
-        });
-      }
-
-      // deletions
-      if (action.optimisticData.trash) {
-        action.optimisticData.trash.forEach(([type, id]) => {
-          // check if request id is correct
-          if (nextState.optimistic.deletions[type][id].id !== action.id) {
-            throw new Error('Optimistic deletion was processed by other request.');
-          }
-
-          // check if optimistic deletion is in response too
-          const position =
-            action.data && action.data.trash ? isAmongEntities([type, id], action.data.trash) : -1;
-          if (position !== -1) {
-            // if yes -> delete entity from response
-            delete action.data.trash[position];
+            entityMap.set(type, id, data);
+            optimisticMap.set(type, id, optimistic);
           } else {
-            // if no -> restore entity
-            // prerequisites / create type of entities if not present
-            if (!nextState.data[type]) nextState.data[type] = {};
-
-            // set entity
-            nextState.data[type][id] = nextState.optimistic.deletions[type][id].value;
-          }
-
-          // finally delete entity from optimistic data
-          delete nextState.optimistic.deletions[type][id];
-          if (Object.keys(nextState.optimistic.deletions[type]).length === 0) {
-            delete nextState.optimistic.deletions[type];
-          }
-        });
-      }
-    }
-
-    // TRANSPORTER_REQUEST_COMPLETED
-    // apply response data
-    if (action.type === 'TRANSPORTER_REQUEST_COMPLETED') {
-      // insertions/updates
-      if (action.data.entities) {
-        Object.keys(action.data.entities).forEach(type => {
-          // prerequisites / create type of entities if not present
-          if (!nextState.data[type]) nextState.data[type] = {};
-
-          Object.keys(action.data.entities[type]).forEach(id => {
-            // add entity to store
-            nextState.data[type][id] = Object.assign(
-              {},
-              nextState.data[type][id],
-              action.data.entities[type][id],
+            // apply optimistic update
+            const { data, optimistic } = applyOptimisticUpdate(
+              action.id,
+              actionOptimisticEntity,
+              entityMap.get(type, id),
+              optimisticMap.get(type, id),
             );
-          });
+
+            entityMap.set(type, id, data);
+            optimisticMap.set(type, id, optimistic);
+          }
         });
       }
 
       // deletions
-      if (action.data.trash) {
-        action.data.trash.forEach(([type, id]) => {
-          // delete entity from store
-          if (nextState.data[type] && nextState.data[type][id]) {
-            delete nextState.data[type][id];
-          }
+      if (action.optimisticData.trash) {
+        const actionOptimisticTrash = new EntityMap(action.optimisticData.trash);
+
+        actionOptimisticTrash.forEach(([type, id]) => {
+          // apply optimistic delete
+          const { optimistic } = applyOptimisticDelete(action.id, entityMap.get(type, id));
+
+          entityMap.delete(type, id);
+          optimisticMap.set(type, id, optimistic);
         });
       }
-    }
 
-    if (action.type === 'TRANSPORTER_STORE_RESET') {
       return {
-        data: {},
-        optimistic: {
-          updates: {},
-          deletions: {},
-        },
+        data: entityMap.toObject(),
+        optimistic: optimisticMap.toObject(),
       };
     }
 
-    return nextState;
+    // TRANSPORTER_REQUEST_COMPLETED || TRANSPORTER_REQUEST_ERROR
+    // Revert optimistic data and apply response data.
+    if (
+      action.type === 'TRANSPORTER_REQUEST_COMPLETED' ||
+      action.type === 'TRANSPORTER_REQUEST_ERROR'
+    ) {
+      const entityMap = new EntityMap(JSON.parse(JSON.stringify(state.data)));
+      const optimisticMap = new EntityMap(JSON.parse(JSON.stringify(state.optimistic)));
+
+      // insertions/updates
+      if (action.optimisticData && action.optimisticData.entities) {
+        const actionEntityMap = new EntityMap(action.data && action.data.entities);
+        const actionOptimisticEntityMap = new EntityMap(action.optimisticData.entities);
+
+        actionOptimisticEntityMap.forEach(([actionOptimisticEntity, type, id]) => {
+          const isOptimisticCreate =
+            optimisticMap.get(type, id) && optimisticMap.get(type, id).type === 'CREATE';
+
+          if (isOptimisticCreate) {
+            // revert optimistic create
+            entityMap.delete(type, id);
+            optimisticMap.delete(type, id);
+          } else {
+            // revert optimistic update
+            const { data, optimistic } = revertOptimisticUpdate(
+              action.id,
+              actionOptimisticEntity,
+              actionEntityMap.get(type, id),
+              entityMap.get(type, id),
+              optimisticMap.get(type, id),
+            );
+
+            entityMap.set(type, id, data);
+            if (optimistic) {
+              optimisticMap.delete(type, id);
+            } else {
+              optimisticMap.set(type, id, optimistic);
+            }
+          }
+        });
+      }
+
+      // deletions
+      if (action.optimisticData && action.optimisticData.trash) {
+        const actionTrash = action.data && action.data.trash;
+        const actionOptimisticTrash = action.optimisticData.trash;
+
+        actionOptimisticTrash.forEach(([type, id]) => {
+          // revert optimistic delete
+          const { data } = revertOptimisticDelete(
+            action.id,
+            actionTrash,
+            [type, id],
+            optimisticMap.get(type, id),
+          );
+
+          if (data) {
+            entityMap.set(type, id, data);
+          }
+          optimisticMap.delete(type, id);
+        });
+      }
+
+      // insertions/updates
+      if (action.data && action.data.entities) {
+        const actionEntityMap = new EntityMap(action.data.entities);
+        const actionOptimisticEntityMap = new EntityMap(
+          action.optimisticData && action.optimisticData.entities,
+        );
+
+        actionEntityMap.forEach(([actionEntity, type, id]) => {
+          // Filter out fields that are also in optimistic entity
+          const fields = filterOutOptimisticData(
+            actionEntity,
+            actionOptimisticEntityMap.get(type, id),
+          );
+
+          // Set entity data
+          const data = entityMap.get(type, id);
+          fields.forEach(field => {
+            data[field] = actionEntity[field];
+          });
+          entityMap.set(type, id, data);
+        });
+      }
+
+      // deletions
+      if (action.data && action.data.trash) {
+        const actionTrash = action.data.trash;
+        const actionOptimisticTrash = action.optimisticData && action.optimisticData.trash;
+
+        // Filter out links that are also in optimistic trash
+        const links = filterOutOptimisticTrash(actionTrash, actionOptimisticTrash);
+
+        // Delete entity
+        links.forEach(([type, id]) => {
+          entityMap.delete(type, id);
+        });
+      }
+
+      return {
+        data: entityMap.toObject(),
+        optimistic: optimisticMap.toObject(),
+      };
+    }
+
+    return state;
   };
 }

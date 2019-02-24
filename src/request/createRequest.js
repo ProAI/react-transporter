@@ -38,6 +38,18 @@ export default function createRequest(request, fetch) {
         ? request.mutation.loc.source.body
         : request.query.loc.source.body;
 
+    const throwError = (error, rollback = false) => {
+      dispatch({
+        type: 'TRANSPORTER_REQUEST_ERROR',
+        id: request.id,
+        endTime: getTimestamp(),
+        optimisticData: rollback ? optimisticData : {},
+        error,
+      });
+
+      throw new Error(error);
+    };
+
     // dispatch query
     return fetch(queryBody, request.variables).then(
       result =>
@@ -46,30 +58,14 @@ export default function createRequest(request, fetch) {
 
           // Only apply response if store was not reset in the meantime
           if (state[TRANSPORTER_STATE].info.lastReset >= startTime) {
-            dispatch({
-              type: 'TRANSPORTER_REQUEST_ERROR',
-              id: request.id,
-              endTime: new Date().getTime(),
-              // We don't need to rollback optimisticData here
-              optimisticData: {},
-              error: 'Store reset after request was started.',
-            });
-
-            throw new Error();
+            // We don't need to rollback optimisticData here
+            throwError('Store reset after request was started.', true);
           }
 
           // Response has errors
           if (responseData.errors && responseData.errors.length > 0) {
             // Log and throw GraphQL error(s)
-            dispatch({
-              type: 'TRANSPORTER_REQUEST_ERROR',
-              id: request.id,
-              endTime: getTimestamp(),
-              optimisticData,
-              error: responseData.errors,
-            });
-
-            throw responseData.errors;
+            throwError(responseData.errors);
           }
 
           // Response is okay
@@ -86,30 +82,14 @@ export default function createRequest(request, fetch) {
             });
           } catch (error) {
             // Log and throw internal error
-            dispatch({
-              type: 'TRANSPORTER_REQUEST_ERROR',
-              id: request.id,
-              endTime: getTimestamp(),
-              optimisticData,
-              error: 'Internal error',
-            });
-
-            throw error;
+            throwError('Internal error');
           }
 
           return responseData;
         }),
       error => {
         // Something else went wrong
-        dispatch({
-          type: 'TRANSPORTER_REQUEST_ERROR',
-          id: request.id,
-          endTime: getTimestamp(),
-          optimisticData,
-          error,
-        });
-
-        throw error;
+        throwError(error);
       },
     );
   };
