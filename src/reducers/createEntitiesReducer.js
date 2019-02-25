@@ -33,11 +33,7 @@ export default function createEntitiesReducer(initialData) {
 
           if (isOptimisticCreate) {
             // apply optimistic create
-            const { data, optimistic } = applyOptimisticCreate(
-              action.id,
-              actionOptimisticEntity,
-              entityMap.get(type, id),
-            );
+            const { data, optimistic } = applyOptimisticCreate(action.id, actionOptimisticEntity);
 
             entityMap.set(type, id, data);
             optimisticMap.set(type, id, optimistic);
@@ -58,9 +54,10 @@ export default function createEntitiesReducer(initialData) {
 
       // deletions
       if (action.optimisticData.trash) {
-        const actionOptimisticTrash = new EntityMap(action.optimisticData.trash);
+        const actionOptimisticTrash = action.optimisticData.trash;
 
-        actionOptimisticTrash.forEach(([type, id]) => {
+        actionOptimisticTrash.forEach(bla => {
+          const [type, id] = bla;
           // apply optimistic delete
           const { optimistic } = applyOptimisticDelete(action.id, entityMap.get(type, id));
 
@@ -109,9 +106,9 @@ export default function createEntitiesReducer(initialData) {
 
             entityMap.set(type, id, data);
             if (optimistic) {
-              optimisticMap.delete(type, id);
-            } else {
               optimisticMap.set(type, id, optimistic);
+            } else {
+              optimisticMap.delete(type, id);
             }
           }
         });
@@ -154,10 +151,14 @@ export default function createEntitiesReducer(initialData) {
 
           // Set entity data
           const data = entityMap.get(type, id);
-          fields.forEach(field => {
-            data[field] = actionEntity[field];
-          });
-          entityMap.set(type, id, data);
+          if (data) {
+            fields.forEach(field => {
+              data[field] = actionEntity[field];
+            });
+            entityMap.set(type, id, data);
+          } else {
+            entityMap.set(type, id, actionEntity);
+          }
         });
       }
 

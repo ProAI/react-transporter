@@ -42,18 +42,19 @@ function checkValue(value, originalValue, variables) {
 }
 
 function makeValue(name, originalValues, optimistic) {
-  // return the reverted value if there is an optimistic update
-  if (optimistic.updates && optimistic.updates[name]) {
-    return optimistic.updates[name].originalValue;
-  }
-
-  // return the reverted value if there is an optimistic delete
-  if (optimistic.deletions) {
-    return optimistic.deletions[name];
-  }
-
   // return the original value of this entity instance
-  return originalValues[name];
+  if (!optimistic) {
+    return originalValues[name];
+  }
+
+  // return the reverted value if there is an optimistic update
+  if (optimistic.type === 'UPDATE') {
+    return optimistic.data[name].originalValue;
+  }
+
+  throw new Error(
+    `Cannot set field ${name}, because optimistic create or delete was performed on this field.`,
+  );
 }
 
 export default class Entity {

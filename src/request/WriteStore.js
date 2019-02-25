@@ -42,26 +42,16 @@ function checkRootValue(value, originalValue, variables) {
 }
 
 function getOptimisticData(type, id, state) {
-  const updates =
-    state.entities.optimistic.updates[type] && state.entities.optimistic.updates[type][id]
-      ? state.entities.optimistic.updates[type][id]
-      : null;
-
-  const deletions =
-    state.entities.optimistic.deletions[type] && state.entities.optimistic.deletions[type][id]
-      ? state.entities.optimistic.deletions[type][id].value
-      : null;
-
-  return { updates, deletions };
+  return state.entities.optimistic[type] && state.entities.optimistic[type][id];
 }
 
 export default class WriteStore {
   constructor(state, response) {
     this.state = state;
-    this.data = response || {
-      entities: {},
-      roots: {},
-      trash: [],
+    this.data = {
+      entities: (response && response.entities) || {},
+      roots: (response && response.roots) || {},
+      trash: (response && response.trash) || [],
     };
   }
 
@@ -113,5 +103,23 @@ export default class WriteStore {
     checkRootValue(value, this.state.roots.data[name], { name });
 
     this.data.roots[name] = value;
+  }
+
+  toObject() {
+    const obj = {};
+
+    if (Object.keys(this.data.entities).length !== 0) {
+      obj.entities = this.data.entities;
+    }
+
+    if (Object.keys(this.data.roots).length !== 0) {
+      obj.roots = this.data.roots;
+    }
+
+    if (this.data.trash.length !== 0) {
+      obj.trash = this.data.trash;
+    }
+
+    return obj;
   }
 }

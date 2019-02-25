@@ -14,7 +14,7 @@ function makeData(updater, getState, response) {
 
   const store = new WriteStore(state[TRANSPORTER_STATE], response);
   updater(store, response); // TODO only pass in root and trashed ids of response
-  return store.data;
+  return store.toObject();
 }
 
 export default function createRequest(request, fetch) {
@@ -81,6 +81,8 @@ export default function createRequest(request, fetch) {
               data,
             });
           } catch (error) {
+            console.error(error);
+
             // Log and throw internal error
             throwError('Internal error');
           }

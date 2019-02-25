@@ -1,6 +1,6 @@
-export default function applyOptimisticCreate(actionId, actionOptimisticData, data) {
+export default function applyOptimisticCreate(actionId, actionOptimisticData) {
   const state = {
-    data,
+    data: {},
     optimistic: {
       type: 'CREATE',
       id: actionId,

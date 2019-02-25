@@ -58,7 +58,7 @@ export default function createRootsReducer(initialData) {
         );
 
         fields.forEach(field => {
-          nextState.roots[field] = action.data.roots[field];
+          nextState.data[field] = action.data.roots[field];
         });
       }
 

@@ -1,4 +1,9 @@
-export default function applyOptimisticUpdate(actionId, actionOptimisticData, data, optimistic) {
+export default function applyOptimisticUpdate(
+  actionId,
+  actionOptimisticData,
+  data,
+  optimistic, // nullable
+) {
   const state = {
     data,
     optimistic: optimistic || {
@@ -7,12 +12,14 @@ export default function applyOptimisticUpdate(actionId, actionOptimisticData, da
     },
   };
 
+  const originalData = { ...data };
+
   Object.keys(actionOptimisticData).forEach(field => {
     state.data[field] = actionOptimisticData[field];
 
     if (!state.optimistic.data[field]) {
       state.optimistic.data[field] = {
-        originalValue: state.data[field],
+        originalValue: originalData[field],
         values: [],
       };
     }

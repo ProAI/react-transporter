@@ -2,8 +2,8 @@ import getPosition from './getPosition';
 
 export default function revertOptimisticUpdate(
   actionId,
-  actionData,
   actionOptimisticData,
+  actionData, // nullable
   data,
   optimistic,
 ) {
@@ -13,71 +13,62 @@ export default function revertOptimisticUpdate(
   };
 
   Object.keys(actionOptimisticData).forEach(field => {
+    const hasActionData = actionData && actionData[field] !== undefined;
+
     // get position of optimistic value
-    const position = getPosition(actionId, state.optimistic.data[field].values);
+    const { originalValue, values } = optimistic.data[field];
+    const position = getPosition(actionId, values);
+    const isLastPosition = position === values.length - 1;
 
-    // remove whole object if actual optimistic value is the only one
-    if (state.optimistic.data[field].values.length === 1) {
-      delete state.optimistic.data[field];
-
-      return;
-    }
-
-    // case 1) not last position, response value present
-    if (
-      position !== state.optimistic.data[field].values.length - 1 &&
-      actionData[field] !== undefined
-    ) {
-      // update original value
-      state.optimistic.data[field].originalValue = actionData[field];
-
-      // deprecate previous values
-      state.optimistic.data[field].values.map((value, key) =>
-        key < position ? { ...value, active: false } : value,
-      );
-    }
-
-    // case 2) last position, response value present
-    if (
-      position === state.optimistic.data[field].values.length - 1 &&
-      actionData[field] !== undefined
-    ) {
-      // use response value
+    /* begin set value */
+    // don't revert, use response value
+    if (isLastPosition && hasActionData) {
       state.data[field] = actionData[field];
-
-      // delete original value
-      delete state.optimistic.data[field].originalValue; // TODO
-
-      // deprecate previous values
-      state.optimistic.data[field].values.map((value, key) =>
-        key < position ? { ...value, active: false } : value,
-      );
     }
 
-    // case 3) not last position, no response value
-    // do nothing
-
-    // case 4) last position, no response value
-    if (
-      position === state.optimistic.data[field].values.length - 1 &&
-      actionData[field] === undefined
-    ) {
-      // revert to original value or previous optimistic value
-      if (position === 0) {
-        const { originalValue } = optimistic.data[field];
-
-        if (originalValue !== undefined) {
-          state.data[field] = originalValue;
-        } else {
-          delete state.data[field];
-        }
+    // revert to original value
+    if (isLastPosition && !hasActionData && values.length === 1) {
+      if (originalValue === undefined) {
+        delete state.data[field];
       } else {
-        state.data[field] = optimistic.data[field].values[position - 1];
+        state.data[field] = originalValue;
       }
     }
 
-    // delete actual optimistic value
-    state.optimistic.data[field].values.splice(position, 1);
+    // revert to previous optimistic value
+    if (isLastPosition && !hasActionData && values.length > 1) {
+      const value = values[position - 1];
+
+      // The value must be active, because we assume that if there is already
+      // a response of a newer request, this response has the most up to date
+      // value.
+      if (value.active) {
+        state.data[field] = value.value;
+      }
+    }
+    /* end set value */
+
+    /* end set optimistic */
+    if (values.length === 1) {
+      // remove whole object if actual optimistic value is the only one
+      delete state.optimistic.data[field];
+    } else {
+      if (hasActionData) {
+        if (!isLastPosition) {
+          // update original value
+          state.optimistic.data[field].originalValue = actionData[field];
+        }
+
+        // deprecate previous values
+        state.optimistic.data[field].values.map((value, key) =>
+          key < position ? { ...value, active: false } : value,
+        );
+      }
+
+      // delete actual optimistic value
+      state.optimistic.data[field].values.splice(position, 1);
+    }
+    /* end set optimistic */
   });
 
   if (Object.keys(state.optimistic.data).length === 0) {
