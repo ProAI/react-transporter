@@ -4,32 +4,36 @@ export default function applyOptimisticUpdate(
   data,
   optimistic, // nullable
 ) {
-  const state = {
-    data,
-    optimistic: optimistic || {
-      type: 'UPDATE',
-      data: {},
-    },
+  const nextData = { ...data };
+  const nextOptimistic = {
+    type: 'UPDATE',
+    data: optimistic ? { ...optimistic.data } : {},
   };
 
-  const originalData = { ...data };
-
   Object.keys(actionOptimisticData).forEach(field => {
-    state.data[field] = actionOptimisticData[field];
+    nextData[field] = actionOptimisticData[field];
 
-    if (!state.optimistic.data[field]) {
-      state.optimistic.data[field] = {
-        originalValue: originalData[field],
-        values: [],
-      };
-    }
+    const nextField = nextOptimistic.data[field]
+      ? {
+          originalValue: nextOptimistic.data[field].originalValue,
+          values: [...nextOptimistic.data[field].values],
+        }
+      : {
+          originalValue: data[field],
+          values: [],
+        };
 
-    state.optimistic.data[field].values.push({
+    nextField.values.push({
       active: true,
       id: actionId,
       value: actionOptimisticData[field],
     });
+
+    nextOptimistic.data[field] = nextField;
   });
 
-  return state;
+  return {
+    data: nextData,
+    optimistic: nextOptimistic,
+  };
 }

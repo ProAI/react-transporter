@@ -7,6 +7,16 @@ import filterOutOptimisticData from './utils/filterOutOptimisticData';
 import filterOutOptimisticTrash from './utils/filterOutOptimisticTrash';
 import EntityMap from './EntityMap';
 
+const cloneState = obj => {
+  const nextObj = {};
+
+  Object.keys(obj).forEach(type => {
+    nextObj[type] = { ...obj[type] };
+  });
+
+  return nextObj;
+};
+
 export default function createEntitiesReducer(initialData) {
   const initialState = {
     data: initialData,
@@ -21,33 +31,33 @@ export default function createEntitiesReducer(initialData) {
     // TRANSPORTER_REQUEST_START
     // Apply optimistic data from response.
     if (action.type === 'TRANSPORTER_REQUEST_START' && action.optimisticData) {
-      const entityMap = new EntityMap(JSON.parse(JSON.stringify(state.data)));
-      const optimisticMap = new EntityMap(JSON.parse(JSON.stringify(state.optimistic)));
+      const nextData = new EntityMap(cloneState(state.data));
+      const nextOptimistic = new EntityMap(cloneState(state.optimistic));
 
       // insertions/updates
       if (action.optimisticData.entities) {
         const actionOptimisticEntityMap = new EntityMap(action.optimisticData.entities);
 
         actionOptimisticEntityMap.forEach(([actionOptimisticEntity, type, id]) => {
-          const isOptimisticCreate = !entityMap.get(type, id);
+          const isOptimisticCreate = !nextData.get(type, id);
 
           if (isOptimisticCreate) {
             // apply optimistic create
             const { data, optimistic } = applyOptimisticCreate(action.id, actionOptimisticEntity);
 
-            entityMap.set(type, id, data);
-            optimisticMap.set(type, id, optimistic);
+            nextData.set(type, id, data);
+            nextOptimistic.set(type, id, optimistic);
           } else {
             // apply optimistic update
             const { data, optimistic } = applyOptimisticUpdate(
               action.id,
               actionOptimisticEntity,
-              entityMap.get(type, id),
-              optimisticMap.get(type, id),
+              nextData.get(type, id),
+              nextOptimistic.get(type, id),
             );
 
-            entityMap.set(type, id, data);
-            optimisticMap.set(type, id, optimistic);
+            nextData.set(type, id, data);
+            nextOptimistic.set(type, id, optimistic);
           }
         });
       }
@@ -59,16 +69,16 @@ export default function createEntitiesReducer(initialData) {
         actionOptimisticTrash.forEach(bla => {
           const [type, id] = bla;
           // apply optimistic delete
-          const { optimistic } = applyOptimisticDelete(action.id, entityMap.get(type, id));
+          const { optimistic } = applyOptimisticDelete(action.id, nextData.get(type, id));
 
-          entityMap.delete(type, id);
-          optimisticMap.set(type, id, optimistic);
+          nextData.delete(type, id);
+          nextOptimistic.set(type, id, optimistic);
         });
       }
 
       return {
-        data: entityMap.toObject(),
-        optimistic: optimisticMap.toObject(),
+        data: nextData.toObject(),
+        optimistic: nextOptimistic.toObject(),
       };
     }
 
@@ -78,8 +88,8 @@ export default function createEntitiesReducer(initialData) {
       action.type === 'TRANSPORTER_REQUEST_COMPLETED' ||
       action.type === 'TRANSPORTER_REQUEST_ERROR'
     ) {
-      const entityMap = new EntityMap(JSON.parse(JSON.stringify(state.data)));
-      const optimisticMap = new EntityMap(JSON.parse(JSON.stringify(state.optimistic)));
+      const nextData = new EntityMap(cloneState(state.data));
+      const nextOptimistic = new EntityMap(cloneState(state.optimistic));
 
       // insertions/updates
       if (action.optimisticData && action.optimisticData.entities) {
@@ -88,27 +98,27 @@ export default function createEntitiesReducer(initialData) {
 
         actionOptimisticEntityMap.forEach(([actionOptimisticEntity, type, id]) => {
           const isOptimisticCreate =
-            optimisticMap.get(type, id) && optimisticMap.get(type, id).type === 'CREATE';
+            nextOptimistic.get(type, id) && nextOptimistic.get(type, id).type === 'CREATE';
 
           if (isOptimisticCreate) {
             // revert optimistic create
-            entityMap.delete(type, id);
-            optimisticMap.delete(type, id);
+            nextData.delete(type, id);
+            nextOptimistic.delete(type, id);
           } else {
             // revert optimistic update
             const { data, optimistic } = revertOptimisticUpdate(
               action.id,
               actionOptimisticEntity,
               actionEntityMap.get(type, id),
-              entityMap.get(type, id),
-              optimisticMap.get(type, id),
+              nextData.get(type, id),
+              nextOptimistic.get(type, id),
             );
 
-            entityMap.set(type, id, data);
+            nextData.set(type, id, data);
             if (optimistic) {
-              optimisticMap.set(type, id, optimistic);
+              nextOptimistic.set(type, id, optimistic);
             } else {
-              optimisticMap.delete(type, id);
+              nextOptimistic.delete(type, id);
             }
           }
         });
@@ -125,13 +135,13 @@ export default function createEntitiesReducer(initialData) {
             action.id,
             actionTrash,
             [type, id],
-            optimisticMap.get(type, id),
+            nextOptimistic.get(type, id),
           );
 
           if (data) {
-            entityMap.set(type, id, data);
+            nextData.set(type, id, data);
           }
-          optimisticMap.delete(type, id);
+          nextOptimistic.delete(type, id);
         });
       }
 
@@ -143,21 +153,22 @@ export default function createEntitiesReducer(initialData) {
         );
 
         actionEntityMap.forEach(([actionEntity, type, id]) => {
-          // Filter out fields that are also in optimistic entity
-          const fields = filterOutOptimisticData(
-            actionEntity,
-            actionOptimisticEntityMap.get(type, id),
-          );
-
           // Set entity data
-          const data = entityMap.get(type, id);
+          const data = nextData.get(type, id);
+
           if (data) {
+            // Filter out fields that are also in optimistic entity
+            const fields = filterOutOptimisticData(
+              actionEntity,
+              actionOptimisticEntityMap.get(type, id),
+            );
+
             fields.forEach(field => {
               data[field] = actionEntity[field];
             });
-            entityMap.set(type, id, data);
+            nextData.set(type, id, data);
           } else {
-            entityMap.set(type, id, actionEntity);
+            nextData.set(type, id, actionEntity);
           }
         });
       }
@@ -172,13 +183,13 @@ export default function createEntitiesReducer(initialData) {
 
         // Delete entity
         links.forEach(([type, id]) => {
-          entityMap.delete(type, id);
+          nextData.delete(type, id);
         });
       }
 
       return {
-        data: entityMap.toObject(),
-        optimistic: optimisticMap.toObject(),
+        data: nextData.toObject(),
+        optimistic: nextOptimistic.toObject(),
       };
     }
 

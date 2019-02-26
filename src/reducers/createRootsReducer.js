@@ -20,14 +20,12 @@ export default function createRootsReducer(initialData) {
       action.optimisticData &&
       action.optimisticData.roots
     ) {
-      const nextState = JSON.parse(JSON.stringify(state));
-
       // apply optimistic update
       return applyOptimisticUpdate(
         action.id,
         action.optimisticData.roots,
-        nextState.data,
-        nextState.optimistic,
+        state.data,
+        state.optimistic,
       );
     }
 
@@ -37,18 +35,16 @@ export default function createRootsReducer(initialData) {
       action.type === 'TRANSPORTER_REQUEST_COMPLETED' ||
       action.type === 'TRANSPORTER_REQUEST_ERROR'
     ) {
-      let nextState = JSON.parse(JSON.stringify(state));
-
-      if (action.optimisticData && action.optimisticData.roots) {
-        // revert optimistic update
-        nextState = revertOptimisticUpdate(
-          action.id,
-          action.optimisticData.roots,
-          action.data && action.data.roots,
-          nextState.data,
-          nextState.optimistic,
-        );
-      }
+      const nextState =
+        action.optimisticData && action.optimisticData.roots
+          ? revertOptimisticUpdate(
+              action.id,
+              action.optimisticData.roots,
+              action.data && action.data.roots,
+              state.data,
+              state.optimistic,
+            )
+          : { data: { ...state.data }, optimistic: state.optimistic };
 
       if (action.data && action.data.roots) {
         // Filter out fields that are also in optimistic entity
