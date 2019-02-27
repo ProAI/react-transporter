@@ -1,97 +1,105 @@
 import generateId from '../utils/generateId';
 import WriteStore from './WriteStore';
+import ErrorHandler from './ErrorHandler';
 
 const TRANSPORTER_STATE = 'transporter';
 
 const getTimestamp = () => new Date().getTime();
 
-function makeData(updater, getState, response) {
-  if (!updater) {
-    return response;
+function getStoreData(type, data) {
+  const storeData = { ...data };
+
+  // If mutation, we don't want to store the roots.
+  if (type === 'TRANSPORTER_MUTATION') {
+    delete storeData.roots;
   }
 
-  const state = getState();
+  return storeData;
+}
 
-  const store = new WriteStore(state[TRANSPORTER_STATE], response);
-  updater(store, response); // TODO only pass in root and trashed ids of response
+function makeData(type, updater, state, data) {
+  const storeData = data ? getStoreData(type, data) : null;
+
+  if (!updater) {
+    return storeData;
+  }
+
+  const store = new WriteStore(state[TRANSPORTER_STATE], storeData);
+  updater(store, data);
+
   return store.toObject();
 }
 
 export default function createRequest(request, fetch) {
   return (dispatch, getState) => {
-    // create request id if not present
-    if (!request.id) request.id = generateId();
     const startTime = getTimestamp();
-    const storeData =
-      request.type === 'TRANSPORTER_MUTATION' ? makeData(request.optimisticUpdater, getState) : {};
-    const optimisticData = request.type === 'TRANSPORTER_MUTATION' ? storeData : null;
+    const isMutation = request.type === 'TRANSPORTER_MUTATION';
+
+    const requestId = request.id || generateId();
+    const requestBody = isMutation
+      ? request.mutation.loc.source.body
+      : request.query.loc.source.body;
+
+    const optimisticData = isMutation
+      ? makeData(request.type, request.optimisticUpdater, getState())
+      : null;
 
     dispatch({
       type: 'TRANSPORTER_REQUEST_START',
-      id: request.id,
+      id: requestId,
       startTime,
       optimisticData,
     });
 
-    const queryBody =
-      request.type === 'TRANSPORTER_MUTATION'
-        ? request.mutation.loc.source.body
-        : request.query.loc.source.body;
-
-    const throwError = (error, rollback = false) => {
+    const handleErrors = (errors, data, rollback = true) => {
       dispatch({
         type: 'TRANSPORTER_REQUEST_ERROR',
-        id: request.id,
+        id: requestId,
         endTime: getTimestamp(),
-        optimisticData: rollback ? optimisticData : {},
-        error,
+        optimisticData: rollback ? optimisticData : null,
+        data,
+        errors,
       });
 
-      throw new Error(error);
+      ErrorHandler.handle(errors);
+
+      throw new Error(errors);
     };
 
     // dispatch query
-    return fetch(queryBody, request.variables).then(
+    return fetch(requestBody, request.variables).then(
       result =>
         result.json().then(responseData => {
           const state = getState();
 
-          // Only apply response if store was not reset in the meantime
+          // In the meantime the store was resetted, so do not apply response.
           if (state[TRANSPORTER_STATE].info.lastReset >= startTime) {
-            // We don't need to rollback optimisticData here
-            throwError('Store reset after request was started.', true);
+            handleErrors({ internal: 'Store reset after request was started.' }, null, false);
           }
 
-          // Response has errors
-          if (responseData.errors && responseData.errors.length > 0) {
-            // Log and throw GraphQL error(s)
-            throwError(responseData.errors);
+          // Response has errors, so log them.
+          if (responseData.errors) {
+            handleErrors({ graphql: responseData.errors }, responseData.data);
           }
 
-          // Response is okay
-          try {
-            const data = makeData(request.updater, getState, responseData.data);
+          // Response is okay.
+          const data = responseData.data
+            ? makeData(request.type, request.updater, state, responseData.data)
+            : null;
 
-            // Try to add response to store
-            dispatch({
-              type: 'TRANSPORTER_REQUEST_COMPLETED',
-              id: request.id,
-              endTime: getTimestamp(),
-              optimisticData,
-              data,
-            });
-          } catch (error) {
-            console.error(error);
-
-            // Log and throw internal error
-            throwError('Internal error');
-          }
+          dispatch({
+            type: 'TRANSPORTER_REQUEST_COMPLETED',
+            id: requestId,
+            endTime: getTimestamp(),
+            optimisticData,
+            data,
+          });
 
           return responseData;
         }),
-      error => {
+      () => {
         // Something else went wrong
-        throwError(error);
+        handleErrors({ network: 'Network error' }, null);
       },
     );
   };

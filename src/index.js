@@ -9,6 +9,7 @@ import createContainer from './loader/createContainer';
 import query from './loader/query';
 import Link from './request/Link';
 import ManyLink from './request/ManyLink';
+import onError from './request/onError';
 import select from './selector/select';
 import selectByRelation from './selector/selectByRelation';
 import selectByRoot from './selector/selectByRoot';
@@ -26,6 +27,7 @@ export {
   query,
   Link,
   ManyLink,
+  onError,
   select,
   selectByRelation,
   selectByRoot,

@@ -13,7 +13,7 @@ export default function createRequestsReducer() {
         startTime: action.startTime,
         endTime: null,
         loading: true,
-        error: null,
+        errors: null,
       });
     }
 
@@ -36,7 +36,7 @@ export default function createRequestsReducer() {
         ...nextState[position],
         endTime: action.endTime,
         loading: false,
-        error: action.error,
+        errors: action.errors,
       };
     }
 

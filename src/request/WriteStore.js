@@ -46,12 +46,12 @@ function getOptimisticData(type, id, state) {
 }
 
 export default class WriteStore {
-  constructor(state, response) {
+  constructor(state, data) {
     this.state = state;
     this.data = {
-      entities: (response && response.entities) || {},
-      roots: (response && response.roots) || {},
-      trash: (response && response.trash) || [],
+      entities: (data && data.entities) || {},
+      roots: (data && data.roots) || {},
+      trash: [],
     };
   }
 

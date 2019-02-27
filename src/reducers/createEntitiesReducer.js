@@ -7,7 +7,7 @@ import filterOutOptimisticData from './utils/filterOutOptimisticData';
 import filterOutOptimisticTrash from './utils/filterOutOptimisticTrash';
 import EntityMap from './EntityMap';
 
-const cloneState = obj => {
+const cloneEntityObject = obj => {
   const nextObj = {};
 
   Object.keys(obj).forEach(type => {
@@ -31,8 +31,8 @@ export default function createEntitiesReducer(initialData) {
     // TRANSPORTER_REQUEST_START
     // Apply optimistic data from response.
     if (action.type === 'TRANSPORTER_REQUEST_START' && action.optimisticData) {
-      const nextData = new EntityMap(cloneState(state.data));
-      const nextOptimistic = new EntityMap(cloneState(state.optimistic));
+      const nextData = new EntityMap(cloneEntityObject(state.data));
+      const nextOptimistic = new EntityMap(cloneEntityObject(state.optimistic));
 
       // insertions/updates
       if (action.optimisticData.entities) {
@@ -88,8 +88,8 @@ export default function createEntitiesReducer(initialData) {
       action.type === 'TRANSPORTER_REQUEST_COMPLETED' ||
       action.type === 'TRANSPORTER_REQUEST_ERROR'
     ) {
-      const nextData = new EntityMap(cloneState(state.data));
-      const nextOptimistic = new EntityMap(cloneState(state.optimistic));
+      const nextData = new EntityMap(cloneEntityObject(state.data));
+      const nextOptimistic = new EntityMap(cloneEntityObject(state.optimistic));
 
       // insertions/updates
       if (action.optimisticData && action.optimisticData.entities) {
