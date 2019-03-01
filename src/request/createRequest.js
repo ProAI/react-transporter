@@ -68,8 +68,12 @@ export default function createRequest(request, fetch) {
 
     // dispatch query
     return fetch(requestBody, request.variables).then(
-      result =>
-        result.json().then(responseData => {
+      result => {
+        if (!result.ok) {
+          handleErrors({ network: result.statusText });
+        }
+
+        return result.json().then(responseData => {
           const state = getState();
 
           // In the meantime the store was resetted, so do not apply response.
@@ -95,11 +99,12 @@ export default function createRequest(request, fetch) {
             data,
           });
 
-          return responseData;
-        }),
+          return responseData.data;
+        });
+      },
       () => {
         // Something else went wrong
-        handleErrors({ network: 'Network error' }, null);
+        handleErrors({ network: 'Network error' });
       },
     );
   };

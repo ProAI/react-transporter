@@ -20,18 +20,10 @@ export default function formatData(type, id, entities, shallow = false) {
         }
       });
     }
-
-    // check if entity contains of optimistic data
-    /* eslint-disable no-underscore-dangle */
-    if (entities.data[type][id].__optimistic === undefined) {
-      attributes.__optimistic = Boolean(entities.optimistic[type] && entities.optimistic[type][id]);
-    }
-    /* eslint-enable */
   }
 
   return {
     ...attributes,
-    __shallow: shallow,
     __typename: type,
     id,
   };

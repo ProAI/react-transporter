@@ -86,6 +86,11 @@ export default class Entity {
     return value;
   }
 
+  // Alias for set, because of flowtype problem.
+  setDistinct(rawName, rawValue = null) {
+    this.set(rawName, rawValue);
+  }
+
   set(rawName, rawValue = null) {
     const name = getName(rawName);
     const value = prepareValue(rawValue, this, name);
