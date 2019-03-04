@@ -7,7 +7,7 @@ import filterOutOptimisticData from './utils/filterOutOptimisticData';
 import filterOutOptimisticTrash from './utils/filterOutOptimisticTrash';
 import EntityMap from './EntityMap';
 
-const cloneEntityObject = obj => {
+function cloneEntityObject(obj) {
   const nextObj = {};
 
   Object.keys(obj).forEach(type => {
@@ -15,7 +15,7 @@ const cloneEntityObject = obj => {
   });
 
   return nextObj;
-};
+}
 
 export default function createEntitiesReducer(initialData) {
   const initialState = {

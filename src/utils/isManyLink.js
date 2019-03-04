@@ -1,3 +1,5 @@
+import isString from './isString';
+
 export default function isManyLink(value) {
-  return !(value === null || (typeof value[0] === 'string' || value[0] instanceof String));
+  return !(value === null || isString(value[0]));
 }

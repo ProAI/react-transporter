@@ -26,4 +26,11 @@ export default class Link {
     }
     return this;
   }
+
+  toObject() {
+    return {
+      link: this.link,
+      meta: this.meta,
+    };
+  }
 }

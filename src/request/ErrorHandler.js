@@ -14,4 +14,8 @@ class ErrorHandler {
 
 const ErrorHandlerInstance = new ErrorHandler();
 
+export function onError(callback) {
+  ErrorHandlerInstance.set(callback);
+}
+
 export default ErrorHandlerInstance;

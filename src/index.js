@@ -9,7 +9,7 @@ import createContainer from './loader/createContainer';
 import query from './loader/query';
 import Link from './request/Link';
 import ManyLink from './request/ManyLink';
-import onError from './request/onError';
+import { onError } from './request/ErrorHandler';
 import select from './selector/select';
 import selectByRelation from './selector/selectByRelation';
 import selectByRoot from './selector/selectByRoot';

@@ -1,17 +1,43 @@
-import getName from '../utils/getName';
+import getKeyName from '../utils/getKeyName';
 import isConnection from '../utils/isConnection';
 import isManyLink from '../utils/isManyLink';
-import getRawLink from './utils/getRawLink';
 import Link from './Link';
 import ManyLink from './ManyLink';
-import makeRequestError from './makeRequestError';
-import isDate from './utils/isDate';
+import StoreError from '../utils/StoreError';
 
-function prepareValue(value, entity, name) {
-  const returnValue = typeof value === 'function' ? value(entity.get(name)) : value;
+function isDate(obj) {
+  return Object.prototype.toString.call(obj) === '[object Date]';
+}
+
+function getCurrentFieldValue(name, value, originalValue, optimistic) {
+  if (value !== undefined) {
+    return value;
+  }
+
+  if (optimistic && optimistic.type === 'UPDATE' && optimistic.data[name] !== undefined) {
+    return optimistic.data[name].originalValue;
+  }
+
+  return originalValue;
+}
+
+export function getFieldValue(name, value, originalValue, optimistic) {
+  const currentValue = getCurrentFieldValue(name, value, originalValue, optimistic);
+
+  // return connection value
+  if (isConnection(currentValue)) {
+    return isManyLink(currentValue.link) ? new ManyLink(currentValue) : new Link(currentValue);
+  }
+
+  // return scalar value
+  return currentValue;
+}
+
+export function prepareFieldValue(name, value, currentValue) {
+  const returnValue = typeof value === 'function' ? value(currentValue) : value;
 
   if (isConnection(returnValue)) {
-    return getRawLink(returnValue);
+    return returnValue.toObject();
   }
 
   if (isDate(returnValue)) {
@@ -21,69 +47,57 @@ function prepareValue(value, entity, name) {
   return returnValue;
 }
 
-function checkValue(value, originalValue, variables) {
-  // check field type
-  if (isConnection(originalValue) && !isConnection(value)) {
-    throw makeRequestError('WRONG_CONNECTION_FIELD_VALUE');
+export function validateFieldValue(name, value, currentValue, link) {
+  if (currentValue === undefined) {
+    return;
   }
-  if (!isConnection(originalValue) && isConnection(value)) {
-    throw makeRequestError('WRONG_SCALAR_FIELD_VALUE', variables);
+
+  // check field type
+  if (isConnection(currentValue) && !isConnection(value)) {
+    const error = `Cannot set field "${name}", because it needs a scalar value, not a connection.`;
+
+    throw new StoreError(error, link);
+  }
+  if (!isConnection(currentValue) && isConnection(value)) {
+    const error = `Cannot set field "${name}", because it needs a connection, not a scalar value.`;
+
+    throw new StoreError(error, link);
   }
 
   // check connection type
-  if (isConnection(originalValue) && isConnection(value)) {
-    if (isManyLink(originalValue.link) && !isManyLink(value.link)) {
-      throw makeRequestError('WRONG_CONNECTION_MANYLINK_FIELD_VALUE', variables);
+  if (isConnection(currentValue) && isConnection(value)) {
+    if (isManyLink(currentValue.link) && !isManyLink(value.link)) {
+      const error = `Cannot set field "${name}", because it is of type ManyLink, not Link.`;
+
+      throw new StoreError(error, link);
     }
-    if (!isManyLink(originalValue.link) && isManyLink(value.link)) {
-      throw makeRequestError('WRONG_CONNECTION_LINK_FIELD_VALUE', variables);
+    if (!isManyLink(currentValue.link) && isManyLink(value.link)) {
+      const error = `Cannot set field "${name}", because it is of type Link, not ManyLink.`;
+
+      throw new StoreError(error, link);
     }
   }
-}
-
-function makeValue(name, originalValues, optimistic) {
-  // return the original value of this entity instance
-  if (!optimistic) {
-    return originalValues[name];
-  }
-
-  // return the reverted value if there is an optimistic update
-  if (optimistic.type === 'UPDATE') {
-    return optimistic.data[name].originalValue;
-  }
-
-  throw new Error(
-    `Cannot set field ${name}, because optimistic create or delete was performed on this field.`,
-  );
 }
 
 export default class Entity {
   constructor(type, id, originalValues, optimistic) {
     this.type = type;
     this.id = id;
-    this.originalValues = originalValues;
-    this.optimistic = optimistic;
+
+    this.originalValues = originalValues || {};
     this.values = {};
+
+    this.optimistic = optimistic;
   }
 
   get(name) {
-    if (
-      this.values[name] === undefined &&
-      (this.originalValues && this.originalValues[name] === undefined)
-    ) {
-      throw makeRequestError('MISSING_FIELD', { type: this.type, id: this.id, name });
+    if (this.values[name] === undefined && this.originalValues[name] === undefined) {
+      const error = `Cannot get field "${name}", because it does not exist.`;
+
+      throw new StoreError(error, [this.type, this.id]);
     }
 
-    // get new or original value
-    const value = this.values[name] || makeValue(name, this.originalValues, this.optimistic);
-
-    // return connection value
-    if (isConnection(value)) {
-      return isManyLink(value.link) ? new ManyLink(value) : new Link(value);
-    }
-
-    // return scalar value
-    return value;
+    return getFieldValue(name, this.values[name], this.originalValues[name], this.optimistic);
   }
 
   // Alias for set, because of flowtype problem.
@@ -92,25 +106,31 @@ export default class Entity {
   }
 
   set(rawName, rawValue = null) {
-    const name = getName(rawName);
-    const value = prepareValue(rawValue, this, name);
+    const name = getKeyName(rawName);
+    const currentValue = getFieldValue(
+      name,
+      this.values[name],
+      this.originalValues[name],
+      this.optimistic,
+    );
+    const value = prepareFieldValue(name, rawValue, currentValue);
 
-    // check correct type
-    if (this.originalValues && this.originalValues[name]) {
-      checkValue(value, this.originalValues[name], { type: this.type, id: this.id, name });
-    }
+    validateFieldValue(name, value, currentValue, [this.type, this.id]);
 
     this.values[name] = value;
   }
 
   fill(values) {
     Object.keys(values).forEach(name => {
-      const value = prepareValue(values[name], this, name);
+      const currentValue = getFieldValue(
+        name,
+        this.values[name],
+        this.originalValues[name],
+        this.optimistic,
+      );
+      const value = prepareFieldValue(name, values[name], currentValue);
 
-      // check correct type
-      if (this.originalValues && this.originalValues[name]) {
-        checkValue(value, this.originalValues[name], { type: this.type, id: this.id, name });
-      }
+      validateFieldValue(name, value, currentValue, [this.type, this.id]);
 
       this.values[name] = value;
     });

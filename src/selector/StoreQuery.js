@@ -2,7 +2,8 @@ import isManyLink from '../utils/isManyLink';
 import compareValues from './utils/compareValues';
 import formatData from './utils/formatData';
 import getRelationData from './utils/getRelationData';
-import getName from '../utils/getName';
+import getKeyName from '../utils/getKeyName';
+import isString from '../utils/isString';
 
 export default class StoreQuery {
   constructor(state, typeIdOrIds) {
@@ -50,9 +51,8 @@ export default class StoreQuery {
   }
 
   join(rawName, constraints = null, shallow = false) {
-    const name = getName(rawName);
-    const isStringName = typeof rawName === 'string' || rawName instanceof String;
-    const resultName = isStringName ? rawName : rawName[0];
+    const name = getKeyName(rawName);
+    const resultName = isString(rawName) ? rawName : rawName[0];
 
     if (this.isManyLink) {
       this.data.forEach((attributes, key) => {

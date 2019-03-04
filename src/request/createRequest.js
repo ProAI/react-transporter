@@ -4,6 +4,8 @@ import ErrorHandler from './ErrorHandler';
 
 const TRANSPORTER_STATE = 'transporter';
 
+const STORE_RESET_ERROR = 'Store reset after request was started.';
+
 const getTimestamp = () => new Date().getTime();
 
 function getStoreData(type, data) {
@@ -25,7 +27,17 @@ function makeData(type, updater, state, data) {
   }
 
   const store = new WriteStore(state[TRANSPORTER_STATE], storeData);
-  updater(store, data);
+
+  try {
+    updater(store, data);
+  } catch (error) {
+    if (error.name === 'StoreError') {
+      // eslint-disable-next-line no-console
+      console.error(error.message);
+    }
+
+    throw error;
+  }
 
   return store.toObject();
 }
@@ -40,9 +52,18 @@ export default function createRequest(request, fetch) {
       ? request.mutation.loc.source.body
       : request.query.loc.source.body;
 
-    const optimisticData = isMutation
-      ? makeData(request.type, request.optimisticUpdater, getState())
-      : null;
+    let optimisticData = null;
+    if (isMutation) {
+      try {
+        optimisticData = makeData(request.type, request.optimisticUpdater, getState());
+      } catch (error) {
+        if (error.name === 'StoreError') {
+          return Promise.reject(error);
+        }
+
+        throw error;
+      }
+    }
 
     dispatch({
       type: 'TRANSPORTER_REQUEST_START',
@@ -63,7 +84,7 @@ export default function createRequest(request, fetch) {
 
       ErrorHandler.handle(errors);
 
-      throw new Error(errors);
+      return Promise.reject(errors);
     };
 
     // dispatch query
@@ -78,18 +99,27 @@ export default function createRequest(request, fetch) {
 
           // In the meantime the store was resetted, so do not apply response.
           if (state[TRANSPORTER_STATE].info.lastReset >= startTime) {
-            handleErrors({ internal: 'Store reset after request was started.' }, null, false);
+            return handleErrors({ internal: `Internal error: ${STORE_RESET_ERROR}` }, null, false);
           }
 
           // Response has errors, so log them.
           if (responseData.errors) {
-            handleErrors({ graphql: responseData.errors }, responseData.data);
+            return handleErrors({ graphql: responseData.errors }, responseData.data);
           }
 
           // Response is okay.
-          const data = responseData.data
-            ? makeData(request.type, request.updater, state, responseData.data)
-            : null;
+          let data = null;
+          if (responseData.data) {
+            try {
+              data = makeData(request.type, request.updater, state, responseData.data);
+            } catch (error) {
+              if (error.name === 'StoreError') {
+                return handleErrors({ internal: error.message }, responseData.data);
+              }
+
+              throw error;
+            }
+          }
 
           dispatch({
             type: 'TRANSPORTER_REQUEST_COMPLETED',
@@ -102,9 +132,9 @@ export default function createRequest(request, fetch) {
           return responseData.data;
         });
       },
-      () => {
+      error => {
         // Something else went wrong
-        handleErrors({ network: 'Network error' });
+        return handleErrors({ network: `Network error: ${error.message}` });
       },
     );
   };

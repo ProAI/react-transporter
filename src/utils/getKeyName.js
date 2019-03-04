@@ -1,9 +1,11 @@
-const stringifyObject = (obj) => {
+import isString from './isString';
+
+const stringifyObject = obj => {
   const keys = Object.keys(obj);
 
   keys.sort();
 
-  const parts = keys.map((key) => {
+  const parts = keys.map(key => {
     const isObject = obj[key] !== null && typeof obj[key] === 'object';
 
     const value = isObject ? stringifyObject(obj[key]) : JSON.stringify(obj[key]);
@@ -14,8 +16,8 @@ const stringifyObject = (obj) => {
   return `{${parts.join(',')}}`;
 };
 
-export default function getName(name) {
-  if (typeof name === 'string' || name instanceof String) {
+export default function getKeyName(name) {
+  if (isString(name)) {
     return name;
   }
 

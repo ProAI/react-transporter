@@ -1,48 +1,53 @@
-import getName from '../utils/getName';
-import isConnection from '../utils/isConnection';
-import isManyLink from '../utils/isManyLink';
-import getRawLink from './utils/getRawLink';
-import Link from './Link';
-import ManyLink from './ManyLink';
-import Entity from './Entity';
-import makeRequestError from './makeRequestError';
+import getKeyName from '../utils/getKeyName';
+import Entity, { validateFieldValue, prepareFieldValue, getFieldValue } from './Entity';
+import StoreError from '../utils/StoreError';
 
-function entityExists(type, id, storedEntities, data) {
-  return (
-    (storedEntities[type] && storedEntities[type][id]) ||
-    (data.entities[type] && data.entities[type][id])
-  );
-}
+function validateInsert(data, optimistic, link) {
+  if (data) {
+    const error = 'Cannot insert entity, because entity already exists.';
 
-function prepareRootValue(value, originalValue) {
-  return getRawLink(
-    typeof value === 'function'
-      ? value(
-          isManyLink(originalValue.link) ? new ManyLink(originalValue) : new Link(originalValue),
-        )
-      : value,
-  );
-}
-
-function checkRootValue(value, originalValue, variables) {
-  // check if value is connection value
-  if (!value || !isConnection(value)) {
-    throw makeRequestError('WRONG_ROOT_VALUE');
+    throw new StoreError(error, link);
   }
 
-  // check connection type
-  if (isConnection(originalValue)) {
-    if (isManyLink(originalValue.link) && !isManyLink(value.link)) {
-      throw makeRequestError('WRONG_ROOT_MANYLINK_VALUE', variables);
-    }
-    if (!isManyLink(originalValue.link) && isManyLink(value.link)) {
-      throw makeRequestError('WRONG_ROOT_LINK_VALUE', variables);
-    }
+  if (optimistic && optimistic.type === 'DELETE') {
+    const error = 'Cannot perform insert on optimistically deleted entity.';
+
+    throw new StoreError(error, link);
   }
 }
 
-function getOptimisticData(type, id, state) {
-  return state.entities.optimistic[type] && state.entities.optimistic[type][id];
+function validateUpdate(data, optimistic, link) {
+  if (!data) {
+    const error =
+      optimistic && optimistic.type === 'DELETE'
+        ? 'Cannot perform update on optimistically deleted entity.'
+        : 'Cannot update entity, because entity does not exist.';
+
+    throw new StoreError(error, link);
+  }
+
+  if (optimistic && optimistic.type === 'CREATE') {
+    const error = 'Cannot perform update on optimistically created entity.';
+
+    throw new StoreError(error, link);
+  }
+}
+
+function validateDelete(data, optimistic, link) {
+  if (!data) {
+    const error =
+      optimistic && optimistic.type === 'DELETE'
+        ? 'Cannot perform delete on optimistically deleted entity.'
+        : 'Cannot delete entity, because entity does not exist.';
+
+    throw new StoreError(error, link);
+  }
+
+  if (optimistic && optimistic.type === 'CREATE') {
+    const error = 'Cannot perform delete on optimistically created entity.';
+
+    throw new StoreError(error, link);
+  }
 }
 
 export default class WriteStore {
@@ -56,9 +61,10 @@ export default class WriteStore {
   }
 
   insert(type, id, setAttributes) {
-    if (entityExists(type, id, this.state.entities.data, this.data)) {
-      throw makeRequestError('EXISTING_ENTITY_INSERT', { type, id });
-    }
+    const data = this.getData(type, id);
+    const optimistic = this.getOptimistic(type, id);
+
+    validateInsert(data, optimistic, [type, id]);
 
     const entity = new Entity(type, id);
 
@@ -68,16 +74,12 @@ export default class WriteStore {
   }
 
   update(type, id, setAttributes) {
-    if (!entityExists(type, id, this.state.entities.data, this.data)) {
-      throw makeRequestError('MISSING_ENTITY_UDPATE', { type, id });
-    }
+    const data = this.getData(type, id);
+    const optimistic = this.getOptimistic(type, id);
 
-    const entity = new Entity(
-      type,
-      id,
-      this.state.entities.data[type][id],
-      getOptimisticData(type, id, this.state),
-    );
+    validateUpdate(data, optimistic, [type, id]);
+
+    const entity = new Entity(type, id, data, optimistic);
 
     setAttributes(entity);
     if (!this.data.entities[type]) this.data.entities[type] = {};
@@ -88,21 +90,40 @@ export default class WriteStore {
   }
 
   delete(type, id) {
-    if (!entityExists(type, id, this.state.entities.data, this.data)) {
-      throw makeRequestError('MISSING_ENTITY_UDPATE', { type, id });
-    }
+    const data = this.getData(type, id);
+    const optimistic = this.getOptimistic(type, id);
+
+    validateDelete(data, optimistic, [type, id]);
 
     this.data.trash.push([type, id]);
   }
 
   setRoot(rawName, rawValue) {
-    const name = getName(rawName);
+    const name = getKeyName(rawName);
 
-    const value = prepareRootValue(rawValue, this.state.roots.data[name]);
+    const currentValue = getFieldValue(
+      name,
+      this.data.roots[name],
+      this.state.roots[name],
+      this.state.roots.optimistic,
+    );
+    const value = prepareFieldValue(name, rawValue, currentValue);
 
-    checkRootValue(value, this.state.roots.data[name], { name });
+    validateFieldValue(name, value, currentValue, 'root');
 
     this.data.roots[name] = value;
+  }
+
+  getData(type, id) {
+    const { data } = this.state.entities;
+
+    return data[type] && data[type][id];
+  }
+
+  getOptimistic(type, id) {
+    const { optimistic } = this.state.entities;
+
+    return optimistic[type] && optimistic[type][id];
   }
 
   toObject() {
