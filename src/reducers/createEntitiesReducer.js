@@ -1,10 +1,10 @@
-import applyOptimisticCreate from './utils/applyOptimisticCreate';
-import applyOptimisticUpdate from './utils/applyOptimisticUpdate';
-import applyOptimisticDelete from './utils/applyOptimisticDelete';
-import revertOptimisticUpdate from './utils/revertOptimisticUpdate';
-import revertOptimisticDelete from './utils/revertOptimisticDelete';
-import filterOutOptimisticData from './utils/filterOutOptimisticData';
-import filterOutOptimisticTrash from './utils/filterOutOptimisticTrash';
+import applyOptimisticCreate from './optimistic/applyOptimisticCreate';
+import applyOptimisticUpdate from './optimistic/applyOptimisticUpdate';
+import applyOptimisticDelete from './optimistic/applyOptimisticDelete';
+import revertOptimisticUpdate from './optimistic/revertOptimisticUpdate';
+import revertOptimisticDelete from './optimistic/revertOptimisticDelete';
+import filterOutOptimisticData from './optimistic/filterOutOptimisticData';
+import filterOutOptimisticTrash from './optimistic/filterOutOptimisticTrash';
 import EntityMap from './EntityMap';
 
 function cloneEntityObject(obj) {

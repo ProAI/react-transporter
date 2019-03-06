@@ -1,6 +1,6 @@
-import applyOptimisticUpdate from './utils/applyOptimisticUpdate';
-import revertOptimisticUpdate from './utils/revertOptimisticUpdate';
-import filterOutOptimisticData from './utils/filterOutOptimisticData';
+import applyOptimisticUpdate from './optimistic/applyOptimisticUpdate';
+import revertOptimisticUpdate from './optimistic/revertOptimisticUpdate';
+import filterOutOptimisticData from './optimistic/filterOutOptimisticData';
 
 export default function createRootsReducer(initialData) {
   const initialState = {
