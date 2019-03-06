@@ -77,8 +77,8 @@ export default function createEntitiesReducer(initialData) {
       }
 
       return {
-        data: nextData.toObject(),
-        optimistic: nextOptimistic.toObject(),
+        data: nextData.toSource(),
+        optimistic: nextOptimistic.toSource(),
       };
     }
 
@@ -188,8 +188,8 @@ export default function createEntitiesReducer(initialData) {
       }
 
       return {
-        data: nextData.toObject(),
-        optimistic: nextOptimistic.toObject(),
+        data: nextData.toSource(),
+        optimistic: nextOptimistic.toSource(),
       };
     }
 

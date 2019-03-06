@@ -1,6 +1,6 @@
 import getKeyName from '../utils/getKeyName';
 import Entity, { validateFieldValue, prepareFieldValue, getFieldValue } from './Entity';
-import StoreError from '../utils/StoreError';
+import StoreError from '../errors/StoreError';
 
 function validateInsert(data, optimistic, link) {
   if (data) {
@@ -126,7 +126,7 @@ export default class WriteStore {
     return optimistic[type] && optimistic[type][id];
   }
 
-  toObject() {
+  toSource() {
     const obj = {};
 
     if (Object.keys(this.data.entities).length !== 0) {

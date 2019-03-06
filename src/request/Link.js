@@ -27,7 +27,7 @@ export default class Link {
     return this;
   }
 
-  toObject() {
+  toSource() {
     return {
       link: this.link,
       meta: this.meta,

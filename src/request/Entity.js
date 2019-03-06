@@ -3,7 +3,7 @@ import isConnection from '../utils/isConnection';
 import isManyLink from '../utils/isManyLink';
 import Link from './Link';
 import ManyLink from './ManyLink';
-import StoreError from '../utils/StoreError';
+import StoreError from '../errors/StoreError';
 
 function isDate(obj) {
   return Object.prototype.toString.call(obj) === '[object Date]';
@@ -37,7 +37,7 @@ export function prepareFieldValue(name, value, currentValue) {
   const returnValue = typeof value === 'function' ? value(currentValue) : value;
 
   if (isConnection(returnValue)) {
-    return returnValue.toObject();
+    return returnValue.toSource();
   }
 
   if (isDate(returnValue)) {

@@ -33,7 +33,7 @@ export default class EntityMap {
     if (Object.keys(this.obj[type]).length === 0) delete this.obj[type];
   }
 
-  toObject() {
+  toSource() {
     return this.obj;
   }
 }

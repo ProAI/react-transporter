@@ -1,4 +1,4 @@
-import isString from './isString';
+import isString from '../utils/isString';
 
 export default class StoreError extends Error {
   constructor(message, appendix) {
@@ -11,5 +11,8 @@ export default class StoreError extends Error {
     }
 
     this.name = 'StoreError';
+
+    // eslint-disable-next-line no-console
+    console.error(this.message);
   }
 }

@@ -3,8 +3,7 @@ import PropTypes from 'prop-types';
 import { compose } from 'redux';
 import AsyncManager from './AsyncManager';
 import enhanceWithConnect from './utils/enhanceWithConnect';
-
-const getTimestamp = () => new Date().getTime();
+import getTimestamp from '../utils/getTimestamp';
 
 const resolveES6 = x =>
   x != null && (typeof x === 'function' || typeof x === 'object') && x.default ? x.default : x;

@@ -1,5 +1,3 @@
-import getPosition from './utils/getPosition';
-
 export default function createRequestsReducer() {
   const initialState = [];
 
@@ -19,7 +17,7 @@ export default function createRequestsReducer() {
 
     // TRANSPORTER_REQUEST_COMPLETED
     if (action.type === 'TRANSPORTER_REQUEST_COMPLETED') {
-      const position = getPosition(action.id, nextState);
+      const position = nextState.findIndex(request => request.id === action.id);
 
       nextState[position] = {
         ...nextState[position],
@@ -30,7 +28,7 @@ export default function createRequestsReducer() {
 
     // TRANSPORTER_REQUEST_ERROR
     if (action.type === 'TRANSPORTER_REQUEST_COMPLETED') {
-      const position = getPosition(action.id, nextState);
+      const position = nextState.findIndex(request => request.id === action.id);
 
       nextState[position] = {
         ...nextState[position],

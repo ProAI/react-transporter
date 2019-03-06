@@ -83,7 +83,7 @@ export default class ManyLink {
     return this;
   }
 
-  toObject() {
+  toSource() {
     return {
       link: this.link,
       meta: this.meta,

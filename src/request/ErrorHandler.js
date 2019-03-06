@@ -1,21 +1,19 @@
 class ErrorHandler {
-  callback = null;
+  static callback = null;
 
-  set(callback) {
+  static set(callback) {
     this.callback = callback;
   }
 
-  handle(errors) {
+  static handle(errors) {
     if (this.callback) {
       this.callback(errors);
     }
   }
 }
 
-const ErrorHandlerInstance = new ErrorHandler();
-
 export function onError(callback) {
-  ErrorHandlerInstance.set(callback);
+  ErrorHandler.set(callback);
 }
 
-export default ErrorHandlerInstance;
+export default ErrorHandler;

@@ -12,7 +12,7 @@ export default function revertOptimisticDelete(
   }
 
   // Check if optimistic deletion is in response, too.
-  if (!actionTrash || actionTrash.some(link => isSameEntity(link, actionOptimisticLink))) {
+  if (actionTrash && actionTrash.some(link => isSameEntity(link, actionOptimisticLink))) {
     return { data: null };
   }
 

@@ -1,5 +1,3 @@
-import getPosition from './getPosition';
-
 const updateValue = (position, field, actionData, data, optimistic) => {
   const { originalValue, values } = optimistic.data[field];
   const isLastPosition = position === values.length - 1;
@@ -90,7 +88,12 @@ export default function revertOptimisticUpdate(
 
   Object.keys(actionOptimisticData).forEach(field => {
     const { values } = optimistic.data[field];
-    const position = getPosition(actionId, values);
+    const position = values.findIndex(value => value.id === actionId);
+
+    // throw error if not found
+    if (position === -1) {
+      throw new Error('Position not found.');
+    }
 
     // Update field value.
     nextState.data = updateValue(position, field, actionData, nextState.data, nextState.optimistic);

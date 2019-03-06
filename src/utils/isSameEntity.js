@@ -1,3 +1,3 @@
-export default function isSameEntity(entity1, entity2) {
-  return entity1[0] === entity2[0] && entity1[1] === entity2[1];
+export default function isSameEntity(leftLink, rightLink) {
+  return leftLink[0] === rightLink[0] && leftLink[1] === rightLink[1];
 }
