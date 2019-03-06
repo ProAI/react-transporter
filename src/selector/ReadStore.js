@@ -1,5 +1,5 @@
 import StoreQuery from './StoreQuery';
-import makeSelectorError from './makeSelectorError';
+import StoreError from '../errors/StoreError';
 import getKeyName from '../utils/getKeyName';
 
 function getData(state, typeIdOrIds, query) {
@@ -15,7 +15,7 @@ export default class ReadStore {
 
   select(type, id, query) {
     if (!this.state.entities.data[type] || !this.state.entities.data[type][id]) {
-      throw makeSelectorError('MISSING_ENTITY', { type, id });
+      throw new StoreError('Selected entity not found.', [type, id]);
     }
 
     return getData(this.state, [type, id], query);
@@ -25,7 +25,7 @@ export default class ReadStore {
     const name = getKeyName(rawName);
 
     if (!this.state.roots.data[name]) {
-      throw makeSelectorError('MISSING_ROOT', { name });
+      throw new StoreError(`Selected root '${name}' not found.`, 'root');
     }
 
     const rootTypeIdOrIds = this.state.roots.data[name].link;
@@ -41,7 +41,7 @@ export default class ReadStore {
       !this.state.entities.data[type][id] ||
       !this.state.entities.data[type][id][name]
     ) {
-      throw makeSelectorError('MISSING_RELATION', { type, id, name });
+      throw new StoreError(`Selected relation '${name}' not found.`, [type, id]);
     }
 
     const childrenTypeIdOrIds = this.state.entities.data[type][id][name].link;

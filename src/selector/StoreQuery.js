@@ -1,9 +1,87 @@
-import isManyLink from '../utils/isManyLink';
-import compareValues from './utils/compareValues';
-import formatData from './utils/formatData';
-import getRelationData from './utils/getRelationData';
 import getKeyName from '../utils/getKeyName';
 import isString from '../utils/isString';
+import isConnection from '../utils/isConnection';
+import isManyLink from '../utils/isManyLink';
+import StoreError from '../errors/StoreError';
+
+function compareValues(leftValue, operator, rightValue) {
+  switch (operator) {
+    case '=':
+      return leftValue === rightValue;
+    case '>':
+      return leftValue > rightValue;
+    case '>=':
+      return leftValue >= rightValue;
+    case '<':
+      return leftValue < rightValue;
+    case '<=':
+      return leftValue <= rightValue;
+    default:
+      throw new StoreError(`Unknown operator '${operator}'`);
+  }
+}
+
+function formatData(type, id, entities, shallow = false) {
+  // log warning if entity does not exist
+  if (!entities.data[type] || !entities.data[type][id]) {
+    throw new StoreError('Joined entity not found.', [type, id]);
+  }
+
+  const attributes = {};
+
+  // get full entity
+  if (!shallow) {
+    const entity = entities.data[type][id];
+
+    if (entity) {
+      Object.keys(entity).forEach(key => {
+        if (!isConnection(entity[key])) {
+          attributes[key] = entity[key];
+        }
+      });
+    }
+  }
+
+  return {
+    ...attributes,
+    __typename: type,
+    id,
+  };
+}
+
+function getRelationData(type, id, name, state, constraints, shallow) {
+  // log warning if relation does not exist
+  if (!state.entities.data[type][id][name] || !isConnection(state.entities.data[type][id][name])) {
+    throw new StoreError(`Joined relation "${name}" not found.`, [type, id]);
+  }
+
+  const childrenTypeIds = state.entities.data[type][id][name].link;
+
+  // relation is set to null
+  if (childrenTypeIds === null) {
+    return null;
+  }
+
+  // only select shallow link entities
+  if (shallow) {
+    if (!isManyLink(childrenTypeIds)) {
+      return formatData(childrenTypeIds[0], childrenTypeIds[1], state.entities, true);
+    }
+
+    return childrenTypeIds
+      .map(childrenId => formatData(childrenId[0], childrenId[1], state.entities, true))
+      .filter(item => item !== undefined);
+  }
+
+  // select full entity
+  const selector = constraints
+    ? // eslint-disable-next-line no-use-before-define
+      constraints(new StoreQuery(state, childrenTypeIds))
+    : // eslint-disable-next-line no-use-before-define
+      new StoreQuery(state, childrenTypeIds);
+
+  return selector.getData();
+}
 
 export default class StoreQuery {
   constructor(state, typeIdOrIds) {
