@@ -1,11 +1,15 @@
 import WriteStore from './WriteStore';
-import ErrorHandler from './ErrorHandler';
 import generateId from '../utils/generateId';
 import getTimestamp from '../utils/getTimestamp';
 import TransporterError from '../errors/TransporterError';
 import StoreError from '../errors/StoreError';
 
 const TRANSPORTER_STATE = 'transporter';
+
+let customHandleError;
+export function onError(callback) {
+  customHandleError = callback;
+}
 
 export default function createRequest(request, fetch) {
   const startTime = getTimestamp();
@@ -14,8 +18,8 @@ export default function createRequest(request, fetch) {
   const requestId = request.id || generateId();
   const requestBody = isMutation ? request.mutation.loc.source.body : request.query.loc.source.body;
 
-  function getStoreData(updater, state, data) {
-    const storeData = data ? { ...data } : null;
+  function getStoreData(updater, state, responseData) {
+    const storeData = responseData ? { ...responseData } : null;
 
     // Don't apply roots for mutations.
     if (storeData && isMutation) {
@@ -28,7 +32,7 @@ export default function createRequest(request, fetch) {
 
     const store = new WriteStore(state[TRANSPORTER_STATE], storeData);
 
-    updater(store, data);
+    updater(store, responseData);
 
     return store.toSource();
   }
@@ -48,13 +52,15 @@ export default function createRequest(request, fetch) {
         },
       });
 
-      ErrorHandler.handle(error);
+      if (customHandleError) {
+        customHandleError(error);
+      }
 
       return Promise.reject(error);
     }
 
     // Create optimisticData if request is of type mutation.
-    let optimisticData = null;
+    let optimisticData;
     if (isMutation) {
       try {
         optimisticData = getStoreData(request.optimisticUpdater, getState());
@@ -69,7 +75,9 @@ export default function createRequest(request, fetch) {
             },
           );
 
-          ErrorHandler.handle(transporterError);
+          if (customHandleError) {
+            customHandleError(transporterError);
+          }
 
           return Promise.reject(transporterError);
         }
@@ -129,7 +137,7 @@ export default function createRequest(request, fetch) {
           }
 
           // Response is okay.
-          let data = null;
+          let data;
           if (response.data) {
             try {
               data = getStoreData(request.updater, state, response.data);
