@@ -13,6 +13,6 @@ export default class StoreError extends Error {
     this.name = 'StoreError';
 
     // eslint-disable-next-line no-console
-    console.error(this.message);
+    console.error(`StoreError: ${this.message}`);
   }
 }

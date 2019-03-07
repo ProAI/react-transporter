@@ -96,85 +96,98 @@ export default function createRequest(request, fetch) {
 
     return fetch(requestBody, request.variables).then(
       result => {
-        return result.json().then(response => {
-          // Error #2: Http error code detected, throw error.
-          if (!result.ok) {
-            return handleError(
-              new TransporterError(
-                'HttpError',
-                `Request failed (HttpError - ${result.status})`,
-                response,
-              ),
-              null,
-              optimisticData,
-            );
-          }
-
-          const state = getState();
-
-          // Error #3: In the meantime the store was resetted, so do not apply response.
-          if (state[TRANSPORTER_STATE].info.lastReset >= startTime) {
-            const error = new StoreError('Store reset after request was started.');
-
-            return handleError(
-              new TransporterError('StoreError', 'Request failed (StoreError)', {
-                error: error.message,
-              }),
-              null,
-              null,
-            );
-          }
-
-          // Error #4: Response has GraphQL errors, throw error.
-          if (response.errors) {
-            return handleError(
-              new TransporterError('GraphQLError', 'Request failed (GraphQLError)', {
-                errors: response.errors,
-              }),
-              response.data,
-              optimisticData,
-            );
-          }
-
-          // Response is okay.
-          let data;
-          if (response.data) {
-            try {
-              data = getStoreData(request.updater, state, response.data);
-            } catch (error) {
-              // Error #5: Something went wrong while applying updater.
-              if (error.name === 'StoreError') {
-                return handleError(
-                  new TransporterError('StoreError', 'Request failed (StoreError)', {
-                    error: error.message,
-                  }),
-                  response.data,
-                  optimisticData,
-                );
-              }
-
-              throw error;
+        return result.json().then(
+          response => {
+            // Error #2: Http error code detected, throw error.
+            if (!result.ok) {
+              return handleError(
+                new TransporterError(
+                  'HttpError',
+                  `Request failed (HttpError - ${result.status})`,
+                  response,
+                ),
+                null,
+                optimisticData,
+              );
             }
-          }
 
-          // Complete request.
-          dispatch({
-            type: 'TRANSPORTER_REQUEST_COMPLETED',
-            id: requestId,
-            endTime: getTimestamp(),
-            optimisticData,
-            data,
-          });
+            const state = getState();
 
-          return response;
-        });
+            // Error #3: In the meantime the store was resetted, so do not apply response.
+            if (state[TRANSPORTER_STATE].info.lastReset >= startTime) {
+              const error = new StoreError('Store reset after request was started.');
+
+              return handleError(
+                new TransporterError('StoreError', 'Request failed (StoreError)', {
+                  error: error.message,
+                }),
+                null,
+                null,
+              );
+            }
+
+            // Error #4: Response has GraphQL errors, throw error.
+            if (response.errors) {
+              response.errors.forEach(error => {
+                // eslint-disable-next-line no-console
+                console.error(`GraphQLError: ${error.message}`);
+              });
+
+              return handleError(
+                new TransporterError('GraphQLError', 'Request failed (GraphQLError)', {
+                  errors: response.errors,
+                }),
+                response.data,
+                optimisticData,
+              );
+            }
+
+            // Response is okay.
+            let data;
+            if (response.data) {
+              try {
+                data = getStoreData(request.updater, state, response.data);
+              } catch (error) {
+                // Error #5: Something went wrong while applying updater.
+                if (error.name === 'StoreError') {
+                  return handleError(
+                    new TransporterError('StoreError', 'Request failed (StoreError)', {
+                      error: error.message,
+                    }),
+                    response.data,
+                    optimisticData,
+                  );
+                }
+
+                throw error;
+              }
+            }
+
+            // Complete request.
+            dispatch({
+              type: 'TRANSPORTER_REQUEST_COMPLETED',
+              id: requestId,
+              endTime: getTimestamp(),
+              optimisticData,
+              data,
+            });
+
+            return response.data;
+          },
+          error => {
+            // Error #6: Found JSON parsing error.
+            return handleError(
+              new TransporterError('JsonError', `${error.message} (JsonError)`),
+              null,
+              optimisticData,
+            );
+          },
+        );
       },
       error => {
-        // Error #6: Some network error occured.
+        // Error #7: Some network error occured.
         return handleError(
-          new TransporterError('NetworkError', 'Request failed (NetworkError)', {
-            error: error.message,
-          }),
+          new TransporterError('NetworkError', `${error.message} (NetworkError)`),
           null,
           optimisticData,
         );
