@@ -5,7 +5,7 @@ import revertOptimisticUpdate from './optimistic/revertOptimisticUpdate';
 import revertOptimisticDelete from './optimistic/revertOptimisticDelete';
 import filterOutOptimisticData from './optimistic/filterOutOptimisticData';
 import filterOutOptimisticTrash from './optimistic/filterOutOptimisticTrash';
-import EntityMap from './EntityMap';
+import EntityMap from '../utils/EntityMap';
 
 function cloneEntityObject(obj) {
   const nextObj = {};

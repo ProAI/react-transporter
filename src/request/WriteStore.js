@@ -129,15 +129,15 @@ export default class WriteStore {
   toSource() {
     const obj = {};
 
-    if (Object.keys(this.data.entities).length !== 0) {
+    if (Object.keys(this.data.entities).length > 0) {
       obj.entities = this.data.entities;
     }
 
-    if (Object.keys(this.data.roots).length !== 0) {
+    if (Object.keys(this.data.roots).length > 0) {
       obj.roots = this.data.roots;
     }
 
-    if (this.data.trash.length !== 0) {
+    if (this.data.trash.length > 0) {
       obj.trash = this.data.trash;
     }
 

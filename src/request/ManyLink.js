@@ -5,16 +5,17 @@ import isSameEntity from '../utils/isSameEntity';
 function getLinks(type, idOrIds) {
   if (isString(type)) {
     if (isString(idOrIds)) {
-      // case 1) one type, one id
       return [[type, idOrIds]];
     }
 
-    // case 2) one type, many ids
     return idOrIds.map(id => [type, id]);
   }
 
-  // case 3) many types, many ids
   return type;
+}
+
+function eliminateFrom(links, badLinks) {
+  return links.filter(link => !badLinks.some(badLink => isSameEntity(link, badLink)));
 }
 
 export default class ManyLink {
@@ -42,7 +43,7 @@ export default class ManyLink {
 
   syncPrepend(type, idOrIds) {
     const inputLinks = getLinks(type, idOrIds);
-    const filteredLinks = this.eliminate(inputLinks);
+    const filteredLinks = eliminateFrom(this.link, inputLinks);
 
     this.link = [...inputLinks, ...filteredLinks];
 
@@ -51,7 +52,7 @@ export default class ManyLink {
 
   syncAppend(type, idOrIds) {
     const inputLinks = getLinks(type, idOrIds);
-    const filteredLinks = this.eliminate(inputLinks);
+    const filteredLinks = eliminateFrom(this.link, inputLinks);
 
     this.link = [...filteredLinks, ...inputLinks];
 
@@ -64,14 +65,10 @@ export default class ManyLink {
     if (inputLinks === null) {
       this.link = [];
     } else {
-      this.link = this.eliminate(inputLinks);
+      this.link = eliminateFrom(this.link, inputLinks);
     }
 
     return this;
-  }
-
-  eliminate(inputLinks) {
-    return this.link.filter(link => !inputLinks.some(inputLink => isSameEntity(link, inputLink)));
   }
 
   setMeta(meta) {

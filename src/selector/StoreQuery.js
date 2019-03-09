@@ -3,6 +3,7 @@ import isString from '../utils/isString';
 import isConnection from '../utils/isConnection';
 import isManyLink from '../utils/isManyLink';
 import StoreError from '../errors/StoreError';
+import { getData } from './ReadStore';
 
 function compareValues(leftValue, operator, rightValue) {
   switch (operator) {
@@ -21,79 +22,57 @@ function compareValues(leftValue, operator, rightValue) {
   }
 }
 
-function formatData(type, id, entities, shallow = false) {
-  // log warning if entity does not exist
-  if (!entities.data[type] || !entities.data[type][id]) {
+function formatData(type, id, entities) {
+  const entity = entities.get(type, id);
+
+  if (!entity) {
     throw new StoreError('Joined entity not found.', [type, id]);
   }
 
-  const attributes = {};
-
-  // get full entity
-  if (!shallow) {
-    const entity = entities.data[type][id];
-
-    if (entity) {
-      Object.keys(entity).forEach(key => {
-        if (!isConnection(entity[key])) {
-          attributes[key] = entity[key];
-        }
-      });
-    }
-  }
-
-  return {
-    ...attributes,
+  const attributes = {
     __typename: type,
     id,
   };
+
+  Object.keys(entity).forEach(key => {
+    if (!isConnection(entity[key])) {
+      attributes[key] = entity[key];
+    }
+  });
+
+  return attributes;
 }
 
-function getRelationData(type, id, name, state, constraints, shallow) {
-  // log warning if relation does not exist
-  if (!state.entities.data[type][id][name] || !isConnection(state.entities.data[type][id][name])) {
+function getRelationData(type, id, name, constraints, entities) {
+  const entity = entities.get(type, id);
+
+  if (!entity[name]) {
     throw new StoreError(`Joined relation "${name}" not found.`, [type, id]);
   }
 
-  const childrenTypeIds = state.entities.data[type][id][name].link;
+  if (!isConnection(entity[name])) {
+    throw new StoreError(`Joined relation "${name}" is not a connection.`, [type, id]);
+  }
 
-  // relation is set to null
-  if (childrenTypeIds === null) {
+  // Relation is set to null.
+  if (entity[name].link === null) {
     return null;
   }
 
-  // only select shallow link entities
-  if (shallow) {
-    if (!isManyLink(childrenTypeIds)) {
-      return formatData(childrenTypeIds[0], childrenTypeIds[1], state.entities, true);
-    }
-
-    return childrenTypeIds
-      .map(childrenId => formatData(childrenId[0], childrenId[1], state.entities, true))
-      .filter(item => item !== undefined);
-  }
-
-  // select full entity
-  const selector = constraints
-    ? // eslint-disable-next-line no-use-before-define
-      constraints(new StoreQuery(state, childrenTypeIds))
-    : // eslint-disable-next-line no-use-before-define
-      new StoreQuery(state, childrenTypeIds);
-
-  return selector.getData();
+  return getData(entity[name].link, constraints, entities);
 }
 
 export default class StoreQuery {
-  constructor(state, typeIdOrIds) {
-    this.isManyLink = isManyLink(typeIdOrIds);
+  constructor(link, entities) {
+    this.link = link;
+
+    this.isManyLink = isManyLink(link);
 
     this.data = this.isManyLink
-      ? typeIdOrIds
-          .map(typeId => formatData(typeId[0], typeId[1], state.entities))
-          .filter(item => item !== undefined)
-      : formatData(typeIdOrIds[0], typeIdOrIds[1], state.entities);
+      ? link.map(item => formatData(...item, entities))
+      : formatData(...link, entities);
 
-    this.state = state;
+    this.entities = entities;
   }
 
   where(attribute, inputOperator, inputValue) {
@@ -124,38 +103,18 @@ export default class StoreQuery {
     return this;
   }
 
-  shallowJoin(name) {
-    return this.join(name, null, true);
-  }
-
-  join(rawName, constraints = null, shallow = false) {
+  join(rawName, constraints = null) {
     const name = getKeyName(rawName);
     const resultName = isString(rawName) ? rawName : rawName[0];
 
     if (this.isManyLink) {
-      this.data.forEach((attributes, key) => {
-        if (this.data[key]) {
-          this.data[key][resultName] = getRelationData(
-            // eslint-disable-next-line no-underscore-dangle
-            this.data[key].__typename,
-            this.data[key].id,
-            name,
-            this.state,
-            constraints,
-            shallow,
-          );
-        }
+      this.link.forEach((attributes, key) => {
+        const data = getRelationData(...this.link[key], name, constraints, this.entities);
+        this.data[key][resultName] = data;
       });
-    } else if (this.data) {
-      this.data[resultName] = getRelationData(
-        // eslint-disable-next-line no-underscore-dangle
-        this.data.__typename,
-        this.data.id,
-        name,
-        this.state,
-        constraints,
-        shallow,
-      );
+    } else {
+      const data = getRelationData(...this.link, name, constraints, this.entities);
+      this.data[resultName] = data;
     }
 
     return this;

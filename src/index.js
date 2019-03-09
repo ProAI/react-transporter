@@ -11,6 +11,7 @@ import { onError } from './request/createRequest';
 import Link from './request/Link';
 import ManyLink from './request/ManyLink';
 import select from './selector/select';
+import selectByEntity from './selector/selectByEntity';
 import selectByRelation from './selector/selectByRelation';
 import selectByRoot from './selector/selectByRoot';
 import selectAdvanced from './selector/selectAdvanced';
@@ -29,6 +30,7 @@ export {
   ManyLink,
   onError,
   select,
+  selectByEntity,
   selectByRelation,
   selectByRoot,
   selectAdvanced,
