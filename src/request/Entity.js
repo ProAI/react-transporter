@@ -9,20 +9,20 @@ function isDate(obj) {
   return Object.prototype.toString.call(obj) === '[object Date]';
 }
 
-function getCurrentFieldValue(name, value, originalValue, optimistic) {
-  if (value !== undefined) {
-    return value;
+function getCurrentFieldValue(name, data, originalData, optimistic) {
+  if (data[name] !== undefined) {
+    return data[name];
   }
 
   if (optimistic && optimistic.type === 'UPDATE' && optimistic.data[name] !== undefined) {
     return optimistic.data[name].originalValue;
   }
 
-  return originalValue;
+  return originalData[name];
 }
 
-export function getFieldValue(name, value, originalValue, optimistic) {
-  const currentValue = getCurrentFieldValue(name, value, originalValue, optimistic);
+export function getFieldValue(name, data, originalData, optimistic) {
+  const currentValue = getCurrentFieldValue(name, data, originalData, optimistic);
 
   // return connection value
   if (isConnection(currentValue)) {
@@ -33,7 +33,7 @@ export function getFieldValue(name, value, originalValue, optimistic) {
   return currentValue;
 }
 
-export function prepareFieldValue(name, value, currentValue) {
+export function prepareFieldValue(name, currentValue, value) {
   const returnValue = typeof value === 'function' ? value(currentValue) : value;
 
   if (isConnection(returnValue)) {
@@ -47,7 +47,7 @@ export function prepareFieldValue(name, value, currentValue) {
   return returnValue;
 }
 
-export function validateFieldValue(name, value, currentValue, link) {
+export function validateFieldValue(name, currentValue, value, link) {
   if (currentValue === undefined) {
     return;
   }
@@ -55,12 +55,10 @@ export function validateFieldValue(name, value, currentValue, link) {
   // check field type
   if (isConnection(currentValue) && !isConnection(value)) {
     const error = `Cannot set field "${name}", because it needs a scalar value, not a connection.`;
-
     throw new StoreError(error, link);
   }
   if (!isConnection(currentValue) && isConnection(value)) {
     const error = `Cannot set field "${name}", because it needs a connection, not a scalar value.`;
-
     throw new StoreError(error, link);
   }
 
@@ -68,36 +66,33 @@ export function validateFieldValue(name, value, currentValue, link) {
   if (isConnection(currentValue) && isConnection(value)) {
     if (isManyLink(currentValue.link) && !isManyLink(value.link)) {
       const error = `Cannot set field "${name}", because it is of type ManyLink, not Link.`;
-
       throw new StoreError(error, link);
     }
     if (!isManyLink(currentValue.link) && isManyLink(value.link)) {
       const error = `Cannot set field "${name}", because it is of type Link, not ManyLink.`;
-
       throw new StoreError(error, link);
     }
   }
 }
 
 export default class Entity {
-  constructor(type, id, originalValues, optimistic) {
+  constructor(type, id, originalData, optimistic) {
     this.type = type;
     this.id = id;
 
-    this.originalValues = originalValues || {};
-    this.values = {};
+    this.originalData = originalData || {};
+    this.data = {};
 
     this.optimistic = optimistic;
   }
 
   get(name) {
-    if (this.values[name] === undefined && this.originalValues[name] === undefined) {
+    if (this.data[name] === undefined && this.originalData[name] === undefined) {
       const error = `Cannot get field "${name}", because it does not exist.`;
-
       throw new StoreError(error, [this.type, this.id]);
     }
 
-    return getFieldValue(name, this.values[name], this.originalValues[name], this.optimistic);
+    return getFieldValue(name, this.data[name], this.originalData[name], this.optimistic);
   }
 
   // Alias for set, because of flowtype problem.
@@ -107,32 +102,17 @@ export default class Entity {
 
   set(rawName, rawValue = null) {
     const name = getKeyName(rawName);
-    const currentValue = getFieldValue(
-      name,
-      this.values[name],
-      this.originalValues[name],
-      this.optimistic,
-    );
-    const value = prepareFieldValue(name, rawValue, currentValue);
+    const currentValue = getFieldValue(name, this.data, this.originalData, this.optimistic);
+    const value = prepareFieldValue(name, currentValue, rawValue);
 
-    validateFieldValue(name, value, currentValue, [this.type, this.id]);
+    validateFieldValue(name, currentValue, value, [this.type, this.id]);
 
-    this.values[name] = value;
+    this.data[name] = value;
   }
 
   fill(values) {
     Object.keys(values).forEach(name => {
-      const currentValue = getFieldValue(
-        name,
-        this.values[name],
-        this.originalValues[name],
-        this.optimistic,
-      );
-      const value = prepareFieldValue(name, values[name], currentValue);
-
-      validateFieldValue(name, value, currentValue, [this.type, this.id]);
-
-      this.values[name] = value;
+      this.set(name, values[name]);
     });
   }
 }

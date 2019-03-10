@@ -1,6 +1,7 @@
 import getKeyName from '../utils/getKeyName';
 import Entity, { validateFieldValue, prepareFieldValue, getFieldValue } from './Entity';
 import StoreError from '../errors/StoreError';
+import EntityMap from '../utils/EntityMap';
 
 function validateInsert(data, optimistic, link) {
   if (data) {
@@ -51,51 +52,58 @@ function validateDelete(data, optimistic, link) {
 }
 
 export default class WriteStore {
-  constructor(state, data) {
-    this.state = state;
+  constructor(state, response) {
     this.data = {
-      entities: (data && data.entities) || {},
-      roots: (data && data.roots) || {},
+      entities: new EntityMap(state.entities.data),
+      roots: state.roots.data,
+    };
+
+    this.optimistic = {
+      entities: new EntityMap(state.entities.optimistic),
+      roots: state.roots.optimistic,
+    };
+
+    this.response = {
+      entities: new EntityMap(response && response.entities),
+      roots: (response && response.roots) || {},
       trash: [],
     };
   }
 
   insert(type, id, setAttributes) {
-    const data = this.getData(type, id);
-    const optimistic = this.getOptimistic(type, id);
+    const data = this.data.entities.get(type, id);
+    const optimistic = this.optimistic.entities.get(type, id);
 
     validateInsert(data, optimistic, [type, id]);
 
     const entity = new Entity(type, id);
-
     setAttributes(entity);
-    if (!this.data.entities[type]) this.data.entities[type] = {};
-    this.data.entities[type][id] = entity.values;
+
+    this.response.entities.set(type, id, entity.data);
   }
 
   update(type, id, setAttributes) {
-    const data = this.getData(type, id);
-    const optimistic = this.getOptimistic(type, id);
+    const data = this.data.entities.get(type, id);
+    const optimistic = this.optimistic.entities.get(type, id);
 
     validateUpdate(data, optimistic, [type, id]);
 
     const entity = new Entity(type, id, data, optimistic);
-
     setAttributes(entity);
-    if (!this.data.entities[type]) this.data.entities[type] = {};
 
-    this.data.entities[type][id] = this.data.entities[type][id]
-      ? Object.assign({}, this.data.entities[type][id], entity.values)
-      : entity.values;
+    const response = this.response.entities.get(type, id);
+    const updatedResponse = response ? { ...response, ...entity.data } : entity.data;
+
+    this.response.entities.set(type, id, updatedResponse);
   }
 
   delete(type, id) {
-    const data = this.getData(type, id);
-    const optimistic = this.getOptimistic(type, id);
+    const data = this.data.entities.get(type, id);
+    const optimistic = this.optimistic.entities.get(type, id);
 
     validateDelete(data, optimistic, [type, id]);
 
-    this.data.trash.push([type, id]);
+    this.response.trash.push([type, id]);
   }
 
   setRoot(rawName, rawValue) {
@@ -103,44 +111,36 @@ export default class WriteStore {
 
     const currentValue = getFieldValue(
       name,
-      this.data.roots[name],
-      this.state.roots[name],
-      this.state.roots.optimistic,
+      this.response.roots,
+      this.data.roots,
+      this.optimistic.roots,
     );
-    const value = prepareFieldValue(name, rawValue, currentValue);
 
-    validateFieldValue(name, value, currentValue, 'root');
+    const value = prepareFieldValue(name, currentValue, rawValue);
 
-    this.data.roots[name] = value;
-  }
+    validateFieldValue(name, currentValue, value, 'root');
 
-  getData(type, id) {
-    const { data } = this.state.entities;
-
-    return data[type] && data[type][id];
-  }
-
-  getOptimistic(type, id) {
-    const { optimistic } = this.state.entities;
-
-    return optimistic[type] && optimistic[type][id];
+    this.response.roots[name] = value;
   }
 
   toSource() {
-    const obj = {};
+    const source = {};
 
-    if (Object.keys(this.data.entities).length > 0) {
-      obj.entities = this.data.entities;
+    const entities = this.response.entities.toSource();
+    if (Object.keys(entities).length > 0) {
+      source.entities = entities;
     }
 
-    if (Object.keys(this.data.roots).length > 0) {
-      obj.roots = this.data.roots;
+    const { roots } = this.response;
+    if (Object.keys(roots).length > 0) {
+      source.roots = roots;
     }
 
-    if (this.data.trash.length > 0) {
-      obj.trash = this.data.trash;
+    const { trash } = this.response;
+    if (trash.length > 0) {
+      source.trash = trash;
     }
 
-    return obj;
+    return source;
   }
 }
