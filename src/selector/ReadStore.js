@@ -46,21 +46,22 @@ export default class ReadStore {
   }
 
   select(ast, options) {
-    if (options.entry) {
-      const fragment = ast.definitions.find(def => def.kind === 'FragmentDefinition');
+    return options.entry
+      ? this.selectByFragmentAST(ast, options)
+      : this.selectByOperationAST(ast, options);
+  }
 
-      if (!fragment) {
-        throw new StoreError('Option entry is set, but no fragment node found.');
-      }
+  selectByFragmentAST(ast, options) {
+    const fragment = ast.definitions.find(def => def.kind === 'FragmentDefinition');
 
-      const result = this.selectByEntity(
-        ...options.entry,
-        joinFromAST(fragment.selectionSet, options),
-      );
-
-      return result;
+    if (!fragment) {
+      throw new StoreError('Option entry is set, but no fragment node found.');
     }
 
+    return this.selectByEntity(...options.entry, joinFromAST(fragment.selectionSet, options));
+  }
+
+  selectByOperationAST(ast, options) {
     const operation = ast.definitions.find(def => def.kind === 'OperationDefinition');
 
     if (!operation) {
