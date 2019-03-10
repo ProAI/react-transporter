@@ -25,7 +25,14 @@ export default function createEntitiesReducer(initialData) {
 
   return function reducer(state = initialState, action) {
     if (action.type === 'TRANSPORTER_STORE_RESET') {
-      return initialState;
+      if (!action.data || !action.data.entities) {
+        return initialState;
+      }
+
+      return {
+        data: action.data.entities,
+        optimistic: {},
+      };
     }
 
     // TRANSPORTER_REQUEST_START

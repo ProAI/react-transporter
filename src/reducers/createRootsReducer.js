@@ -10,7 +10,14 @@ export default function createRootsReducer(initialData) {
 
   return function reducer(state = initialState, action) {
     if (action.type === 'TRANSPORTER_STORE_RESET') {
-      return initialState;
+      if (!action.data || !action.data.roots) {
+        return initialState;
+      }
+
+      return {
+        data: action.data.roots,
+        optimistic: null,
+      };
     }
 
     // TRANSPORTER_REQUEST_START

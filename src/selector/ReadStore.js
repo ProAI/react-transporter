@@ -5,6 +5,10 @@ import getKeyName from '../utils/getKeyName';
 import EntityMap from '../utils/EntityMap';
 
 export function getData(link, constraints, entities) {
+  if (link === null) {
+    return null;
+  }
+
   const store = new StoreQuery(link, entities);
   const selector = constraints ? constraints(store) : store;
 
