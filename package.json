@@ -1,7 +1,6 @@
 {
   "name": "react-transporter",
   "version": "0.5.15",
-  "main": "./lib/index.js",
   "description": "React.js Redux GraphQL client",
   "author": "Markus Wetzel <markuswetzel@gmx.net>",
   "license": "MIT",
@@ -15,17 +14,15 @@
   "bugs": {
     "url": "https://github.com/ProAI/react-transporter/issues"
   },
+  "main": "dist/react-transporter.cjs.js",
+  "module": "dist/react-transporter.esm.js",
   "scripts": {
-    "build": "./node_modules/.bin/babel -d lib/ src/",
-    "watch": "./node_modules/.bin/babel -d lib/ -w src/",
-    "clean": "rimraf lib",
-    "prepublishOnly": "yarn clean && yarn build",
-    "lint": "./node_modules/.bin/eslint src"
+    "build": "packsy build",
+    "dev": "packsy dev",
+    "prepublishOnly": "packsy validate && packsy build"
   },
   "files": [
-    "dist",
-    "es",
-    "lib"
+    "dist"
   ],
   "dependencies": {
     "prop-types": "^15.7.2",
@@ -33,26 +30,27 @@
     "serialize-javascript": "^1.6.1"
   },
   "devDependencies": {
-    "babel-cli": "6.26.0",
+    "packsy": "0.1.5",
     "graphql": "14.1.1",
     "react": "16.8.4",
-    "react-dom": "16.8.4",
-    "react-kickstarter": "0.4.5",
     "react-redux": "5.1.1",
     "redux": "4.0.1",
-    "redux-thunk": "2.3.0",
-    "rimraf": "2.6.3"
+    "redux-thunk": "2.3.0"
   },
   "peerDependencies": {
     "graphql": ">=14",
-    "react": ">=16.4.2",
-    "react-dom": ">=16.4.2",
+    "react": ">=15",
     "react-redux": ">=5",
     "redux": ">=3",
     "redux-thunk": ">=2"
   },
+  "husky": {
+    "hooks": {
+      "pre-commit": "packsy pre-commit"
+    }
+  },
   "engines": {
-    "npm": ">=3",
-    "node": ">=5"
+    "node": ">= 8",
+    "npm": ">= 5"
   }
 }

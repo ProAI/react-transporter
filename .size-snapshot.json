@@ -1,0 +1,31 @@
+{
+  "dist/react-transporter.cjs.js": {
+    "bundled": 75187,
+    "minified": 37685,
+    "gzipped": 9689
+  },
+  "dist/react-transporter.umd.min.js": {
+    "bundled": 105162,
+    "minified": 40074,
+    "gzipped": 11746
+  },
+  "dist/react-transporter.umd.js": {
+    "bundled": 138023,
+    "minified": 50022,
+    "gzipped": 14484
+  },
+  "dist/react-transporter.esm.js": {
+    "bundled": 74578,
+    "minified": 37168,
+    "gzipped": 9580,
+    "treeshaked": {
+      "rollup": {
+        "code": 2200,
+        "import_statements": 193
+      },
+      "webpack": {
+        "code": 3410
+      }
+    }
+  }
+}

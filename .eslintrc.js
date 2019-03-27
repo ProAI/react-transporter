@@ -1,1 +1,1 @@
-module.exports = require('react-kickstarter/src/config/eslint');
+module.exports = require('packsy/config-eslint');

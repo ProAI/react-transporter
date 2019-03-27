@@ -1,1 +1,1 @@
-module.exports = require("react-kickstarter/src/config/prettier");
+module.exports = require("packsy/config-prettier");
