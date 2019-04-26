@@ -16,7 +16,9 @@ export default function createRequest(request, fetch) {
   const isMutation = request.type === 'TRANSPORTER_MUTATION';
 
   const requestId = request.id || generateId();
-  const requestBody = isMutation ? request.mutation.loc.source.body : request.query.loc.source.body;
+  const requestBody = isMutation
+    ? request.mutation.loc.source.body
+    : request.query.loc.source.body;
 
   function getStoreData(updater, state, responseData) {
     const storeData = responseData ? { ...responseData } : null;
@@ -53,7 +55,7 @@ export default function createRequest(request, fetch) {
       });
 
       if (customHandleError) {
-        customHandleError(error);
+        customHandleError(error, request);
       }
 
       return Promise.reject(error);
@@ -105,6 +107,7 @@ export default function createRequest(request, fetch) {
                   'HttpError',
                   `Request failed (HttpError - ${result.status})`,
                   response,
+                  result.status,
                 ),
                 null,
                 optimisticData,
@@ -115,12 +118,18 @@ export default function createRequest(request, fetch) {
 
             // Error #3: In the meantime the store was resetted, so do not apply response.
             if (state[TRANSPORTER_STATE].info.lastReset >= startTime) {
-              const error = new StoreError('Store reset after request was started.');
+              const error = new StoreError(
+                'Store reset after request was started.',
+              );
 
               return handleError(
-                new TransporterError('StoreError', 'Request failed (StoreError)', {
-                  error: error.message,
-                }),
+                new TransporterError(
+                  'StoreError',
+                  'Request failed (StoreError)',
+                  {
+                    error: error.message,
+                  },
+                ),
                 null,
                 null,
               );
@@ -134,9 +143,13 @@ export default function createRequest(request, fetch) {
               });
 
               return handleError(
-                new TransporterError('GraphQLError', 'Request failed (GraphQLError)', {
-                  errors: response.errors,
-                }),
+                new TransporterError(
+                  'GraphQLError',
+                  'Request failed (GraphQLError)',
+                  {
+                    errors: response.errors,
+                  },
+                ),
                 response.data,
                 optimisticData,
               );
@@ -151,9 +164,13 @@ export default function createRequest(request, fetch) {
                 // Error #5: Something went wrong while applying updater.
                 if (error.name === 'StoreError') {
                   return handleError(
-                    new TransporterError('StoreError', 'Request failed (StoreError)', {
-                      error: error.message,
-                    }),
+                    new TransporterError(
+                      'StoreError',
+                      'Request failed (StoreError)',
+                      {
+                        error: error.message,
+                      },
+                    ),
                     response.data,
                     optimisticData,
                   );
@@ -175,7 +192,21 @@ export default function createRequest(request, fetch) {
             return response.data;
           },
           error => {
-            // Error #6: Found JSON parsing error.
+            // Error #6: Http error code with invalid JSON detected, throw error.
+            if (!result.ok) {
+              return handleError(
+                new TransporterError(
+                  'HttpError',
+                  `Request failed (HttpError - ${result.status})`,
+                  null,
+                  result.status,
+                ),
+                null,
+                optimisticData,
+              );
+            }
+
+            // Error #7: Found JSON parsing error.
             return handleError(
               new TransporterError('JsonError', `${error.message} (JsonError)`),
               null,
@@ -185,9 +216,12 @@ export default function createRequest(request, fetch) {
         );
       },
       error => {
-        // Error #7: Some network error occured.
+        // Error #8: Some network error occured.
         return handleError(
-          new TransporterError('NetworkError', `${error.message} (NetworkError)`),
+          new TransporterError(
+            'NetworkError',
+            `${error.message} (NetworkError)`,
+          ),
           null,
           optimisticData,
         );
