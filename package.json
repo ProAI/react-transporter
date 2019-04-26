@@ -1,6 +1,6 @@
 {
   "name": "react-transporter",
-  "version": "0.5.15",
+  "version": "0.5.16",
   "description": "React.js Redux GraphQL client",
   "author": "Markus Wetzel <markuswetzel@gmx.net>",
   "license": "MIT",
@@ -30,8 +30,8 @@
     "serialize-javascript": "^1.7.0"
   },
   "devDependencies": {
-    "packsy": "0.1.8",
     "graphql": "14.2.1",
+    "packsy": "0.1.8",
     "react": "16.8.6",
     "react-redux": "5.1.1",
     "redux": "4.0.1",
