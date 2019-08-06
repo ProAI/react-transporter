@@ -1,8 +1,17 @@
 import isConnection from '../utils/isConnection';
 import isString from '../utils/isString';
 import isSameEntity from '../utils/isSameEntity';
+import isManyLink from '../utils/isManyLink';
 
-function getLinks(type, idOrIds) {
+function getLink(type, idOrIds) {
+  if (isConnection(type)) {
+    if (isManyLink(type.link)) {
+      return type.link;
+    }
+
+    return [type.link];
+  }
+
   if (isString(type)) {
     if (isString(idOrIds)) {
       return [[type, idOrIds]];
@@ -15,57 +24,65 @@ function getLinks(type, idOrIds) {
 }
 
 function eliminateFrom(links, badLinks) {
-  return links.filter(link => !badLinks.some(badLink => isSameEntity(link, badLink)));
+  return links.filter(
+    link => !badLinks.some(badLink => isSameEntity(link, badLink)),
+  );
 }
 
 export default class ManyLink {
   constructor(type, idOrIds) {
-    // object passed to constructor
-    if (idOrIds === undefined && type !== undefined && isConnection(type)) {
-      this.meta = type.meta;
-      this.link = type.link;
+    if (!type) {
+      this.link = [];
     } else {
-      this.link = type ? getLinks(type) : [];
+      if (isConnection(type)) {
+        this.meta = type.meta;
+      }
+
+      this.link = getLink(type, idOrIds);
     }
   }
 
   prepend(type, idOrIds) {
-    this.link = [...getLinks(type, idOrIds), ...this.link];
+    const link = getLink(type, idOrIds);
+
+    this.link = [...link, ...this.link];
 
     return this;
   }
 
   append(type, idOrIds) {
-    this.link = [...this.link, ...getLinks(type, idOrIds)];
+    const link = getLink(type, idOrIds);
+
+    this.link = [...this.link, ...link];
 
     return this;
   }
 
   syncPrepend(type, idOrIds) {
-    const inputLinks = getLinks(type, idOrIds);
-    const filteredLinks = eliminateFrom(this.link, inputLinks);
+    const inputLink = getLink(type, idOrIds);
+    const filteredLink = eliminateFrom(this.link, inputLink);
 
-    this.link = [...inputLinks, ...filteredLinks];
+    this.link = [...inputLink, ...filteredLink];
 
     return this;
   }
 
   syncAppend(type, idOrIds) {
-    const inputLinks = getLinks(type, idOrIds);
-    const filteredLinks = eliminateFrom(this.link, inputLinks);
+    const inputLink = getLink(type, idOrIds);
+    const filteredLink = eliminateFrom(this.link, inputLink);
 
-    this.link = [...filteredLinks, ...inputLinks];
+    this.link = [...filteredLink, ...inputLink];
 
     return this;
   }
 
   detach(type, idOrIds) {
-    const inputLinks = getLinks(type, idOrIds);
+    const inputLink = getLink(type, idOrIds);
 
-    if (inputLinks === null) {
+    if (inputLink === null) {
       this.link = [];
     } else {
-      this.link = eliminateFrom(this.link, inputLinks);
+      this.link = eliminateFrom(this.link, inputLink);
     }
 
     return this;
