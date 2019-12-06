@@ -27,7 +27,7 @@
   "dependencies": {
     "prop-types": "^15.7.2",
     "react-tree-walker": "^4.3.0",
-    "serialize-javascript": "^1.7.0"
+    "serialize-javascript": "^2.1.1"
   },
   "devDependencies": {
     "graphql": "14.2.1",
