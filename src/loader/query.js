@@ -6,11 +6,11 @@ const compareVariables = (a, b) => {
   }
 
   if (a && b) {
-    if (Object.keys(a).some(key => !b[key] || a[key] !== b[key])) {
+    if (Object.keys(a).some(key => a[key] !== b[key])) {
       return false;
     }
 
-    if (Object.keys(b).some(key => !a[key] || a[key] !== b[key])) {
+    if (Object.keys(b).some(key => a[key] !== b[key])) {
       return false;
     }
   }
@@ -33,7 +33,9 @@ export default function query(queryParam, allOptions = {}) {
       refetch: (...localOptions) => {
         cache.set('variables', options.variables);
 
-        return load(dispatch(createQuery(queryParam, { ...options, ...localOptions })));
+        return load(
+          dispatch(createQuery(queryParam, { ...options, ...localOptions })),
+        );
       },
       fetchMore: (...localOptions) => {
         cache.set('variables', options.variables);
