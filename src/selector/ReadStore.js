@@ -1,8 +1,10 @@
 import { valueFromASTUntyped } from 'graphql/utilities/valueFromASTUntyped';
+// eslint-disable-next-line import/no-cycle
 import StoreQuery from './StoreQuery';
 import StoreError from '../errors/StoreError';
 import getKeyName from '../utils/getKeyName';
 import EntityMap from '../utils/EntityMap';
+import isString from '../utils/isString';
 
 export function getData(link, constraints, entities) {
   if (link === null) {
@@ -21,7 +23,7 @@ function getKeyNameFromAST(node, variables) {
   }
 
   const args = {};
-  node.arguments.forEach(arg => {
+  node.arguments.forEach((arg) => {
     args[arg.name.value] = valueFromASTUntyped(arg.value, variables);
   });
 
@@ -29,13 +31,16 @@ function getKeyNameFromAST(node, variables) {
 }
 
 function joinFromAST(selectionSet, options) {
-  return query => {
-    selectionSet.selections.forEach(selection => {
-      if (selection.kind === 'Field' && selection.selectionSet) {
-        query.join(
-          getKeyNameFromAST(selection, options.variables),
-          joinFromAST(selection.selectionSet, options),
-        );
+  return (query) => {
+    selectionSet.selections.forEach((selection) => {
+      if (selection.kind === 'Field') {
+        const name = getKeyNameFromAST(selection, options.variables);
+
+        if (selection.selectionSet) {
+          query.join(name, joinFromAST(selection.selectionSet, options));
+        } else if (!isString(name)) {
+          query.alias(name);
+        }
       }
     });
 
@@ -56,17 +61,24 @@ export default class ReadStore {
   }
 
   selectByFragmentAST(ast, options) {
-    const fragment = ast.definitions.find(def => def.kind === 'FragmentDefinition');
+    const fragment = ast.definitions.find(
+      (def) => def.kind === 'FragmentDefinition',
+    );
 
     if (!fragment) {
       throw new StoreError('Option entry is set, but no fragment node found.');
     }
 
-    return this.selectByEntity(...options.entry, joinFromAST(fragment.selectionSet, options));
+    return this.selectByEntity(
+      ...options.entry,
+      joinFromAST(fragment.selectionSet, options),
+    );
   }
 
   selectByOperationAST(ast, options) {
-    const operation = ast.definitions.find(def => def.kind === 'OperationDefinition');
+    const operation = ast.definitions.find(
+      (def) => def.kind === 'OperationDefinition',
+    );
 
     if (!operation) {
       throw new StoreError('No operation node found.');
@@ -104,7 +116,10 @@ export default class ReadStore {
     const entity = this.entities.get(type, id);
 
     if (!entity || !entity[name]) {
-      throw new StoreError(`Selected relation '${name}' not found.`, [type, id]);
+      throw new StoreError(`Selected relation '${name}' not found.`, [
+        type,
+        id,
+      ]);
     }
 
     return getData(entity[name].link, query, this.entities);
