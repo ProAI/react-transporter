@@ -5,8 +5,10 @@ import AsyncManager from './AsyncManager';
 import enhanceWithConnect from './utils/enhanceWithConnect';
 import getTimestamp from '../utils/getTimestamp';
 
-const resolveES6 = x =>
-  x != null && (typeof x === 'function' || typeof x === 'object') && x.default ? x.default : x;
+const resolveES6 = (x) =>
+  x != null && (typeof x === 'function' || typeof x === 'object') && x.default
+    ? x.default
+    : x;
 
 const defaultAsyncOptions = {
   disabled: false,
@@ -15,9 +17,9 @@ const defaultAsyncOptions = {
   loading: null,
 };
 
-const getAsyncOptions = options => {
+const getAsyncOptions = (options) => {
   if (options && options.async) {
-    return Object.assign({}, defaultAsyncOptions, options.async);
+    return { ...defaultAsyncOptions, ...options.async };
   }
 
   return defaultAsyncOptions;
@@ -33,13 +35,17 @@ const childContextTypes = {
   isInBoundary: PropTypes.bool,
 };
 
-export default function createAsyncComponent(component, makeConfig, customOptions) {
+export default function createAsyncComponent(
+  component,
+  makeConfig,
+  customOptions,
+) {
   const options = {
     middleware: (customOptions && customOptions.middleware) || null,
     async: getAsyncOptions(customOptions),
   };
 
-  const getConfig = props => {
+  const getConfig = (props) => {
     // TODO memoize this function
     const tempConfig = makeConfig(props);
 
@@ -87,17 +93,21 @@ export default function createAsyncComponent(component, makeConfig, customOption
             bundle: {
               ...loaderState,
               loading: isPreload || hasCodeSplit ? 'block' : null,
-              error: isPreload ? AsyncManager.getError(this.containerName, 'bundle') : null,
+              error: isPreload
+                ? AsyncManager.getError(this.containerName, 'bundle')
+                : null,
             },
           }
         : {};
 
       // Set resources loading & errors
-      Object.keys(config.loaders).forEach(key => {
+      Object.keys(config.loaders).forEach((key) => {
         initialState[key] = {
           ...loaderState,
           loading: !isPreload ? 'block' : null,
-          error: isPreload ? AsyncManager.getError(this.containerName, key) : null,
+          error: isPreload
+            ? AsyncManager.getError(this.containerName, key)
+            : null,
         };
       });
 
@@ -138,9 +148,9 @@ export default function createAsyncComponent(component, makeConfig, customOption
       // Load resources on server
       if (AsyncManager.getEnv() === 'node') {
         // Iterate over loaders to load resources initially
-        Object.keys(config.loaders).forEach(key => {
+        Object.keys(config.loaders).forEach((key) => {
           const loader = config.loaders[key];
-          const load = promise => {
+          const load = (promise) => {
             promises.push(this.handleLoad(key, promise, isPreload));
           };
           const cache = this.getCacheProvider();
@@ -168,9 +178,9 @@ export default function createAsyncComponent(component, makeConfig, customOption
       }
 
       // Iterate over loaders to load resources initially
-      Object.keys(config.loaders).forEach(key => {
+      Object.keys(config.loaders).forEach((key) => {
         const loader = config.loaders[key];
-        const load = promise => this.handleLoad(key, promise, false);
+        const load = (promise) => this.handleLoad(key, promise, false);
         const cache = this.getCacheProvider();
 
         loader.request({ load, cache }, this.context.store.dispatch);
@@ -185,7 +195,7 @@ export default function createAsyncComponent(component, makeConfig, customOption
     componentWillReceiveProps(nextProps, nextContext) {
       const config = getConfig(nextProps);
 
-      Object.keys(config.loaders).forEach(key => {
+      Object.keys(config.loaders).forEach((key) => {
         const loader = config.loaders[key];
 
         // If a shouldUpdate function is defined, then we will check whether we need to reload the
@@ -213,9 +223,13 @@ export default function createAsyncComponent(component, makeConfig, customOption
       });
     }
 
+    componentWillUnmount() {
+      this.hasUnmounted = true;
+    }
+
     handleLoad(key, promise, isPreload) {
       return promise
-        .then(result => {
+        .then((result) => {
           // Save component if request was done for a component
           if (key === 'bundle') {
             this.component.Component = resolveES6(result);
@@ -226,7 +240,7 @@ export default function createAsyncComponent(component, makeConfig, customOption
             this.setRequestState(key, null, null);
           }
         })
-        .catch(error => {
+        .catch((error) => {
           // Update state if component did mount
           if (!isPreload) {
             if (!this.hasUnmounted) {
@@ -240,13 +254,9 @@ export default function createAsyncComponent(component, makeConfig, customOption
         });
     }
 
-    componentWillUnmount() {
-      this.hasUnmounted = true;
-    }
-
     getCacheProvider() {
       return {
-        get: cacheKey => this.cache[cacheKey],
+        get: (cacheKey) => this.cache[cacheKey],
         set: (cacheKey, cacheValue) => {
           this.cache[cacheKey] = cacheValue;
         },
@@ -258,7 +268,7 @@ export default function createAsyncComponent(component, makeConfig, customOption
       // true, a new request will begin and if updatedLoading is false, a request will end.
       const time = getTimestamp();
 
-      this.setState(state => ({
+      this.setState((state) => ({
         loaders: {
           ...state.loaders,
           [key]: {
@@ -273,9 +283,14 @@ export default function createAsyncComponent(component, makeConfig, customOption
 
     isPreload() {
       const defer =
-        !AsyncManager.isSSREnabled() || this.context.isInBoundary || options.async.defer;
+        !AsyncManager.isSSREnabled() ||
+        this.context.isInBoundary ||
+        options.async.defer;
 
-      return !defer && (this.phase === 'BOOTSTRAPPING' || this.phase === 'FIRST_RENDER');
+      return (
+        !defer &&
+        (this.phase === 'BOOTSTRAPPING' || this.phase === 'FIRST_RENDER')
+      );
     }
 
     render() {
@@ -283,7 +298,7 @@ export default function createAsyncComponent(component, makeConfig, customOption
 
       // Create loader props
       const loaderProps = {};
-      Object.keys(config.loaders).forEach(key => {
+      Object.keys(config.loaders).forEach((key) => {
         const loader = config.loaders[key];
 
         if (loader.props) {
@@ -311,7 +326,11 @@ export default function createAsyncComponent(component, makeConfig, customOption
       });
 
       // Some resources are loading
-      if (Object.values(this.state.loaders).some(info => info.loading === 'block')) {
+      if (
+        Object.values(this.state.loaders).some(
+          (info) => info.loading === 'block',
+        )
+      ) {
         if (!options.async.loading) {
           return null;
         }
@@ -322,18 +341,26 @@ export default function createAsyncComponent(component, makeConfig, customOption
       }
 
       // Some resources have an error
-      if (Object.values(this.state.loaders).some(info => info.error !== null)) {
-        if (process.env.NODE_ENV !== 'production' && this.phase !== 'BOOTSTRAPPING') {
+      if (
+        Object.values(this.state.loaders).some((info) => info.error !== null)
+      ) {
+        if (
+          process.env.NODE_ENV !== 'production' &&
+          this.phase !== 'BOOTSTRAPPING'
+        ) {
           const errors = {};
 
-          Object.keys(this.state.loaders).forEach(key => {
+          Object.keys(this.state.loaders).forEach((key) => {
             if (this.state.loaders[key].error) {
               errors[key] = this.state.loaders[key].error;
             }
           });
 
           // eslint-disable-next-line no-console
-          console.error(`Some loaders of component ${name} have errors:\n`, errors);
+          console.error(
+            `Some loaders of component ${name} have errors:\n`,
+            errors,
+          );
         }
 
         if (!options.async.error) {
@@ -350,12 +377,20 @@ export default function createAsyncComponent(component, makeConfig, customOption
       // connect selectors and actions if present
       if (config.selectors || config.actions) {
         if (!this.component.isConnected) {
-          this.component.Component = enhanceWithConnect(this.component.Component);
+          this.component.Component = enhanceWithConnect(
+            this.component.Component,
+          );
           this.component.isConnected = true;
         }
 
         const { Component } = this.component;
-        return <Component selectors={config.selectors} actions={config.actions} props={props} />;
+        return (
+          <Component
+            selectors={config.selectors}
+            actions={config.actions}
+            props={props}
+          />
+        );
       }
 
       const { Component } = this.component;

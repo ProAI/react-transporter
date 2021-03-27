@@ -97,9 +97,9 @@ export default function createRequest(request, fetch) {
     });
 
     return fetch(requestBody, request.variables).then(
-      result => {
-        return result.json().then(
-          response => {
+      (result) =>
+        result.json().then(
+          (response) => {
             // Error #2: Http error code detected, throw error.
             if (!result.ok) {
               return handleError(
@@ -137,7 +137,7 @@ export default function createRequest(request, fetch) {
 
             // Error #4: Response has GraphQL errors, throw error.
             if (response.errors) {
-              response.errors.forEach(error => {
+              response.errors.forEach((error) => {
                 // eslint-disable-next-line no-console
                 console.error(`GraphQLError: ${error.message}`);
               });
@@ -191,7 +191,7 @@ export default function createRequest(request, fetch) {
 
             return response.data;
           },
-          error => {
+          (error) => {
             // Error #6: Http error code with invalid JSON detected, throw error.
             if (!result.ok) {
               return handleError(
@@ -213,19 +213,17 @@ export default function createRequest(request, fetch) {
               optimisticData,
             );
           },
-        );
-      },
-      error => {
-        // Error #8: Some network error occured.
-        return handleError(
+        ),
+      // Error #8: Some network error occured.
+      (error) =>
+        handleError(
           new TransporterError(
             'NetworkError',
             `${error.message} (NetworkError)`,
           ),
           null,
           optimisticData,
-        );
-      },
+        ),
     );
   };
 }
