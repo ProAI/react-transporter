@@ -1,6 +1,6 @@
 {
   "name": "react-transporter",
-  "version": "0.5.20",
+  "version": "0.5.21",
   "description": "React.js Redux GraphQL client",
   "author": "Markus Wetzel <markuswetzel@gmx.net>",
   "license": "MIT",

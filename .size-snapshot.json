@@ -27,5 +27,34 @@
         "code": 5244
       }
     }
+  },
+  "react-transporter.cjs.js": {
+    "bundled": 79079,
+    "minified": 40255,
+    "gzipped": 10264
+  },
+  "react-transporter.umd.min.js": {
+    "bundled": 110632,
+    "minified": 43188,
+    "gzipped": 12721
+  },
+  "react-transporter.umd.js": {
+    "bundled": 139109,
+    "minified": 50316,
+    "gzipped": 14921
+  },
+  "react-transporter.esm.js": {
+    "bundled": 78035,
+    "minified": 39402,
+    "gzipped": 10112,
+    "treeshaked": {
+      "rollup": {
+        "code": 2771,
+        "import_statements": 193
+      },
+      "webpack": {
+        "code": 5810
+      }
+    }
   }
 }
