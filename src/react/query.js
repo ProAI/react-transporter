@@ -6,11 +6,11 @@ const compareVariables = (a, b) => {
   }
 
   if (a && b) {
-    if (Object.keys(a).some(key => a[key] !== b[key])) {
+    if (Object.keys(a).some((key) => a[key] !== b[key])) {
       return false;
     }
 
-    if (Object.keys(b).some(key => a[key] !== b[key])) {
+    if (Object.keys(b).some((key) => a[key] !== b[key])) {
       return false;
     }
   }
@@ -26,7 +26,7 @@ export default function query(queryParam, allOptions = {}) {
       cache.set('variables', options.variables);
 
       return loaderOptions && loaderOptions.skip
-        ? load(new Promise(resolve => resolve()))
+        ? load(new Promise((resolve) => resolve()))
         : load(dispatch(createQuery(queryParam, options)));
     },
     props: ({ load, cache }, dispatch) => ({
@@ -46,7 +46,7 @@ export default function query(queryParam, allOptions = {}) {
           }),
         );
       },
-      startPolling: interval => {
+      startPolling: (interval) => {
         const timeout = setInterval(() => {
           load(
             dispatch(createQuery(queryParam, options), {
@@ -68,7 +68,7 @@ export default function query(queryParam, allOptions = {}) {
 
       // Reload query if reset has been triggered or variables have changed
       return (
-        info.startTime < state.transporter.info.lastReset ||
+        info.startTime < state.info.lastReset ||
         !compareVariables(previousVariables, options.variables)
       );
     },

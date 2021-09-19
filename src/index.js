@@ -1,12 +1,11 @@
+import { useDispatch } from 'react-redux';
 import createMutation from './actions/createMutation';
 import createQuery from './actions/createQuery';
 import resetStore from './actions/resetStore';
-import TransporterNetwork from './core/Network';
-import TransporterClient from './core/Client';
-import bootstrapper from './loader/bootstrapper';
-import createAsyncContainer from './loader/createAsyncContainer';
-import createContainer from './loader/createContainer';
-import query from './loader/query';
+import createAsyncContainer from './react/createAsyncContainer';
+import createContainer from './react/createContainer';
+import Provider from './react/Provider';
+import query from './react/query';
 import { onError } from './request/createRequest';
 import Link from './request/Link';
 import ManyLink from './request/ManyLink';
@@ -15,16 +14,19 @@ import selectByEntity from './selector/selectByEntity';
 import selectByRelation from './selector/selectByRelation';
 import selectByRoot from './selector/selectByRoot';
 import selectAdvanced from './selector/selectAdvanced';
+import TransporterNetwork from './Network';
+import TransporterClient from './Client';
 
 export {
+  useDispatch,
   createMutation,
   createQuery,
   resetStore,
   TransporterNetwork,
   TransporterClient,
-  bootstrapper,
   createAsyncContainer,
   createContainer,
+  Provider,
   query,
   Link,
   ManyLink,

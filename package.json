@@ -26,23 +26,20 @@
   ],
   "dependencies": {
     "prop-types": "^15.7.2",
-    "react-tree-walker": "^4.3.0",
-    "serialize-javascript": "^5.0.1"
+    "serialize-javascript": "^6.0.0",
+    "react-redux": "^7.2.5",
+    "redux": "^4.1.1",
+    "redux-devtools-extension": "^2.13.9",
+    "redux-thunk": "^2.3.0"
   },
   "devDependencies": {
-    "graphql": "15.5.0",
+    "graphql": "15.5.3",
     "packsy": "0.2.2",
-    "react": "16.8.6",
-    "react-redux": "5.1.1",
-    "redux": "4.0.5",
-    "redux-thunk": "2.3.0"
+    "react": "16.13.1"
   },
   "peerDependencies": {
     "graphql": ">=14",
-    "react": ">=15",
-    "react-redux": ">=5",
-    "redux": ">=3",
-    "redux-thunk": ">=2"
+    "react": ">=16"
   },
   "husky": {
     "hooks": {

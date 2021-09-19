@@ -4,8 +4,6 @@ import getTimestamp from '../utils/getTimestamp';
 import TransporterError from '../errors/TransporterError';
 import StoreError from '../errors/StoreError';
 
-const TRANSPORTER_STATE = 'transporter';
-
 let customHandleError;
 export function onError(callback) {
   customHandleError = callback;
@@ -32,7 +30,7 @@ export default function createRequest(request, fetch) {
       return storeData;
     }
 
-    const store = new WriteStore(state[TRANSPORTER_STATE], storeData);
+    const store = new WriteStore(state, storeData);
 
     updater(store, responseData);
 
@@ -117,7 +115,7 @@ export default function createRequest(request, fetch) {
             const state = getState();
 
             // Error #3: In the meantime the store was resetted, so do not apply response.
-            if (state[TRANSPORTER_STATE].info.lastReset >= startTime) {
+            if (state.info.lastReset >= startTime) {
               const error = new StoreError(
                 'Store reset after request was started.',
               );

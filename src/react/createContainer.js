@@ -22,10 +22,7 @@ export default function createComponent(Component, makeConfig, customOptions) {
   );
 
   if (options.middleware) {
-    const enhance = compose(
-      ...options.middleware,
-      enhanceWithConnect,
-    );
+    const enhance = compose(...options.middleware, enhanceWithConnect);
 
     return enhance(Component);
   }
