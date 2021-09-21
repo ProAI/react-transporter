@@ -52,8 +52,9 @@ export default function createAsyncComponent(
     /* 1) Constructor */
 
     const store = useStore();
-    const config = useMemo(() => getConfig(props), []);
+    const config = getConfig(props);
     const unmounted = useRef(false);
+    const mounted = useRef(false);
     // const defer = true;
     const cache = useCache();
 
@@ -98,6 +99,8 @@ export default function createAsyncComponent(
     /* 2) Lifecycles */
 
     useEffect(() => {
+      mounted.current = true;
+
       // Iterate over loaders to load resources initially
       Object.keys(config.loaders).forEach((key) => {
         const loader = config.loaders[key];
@@ -116,7 +119,12 @@ export default function createAsyncComponent(
       };
     }, []);
 
-    useEffect(() => {
+    // TODO: Replace useMemo with useEffect
+    useMemo(() => {
+      if (!mounted) {
+        return;
+      }
+
       Object.keys(config.loaders).forEach((key) => {
         const loader = config.loaders[key];
 
@@ -219,6 +227,7 @@ export default function createAsyncComponent(
       }
 
       const { Component } = resolvedComponent;
+
       return (
         <Component
           selectors={config.selectors}
