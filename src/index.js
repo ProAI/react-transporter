@@ -22,8 +22,6 @@ export {
   createMutation,
   createQuery,
   resetStore,
-  TransporterNetwork,
-  TransporterClient,
   createAsyncContainer,
   createContainer,
   Provider,
@@ -36,4 +34,6 @@ export {
   selectByRelation,
   selectByRoot,
   selectAdvanced,
+  TransporterNetwork,
+  TransporterClient,
 };
