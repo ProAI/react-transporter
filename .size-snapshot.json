@@ -29,31 +29,31 @@
     }
   },
   "react-transporter.cjs.js": {
-    "bundled": 71994,
-    "minified": 36555,
-    "gzipped": 9371
+    "bundled": 72365,
+    "minified": 36878,
+    "gzipped": 9474
   },
   "react-transporter.umd.min.js": {
-    "bundled": 147096,
-    "minified": 49009,
-    "gzipped": 14417
+    "bundled": 154583,
+    "minified": 50080,
+    "gzipped": 14767
   },
   "react-transporter.umd.js": {
-    "bundled": 186508,
-    "minified": 63576,
-    "gzipped": 18861
+    "bundled": 195298,
+    "minified": 64893,
+    "gzipped": 19284
   },
   "react-transporter.esm.js": {
-    "bundled": 71121,
-    "minified": 35819,
-    "gzipped": 9224,
+    "bundled": 71520,
+    "minified": 36157,
+    "gzipped": 9352,
     "treeshaked": {
       "rollup": {
-        "code": 1654,
-        "import_statements": 165
+        "code": 1785,
+        "import_statements": 241
       },
       "webpack": {
-        "code": 4663
+        "code": 4809
       }
     }
   }
