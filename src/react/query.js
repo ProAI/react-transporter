@@ -1,22 +1,5 @@
+import { shallowEqual } from 'react-redux';
 import createQuery from '../actions/createQuery';
-
-const compareVariables = (a, b) => {
-  if ((a && !b) || (!a && b)) {
-    return false;
-  }
-
-  if (a && b) {
-    if (Object.keys(a).some((key) => a[key] !== b[key])) {
-      return false;
-    }
-
-    if (Object.keys(b).some((key) => a[key] !== b[key])) {
-      return false;
-    }
-  }
-
-  return true;
-};
 
 export default function query(queryParam, allOptions = {}) {
   const { loaderOptions, ...options } = allOptions;
@@ -69,7 +52,7 @@ export default function query(queryParam, allOptions = {}) {
       // Reload query if reset has been triggered or variables have changed
       return (
         info.startTime < state.info.lastReset ||
-        !compareVariables(previousVariables, options.variables)
+        !shallowEqual(previousVariables, options.variables)
       );
     },
   };

@@ -49,17 +49,20 @@ export default function createAsyncComponent(
   const name = component.displayName || component.name || 'Component';
 
   function Container(props) {
-    /* 1) Constructor */
+    // 1) Constructor
 
     const store = useStore();
-    const config = getConfig(props);
     const unmounted = useRef(false);
     const mounted = useRef(false);
-    // const defer = true;
+    const initialConfig = useMemo(() => getConfig(props), []);
     const cache = useCache();
 
     // Set state
-    const [state, setRequestState] = useRequestState(config, hasCodeSplit);
+    const [state, setRequestState] = useRequestState(
+      initialConfig,
+      props,
+      hasCodeSplit,
+    );
 
     // Set component
     const resolvedComponent = useMemo(
@@ -69,8 +72,6 @@ export default function createAsyncComponent(
       }),
       [],
     );
-
-    // Define setRequestState
 
     // Define load method
     const handleLoad = useCallback(
@@ -96,10 +97,10 @@ export default function createAsyncComponent(
       [],
     );
 
-    /* 2) Lifecycles */
+    // 2) Lifecycles
 
     useEffect(() => {
-      mounted.current = true;
+      const config = getConfig(props);
 
       // Iterate over loaders to load resources initially
       Object.keys(config.loaders).forEach((key) => {
@@ -113,17 +114,14 @@ export default function createAsyncComponent(
       if (hasCodeSplit && !resolvedComponent.Component) {
         handleLoad('bundle', component.bundle(), false);
       }
-
-      return () => {
-        unmounted.current = true;
-      };
     }, []);
 
-    // TODO: Replace useMemo with useEffect
-    useMemo(() => {
-      if (!mounted) {
+    useEffect(() => {
+      if (!mounted.current) {
         return;
       }
+
+      const config = getConfig(props);
 
       Object.keys(config.loaders).forEach((key) => {
         const loader = config.loaders[key];
@@ -138,7 +136,7 @@ export default function createAsyncComponent(
               store.getState(),
             )
           ) {
-            setRequestState(key, 'block', null);
+            setRequestState(key, 'block', null, props);
 
             const load = (promise, loadOptions) =>
               handleLoad(key, promise, false, loadOptions);
@@ -147,12 +145,24 @@ export default function createAsyncComponent(
           }
         }
       });
-    });
+    }, [props]);
 
-    /* 3) Render */
+    useEffect(() => {
+      mounted.current = true;
+
+      return () => {
+        unmounted.current = true;
+      };
+    }, []);
+
+    // 3) Render
+
+    // Create config
+    const config = getConfig(state.props);
 
     // Create loader props
     const loaderProps = {};
+
     Object.keys(config.loaders).forEach((key) => {
       const loader = config.loaders[key];
 
@@ -179,7 +189,7 @@ export default function createAsyncComponent(
       }
     });
 
-    // Some resources are loading
+    // 3.1) Loading state
     if (Object.values(state.loaders).some((info) => info.loading === 'block')) {
       if (!options.async.loading) {
         return null;
@@ -187,10 +197,10 @@ export default function createAsyncComponent(
 
       const LoadingComponent = options.async.loading;
 
-      return <LoadingComponent {...loaderProps} {...props} />;
+      return <LoadingComponent {...loaderProps} {...state.props} />;
     }
 
-    // Some resources have an error
+    // 3.2) Error state
     if (Object.values(state.loaders).some((info) => info.error !== null)) {
       if (process.env.NODE_ENV === 'development') {
         const errors = {};
@@ -214,10 +224,10 @@ export default function createAsyncComponent(
 
       const ErrorComponent = options.async.error;
 
-      return <ErrorComponent {...loaderProps} {...props} />;
+      return <ErrorComponent {...loaderProps} {...state.props} />;
     }
 
-    // connect selectors and actions if present
+    // 3.3) Success state with selectors and/or actions
     if (config.selectors || config.actions) {
       if (!resolvedComponent.isConnected) {
         resolvedComponent.Component = enhanceWithConnect(
@@ -232,13 +242,14 @@ export default function createAsyncComponent(
         <Component
           selectors={config.selectors}
           actions={config.actions}
-          props={{ ...loaderProps, ...props }}
+          props={{ ...loaderProps, ...state.props }}
         />
       );
     }
 
+    // 3.4) Success state
     const { Component } = resolvedComponent;
-    return <Component {...loaderProps} {...props} />;
+    return <Component {...loaderProps} {...state.props} />;
   }
 
   Container.displayName = `Load(${name})`;

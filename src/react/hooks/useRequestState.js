@@ -1,9 +1,13 @@
-import { useMemo, useCallback, useState } from 'react';
+import { useCallback, useState } from 'react';
 import getTimestamp from '../../utils/getTimestamp';
 
-export default function useRequestState(config, hasCodeSplit) {
+export default function useRequestState(
+  initialConfig,
+  initialProps,
+  hasCodeSplit,
+) {
   // Set bundle loading & errors
-  const initialState = useMemo(() => {
+  const initialState = () => {
     const loaderState = {
       startTime: getTimestamp(),
       endTime: null,
@@ -21,7 +25,7 @@ export default function useRequestState(config, hasCodeSplit) {
       : {};
 
     // Set resources loading & errors
-    Object.keys(config.loaders).forEach((key) => {
+    Object.keys(initialConfig.loaders).forEach((key) => {
       loaders[key] = {
         ...loaderState,
         loading: 'block',
@@ -30,18 +34,20 @@ export default function useRequestState(config, hasCodeSplit) {
     });
 
     return {
+      props: initialProps,
       loaders,
     };
-  }, []);
+  };
 
   const [state, setState] = useState(initialState);
 
-  const setRequestState = useCallback((key, loading, error) => {
+  const setRequestState = useCallback((key, loading, error, props = null) => {
     // Set loading and errors state. For start and end time we assume that if updatedLoading is
     // true, a new request will begin and if updatedLoading is false, a request will end.
     const time = getTimestamp();
 
     setState((prevState) => ({
+      props: props || prevState.props,
       loaders: {
         ...prevState.loaders,
         [key]: {
