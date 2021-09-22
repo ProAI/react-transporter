@@ -1,7 +1,9 @@
-import { useDispatch } from 'react-redux';
 import createMutation from './actions/createMutation';
 import createQuery from './actions/createQuery';
 import resetStore from './actions/resetStore';
+import useDispatch from './react/hooks/useDispatch';
+import useSelector from './react/hooks/useSelector';
+import useStore from './react/hooks/useStore';
 import createAsyncContainer from './react/createAsyncContainer';
 import createContainer from './react/createContainer';
 import Provider from './react/Provider';
@@ -18,10 +20,12 @@ import TransporterNetwork from './Network';
 import TransporterClient from './Client';
 
 export {
-  useDispatch,
   createMutation,
   createQuery,
   resetStore,
+  useDispatch,
+  useSelector,
+  useStore,
   createAsyncContainer,
   createContainer,
   Provider,

@@ -2,6 +2,7 @@ import { connect } from 'react-redux';
 import { compose } from 'redux';
 import prepareActions from './utils/prepareActions';
 import prepareSelectors from './utils/prepareSelectors';
+import TransporterContext from './TransporterContext';
 
 export default function createComponent(Component, makeConfig, customOptions) {
   const options = {
@@ -19,6 +20,8 @@ export default function createComponent(Component, makeConfig, customOptions) {
 
       return prepareActions(config.actions, dispatch);
     },
+    null,
+    { context: TransporterContext },
   );
 
   if (options.middleware) {

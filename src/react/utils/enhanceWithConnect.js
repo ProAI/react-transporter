@@ -1,6 +1,7 @@
 import { connect } from 'react-redux';
 import prepareActions from './prepareActions';
 import prepareSelectors from './prepareSelectors';
+import TransporterContext from '../TransporterContext';
 
 const enhanceWithConnect = connect(
   (state, props) => prepareSelectors(props.selectors, state),
@@ -10,6 +11,7 @@ const enhanceWithConnect = connect(
     ...stateProps,
     ...dispatchProps,
   }),
+  { context: TransporterContext },
 );
 
 export default enhanceWithConnect;

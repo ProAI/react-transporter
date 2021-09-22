@@ -1,9 +1,9 @@
 import React, { useRef, useMemo, useCallback, useEffect } from 'react';
 import { compose } from 'redux';
-import { useStore } from 'react-redux';
-import enhanceWithConnect from './utils/enhanceWithConnect';
+import useStore from './hooks/useStore';
 import useCache from './hooks/useCache';
 import useRequestState from './hooks/useRequestState';
+import enhanceWithConnect from './utils/enhanceWithConnect';
 
 const resolveES6 = (x) =>
   x != null && (typeof x === 'function' || typeof x === 'object') && x.default

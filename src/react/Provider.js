@@ -1,5 +1,6 @@
 import React, { useMemo } from 'react';
 import { Provider as ReduxProvider } from 'react-redux';
+import TransporterContext from './TransporterContext';
 
 /* eslint-disable react/prop-types */
 function Provider({ children, client }) {
@@ -9,7 +10,11 @@ function Provider({ children, client }) {
 
   const store = useMemo(() => client.buildStore(), []);
 
-  return <ReduxProvider store={store}>{children}</ReduxProvider>;
+  return (
+    <ReduxProvider store={store} context={TransporterContext}>
+      {children}
+    </ReduxProvider>
+  );
 }
 /* eslint-enable */
 
