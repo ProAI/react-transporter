@@ -1,4 +1,3 @@
-import { shallowEqual } from 'react-redux';
 import createQuery from '../actions/createQuery';
 
 export default function query(queryParam, allOptions = {}) {
@@ -45,15 +44,17 @@ export default function query(queryParam, allOptions = {}) {
         cache.set('timeout', null);
       },
     }),
-    shouldReload: ({ info, cache }, props, state) => {
+    shouldReload: ({ info, cache }, state) => {
       const previousVariables = cache.get('variables');
       cache.set('variables', options.variables);
 
+      // All variables are primitives, so we can easily compare them with
+      // JSON.stringify.
+      const isEqual =
+        JSON.stringify(previousVariables) === JSON.stringify(options.variables);
+
       // Reload query if reset has been triggered or variables have changed
-      return (
-        info.startTime < state.info.lastReset ||
-        !shallowEqual(previousVariables, options.variables)
-      );
+      return info.startTime < state.info.lastReset || !isEqual;
     },
   };
 }

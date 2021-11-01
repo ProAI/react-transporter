@@ -1,8 +1,8 @@
-import { useEffect, useState, createElement, useMemo } from 'react';
+import { useEffect, useMemo } from 'react';
 import useCache from './useCache';
 import useStore from './useStore';
 import getTimestamp from '../../utils/getTimestamp';
-import enhanceWithConnect from '../utils/enhanceWithConnect';
+import useForceUpdate from './useForceUpdate';
 
 const isSSR = typeof window === 'undefined';
 
@@ -11,48 +11,48 @@ const resolveES6 = (x) =>
     ? x.default
     : x;
 
-const prepareComponent = (Component, connected) =>
-  connected ? enhanceWithConnect(Component) : Component;
-
-const updateState = (key, data) => (prevState) => ({
-  ...prevState,
-  [key]: { ...prevState[key], ...data },
+const updateLoaderState = (state, key, data) => ({
+  ...state.loaders[key],
+  ...data,
 });
 
-export default function useLoaders(component, config, options) {
+const refreshStatusState = (state) => {
+  const loaderValues = Object.values(state.loaders);
+
+  if (loaderValues.some((value) => value.loading)) {
+    return 'LOADING';
+  }
+
+  if (loaderValues.some((value) => !!value.error)) {
+    return 'ERROR';
+  }
+
+  return 'RESOLVED';
+};
+
+export default function useLoaders(component, config) {
   const cache = useCache();
   const store = useStore();
+  const forceUpdate = useForceUpdate();
 
   const hasCodeSplit = !!(component.name && component.bundle);
-  const connected = config.selectors || config.actions;
-  const meta = useMemo(
-    () => ({
-      queue: [],
-      component: !hasCodeSplit ? prepareComponent(component, connected) : null,
+
+  const state = useMemo(() => {
+    const initialState = {
+      status: 'LOADING',
       phase: 'MOUNTING',
-    }),
-    [],
-  );
-
-  useEffect(() => {
-    meta.phase = 'MOUNTED';
-
-    return () => {
-      meta.phase = 'UNMOUNTED';
+      component: !hasCodeSplit ? component : null,
+      loaders: {},
+      queue: [],
     };
-  }, []);
 
-  // Create initial loaders state
-  const initialState = () => {
     const loaderTimes = {
       startTime: getTimestamp(),
       endTime: null,
     };
 
-    const state = {};
-
     if (hasCodeSplit) {
-      state.bundle = {
+      initialState.loaders.bundle = {
         ...loaderTimes,
         loading: hasCodeSplit,
         error: null,
@@ -60,170 +60,149 @@ export default function useLoaders(component, config, options) {
     }
 
     Object.keys(config.loaders).forEach((key) => {
-      state[key] = {
+      initialState.loaders[key] = {
         ...loaderTimes,
         loading: true,
         error: null,
       };
     });
 
-    return state;
-  };
+    return initialState;
+  }, []);
 
-  const [state, setState] = useState(initialState);
+  // useEffect will be called after rendering, so that we can add updates to
+  // queue while rendering and execute them in useEffect.
+  useEffect(() => {
+    state.phase = 'MOUNTED';
+
+    state.queue.forEach((execute) => {
+      execute();
+    });
+
+    state.queue = [];
+
+    return () => {
+      state.phase = 'UNMOUNTED';
+    };
+  });
 
   const createLoad = (key) => (promise) =>
     promise
       .then((result) => {
+        if (state.phase === 'UNMOUNTED') {
+          return;
+        }
+
         // Save component if request was done for a component
         if (key === 'bundle') {
-          meta.component = prepareComponent(resolveES6(result), connected);
+          state.component = resolveES6(result);
         }
 
-        if (meta.phase === 'UNMOUNTED') {
-          return;
-        }
+        state.loaders[key] = updateLoaderState(state, key, {
+          endTime: getTimestamp(),
+          loading: false,
+          error: null,
+        });
 
-        setState(
-          updateState(key, {
-            endTime: getTimestamp(),
-            loading: false,
-            error: null,
-          }),
-        );
+        state.status = refreshStatusState(state);
+
+        forceUpdate();
       })
       .catch((error) => {
-        if (meta.phase === 'UNMOUNTED') {
+        if (state.phase === 'UNMOUNTED') {
           return;
         }
 
-        setState(
-          updateState(key, {
-            endTime: getTimestamp(),
-            loading: false,
-            error,
-          }),
-        );
+        state.loaders[key] = updateLoaderState(state, key, {
+          endTime: getTimestamp(),
+          loading: false,
+          error,
+        });
+
+        state.status = refreshStatusState(state);
+
+        forceUpdate();
       });
 
   // Load resources initially
   // TODO: Ideally we dispatch the requests on first render and not after first render. State
   // updates can happen after first render, but for now that is difficult to differentiate between
   // dispatching requests and updating states.
-  if (!isSSR && meta.phase === 'MOUNTING') {
+  const handleInitialLoad = () => {
+    if (isSSR || state.phase !== 'MOUNTING') {
+      return;
+    }
+
     Object.entries(config.loaders).forEach(([key, loader]) => {
-      meta.queue.push(() => {
+      state.queue.push(() => {
         const load = createLoad(key);
         loader.request({ load, cache }, store.dispatch);
       });
     });
 
     if (hasCodeSplit) {
-      meta.queue.push(() => {
+      state.queue.push(() => {
         const load = createLoad('bundle');
         load(component.bundle());
       });
     }
-  }
+  };
+
+  handleInitialLoad();
 
   // Reload resources based on shouldReload
-  const handleReload = (props) => {
-    if (meta.phase !== 'MOUNTED') {
-      return false;
+  const handleReload = () => {
+    if (state.phase !== 'MOUNTED') {
+      return;
     }
 
-    return Object.entries(config.loaders).some(([key, loader]) => {
+    Object.entries(config.loaders).forEach(([key, loader]) => {
       const shouldReload = loader.shouldReload(
-        { info: state[key], cache },
-        props,
+        { info: state.loaders[key], cache },
         store.getState(),
       );
 
-      if (!shouldReload) {
-        return false;
+      if (!shouldReload || state.loaders[key].loading) {
+        return;
       }
 
-      meta.queue.push(() => {
-        setState(
-          updateState(key, {
-            startTime: getTimestamp(),
-            endTime: null,
-            loading: true,
-            error: null,
-          }),
-        );
+      state.loaders[key] = updateLoaderState(state, key, {
+        startTime: getTimestamp(),
+        endTime: null,
+        loading: true,
+        error: null,
+      });
 
+      state.status = refreshStatusState(state);
+
+      state.queue.push(() => {
         const load = createLoad(key);
         loader.request({ load, cache }, store.dispatch);
       });
-
-      return true;
     });
   };
 
-  useEffect(() => {
-    meta.queue.forEach((execute) => {
-      execute();
-    });
+  handleReload();
 
-    meta.queue = [];
+  const loaderProps = {};
+
+  Object.entries(config.loaders).forEach(([key, loader]) => {
+    const load = () => {
+      if (state.loaders[key].loading) {
+        const name = component.displayName || component.name || 'Component';
+
+        // eslint-disable-next-line no-console
+        console.error(`Resource ${name} ${key} is already loading.`);
+      }
+
+      return createLoad(key);
+    };
+
+    loaderProps[key] = {
+      ...state.loaders[key],
+      ...loader.props({ load, cache }, store.dispatch),
+    };
   });
 
-  const resolveComponent = (props) => {
-    const stateValues = Object.values(state);
-
-    const loading = stateValues.some((value) => value.loading);
-
-    if (loading || handleReload(props)) {
-      return options.async.loading;
-    }
-
-    const error = stateValues.some((value) => value.error);
-
-    if (error) {
-      return options.async.error;
-    }
-
-    return meta.component;
-  };
-
-  return (props) => {
-    const loaderProps = {};
-
-    Object.entries(config.loaders).forEach(([key, loader]) => {
-      const load = () => {
-        if (state[key].loading) {
-          const name = component.displayName || component.name || 'Component';
-
-          // eslint-disable-next-line no-console
-          console.error(`Resource ${name} ${key} is already loading.`);
-        }
-
-        return createLoad(key);
-      };
-
-      loaderProps[key] = {
-        ...state[key],
-        ...loader.props({ load, cache }, store.dispatch),
-      };
-    });
-
-    const Component = resolveComponent(props);
-
-    if (!connected) {
-      return createElement(Component, {
-        ...loaderProps,
-        ...props,
-      });
-    }
-
-    return createElement(Component, {
-      selectors: config.selectors,
-      actions: config.actions,
-      props: {
-        ...loaderProps,
-        ...props,
-      },
-    });
-  };
+  return [state, loaderProps];
 }

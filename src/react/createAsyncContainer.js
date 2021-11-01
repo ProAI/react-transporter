@@ -1,5 +1,7 @@
+import { createElement } from 'react';
 import { compose } from 'redux';
 import useLoaders from './hooks/useLoaders';
+import Selector from './Selector';
 
 const defaultAsyncOptions = {
   error: null,
@@ -37,13 +39,28 @@ export default function createAsyncComponent(
   function AsyncContainer(props) {
     const config = getConfig(props);
 
-    const createElement = useLoaders(component, config, options);
+    const [state, loaderProps] = useLoaders(component, config);
+    const elementProps = { ...loaderProps, ...props };
 
-    return createElement(props);
+    if (state.status === 'LOADING') {
+      return createElement(options.async.loading, elementProps);
+    }
+
+    if (state.status === 'ERROR') {
+      return createElement(options.async.error, elementProps);
+    }
+
+    if (!config.selectors) {
+      return createElement(state.component, elementProps);
+    }
+
+    // Wrap component in selector component to get store data.
+    return createElement(Selector, { selectors: config.selectors }, (data) =>
+      createElement(state.component, { ...data, ...elementProps }),
+    );
   }
 
   const name = component.displayName || component.name || 'Component';
-
   AsyncContainer.displayName = `Load(${name})`;
 
   if (options.middleware) {
