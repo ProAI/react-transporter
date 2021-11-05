@@ -156,10 +156,12 @@ export default function useLoaders(component, config) {
       return;
     }
 
+    const data = store.getState();
+
     Object.entries(config.loaders).forEach(([key, loader]) => {
       const shouldReload = loader.shouldReload(
         { info: state.loaders[key], cache },
-        store.getState(),
+        data,
       );
 
       if (!shouldReload || state.loaders[key].loading) {
@@ -195,12 +197,17 @@ export default function useLoaders(component, config) {
         console.error(`Resource ${name} ${key} is already loading.`);
       }
 
-      return createLoad(key);
+      const reload = createLoad(key);
+
+      // Force update, so that component is back in loading state.
+      forceUpdate();
+
+      return reload;
     };
 
     loaderProps[key] = {
       ...state.loaders[key],
-      ...loader.props({ load, cache }, store.dispatch),
+      ...loader.getProps({ load, cache }, store.dispatch),
     };
   });
 

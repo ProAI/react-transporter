@@ -11,7 +11,7 @@ export default function query(queryParam, allOptions = {}) {
         ? load(new Promise((resolve) => resolve()))
         : load(dispatch(createQuery(queryParam, options)));
     },
-    props: ({ load, cache }, dispatch) => ({
+    getProps: ({ load, cache }, dispatch) => ({
       refetch: (...localOptions) => {
         cache.set('variables', options.variables);
 

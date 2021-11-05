@@ -1,7 +1,7 @@
 import { createElement } from 'react';
 import { compose } from 'redux';
 import useLoaders from './hooks/useLoaders';
-import Selector from './Selector';
+import useBulkSelector from './hooks/useBulkSelector';
 
 const defaultAsyncOptions = {
   error: null,
@@ -40,7 +40,8 @@ export default function createAsyncComponent(
     const config = getConfig(props);
 
     const [state, loaderProps] = useLoaders(component, config);
-    const elementProps = { ...loaderProps, ...props };
+    const selectorProps = useBulkSelector(state.status, config.selectors);
+    const elementProps = { ...loaderProps, ...selectorProps, ...props };
 
     if (state.status === 'LOADING') {
       return createElement(options.async.loading, elementProps);
@@ -50,14 +51,7 @@ export default function createAsyncComponent(
       return createElement(options.async.error, elementProps);
     }
 
-    if (!config.selectors) {
-      return createElement(state.component, elementProps);
-    }
-
-    // Wrap component in selector component to get store data.
-    return createElement(Selector, { selectors: config.selectors }, (data) =>
-      createElement(state.component, { ...data, ...elementProps }),
-    );
+    return createElement(state.component, elementProps);
   }
 
   const name = component.displayName || component.name || 'Component';

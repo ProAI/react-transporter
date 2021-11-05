@@ -1,6 +1,6 @@
 import { createElement } from 'react';
 import { compose } from 'redux';
-import Selector from './Selector';
+import useBulkSelector from './hooks/useBulkSelector';
 
 export default function createComponent(Component, makeConfig, customOptions) {
   const options = {
@@ -10,14 +10,10 @@ export default function createComponent(Component, makeConfig, customOptions) {
   function Container(props) {
     const config = makeConfig(props);
 
-    if (!config.selectors) {
-      return createElement(Component, props);
-    }
+    const selectorProps = useBulkSelector('RESOLVED', config.selectors);
+    const elementProps = { ...selectorProps, ...props };
 
-    // Wrap component in selector component to get store data.
-    return createElement(Selector, { selectors: config.selectors }, (data) =>
-      createElement(Component, { ...data, ...props }),
-    );
+    return createElement(Component, elementProps);
   }
 
   if (options.middleware) {

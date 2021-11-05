@@ -1,11 +1,11 @@
 import { shallowEqual } from 'react-redux';
-import useSelector from './hooks/useSelector';
+import useSelector from './useSelector';
 
-function Selector({ selectors, children }) {
-  const data = useSelector((state) => {
+export default function useBulkSelector(status, selectors) {
+  return useSelector((state) => {
     const result = {};
 
-    if (!selectors) {
+    if (!selectors || status !== 'RESOLVED') {
       return result;
     }
 
@@ -15,8 +15,4 @@ function Selector({ selectors, children }) {
 
     return result;
   }, shallowEqual);
-
-  return children(data);
 }
-
-export default Selector;
