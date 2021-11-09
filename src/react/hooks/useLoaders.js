@@ -1,10 +1,20 @@
 import { useEffect, useMemo } from 'react';
-import useCache from './useCache';
 import useStore from './useStore';
 import getTimestamp from '../../utils/getTimestamp';
 import useForceUpdate from './useForceUpdate';
 
 const isSSR = typeof window === 'undefined';
+
+const createCache = () => {
+  const cache = {};
+
+  return {
+    get: (key) => cache[key],
+    set: (key, value) => {
+      cache[key] = value;
+    },
+  };
+};
 
 const resolveES6 = (x) =>
   x != null && (typeof x === 'function' || typeof x === 'object') && x.default
@@ -31,7 +41,6 @@ const refreshStatusState = (state) => {
 };
 
 export default function useLoaders(component, config) {
-  const cache = useCache();
   const store = useStore();
   const forceUpdate = useForceUpdate();
 
@@ -54,6 +63,7 @@ export default function useLoaders(component, config) {
     if (hasCodeSplit) {
       initialState.loaders.bundle = {
         ...loaderTimes,
+        cache: null,
         loading: hasCodeSplit,
         error: null,
       };
@@ -62,6 +72,7 @@ export default function useLoaders(component, config) {
     Object.keys(config.loaders).forEach((key) => {
       initialState.loaders[key] = {
         ...loaderTimes,
+        cache: createCache(),
         loading: true,
         error: null,
       };
@@ -136,7 +147,10 @@ export default function useLoaders(component, config) {
     Object.entries(config.loaders).forEach(([key, loader]) => {
       state.queue.push(() => {
         const load = createLoad(key);
-        loader.request({ load, cache }, store.dispatch);
+        loader.request(
+          { load, cache: state.loaders[key].cache },
+          store.dispatch,
+        );
       });
     });
 
@@ -160,7 +174,7 @@ export default function useLoaders(component, config) {
 
     Object.entries(config.loaders).forEach(([key, loader]) => {
       const shouldReload = loader.shouldReload(
-        { info: state.loaders[key], cache },
+        { info: state.loaders[key], cache: state.loaders[key].cache },
         data,
       );
 
@@ -179,7 +193,10 @@ export default function useLoaders(component, config) {
 
       state.queue.push(() => {
         const load = createLoad(key);
-        loader.request({ load, cache }, store.dispatch);
+        loader.request(
+          { load, cache: state.loaders[key].cache },
+          store.dispatch,
+        );
       });
     });
   };
@@ -207,7 +224,10 @@ export default function useLoaders(component, config) {
 
     loaderProps[key] = {
       ...state.loaders[key],
-      ...loader.getProps({ load, cache }, store.dispatch),
+      ...loader.getProps(
+        { load, cache: state.loaders[key].cache },
+        store.dispatch,
+      ),
     };
   });
 
