@@ -37,7 +37,7 @@ export default function applyUpdater(store, updater, data) {
     return data;
   }
 
-  let result = data;
+  const result = data;
 
   const writeStore = {
     insert(type, id, resolve) {
@@ -45,7 +45,7 @@ export default function applyUpdater(store, updater, data) {
 
       resolve(record);
 
-      result = result.merge({
+      result.add({
         entities: { [type]: { [id]: record.values } },
       });
     },
@@ -57,7 +57,7 @@ export default function applyUpdater(store, updater, data) {
 
       resolve(record);
 
-      result = result.merge({
+      result.add({
         entities: { [type]: { [id]: record.values } },
       });
     },
@@ -66,7 +66,7 @@ export default function applyUpdater(store, updater, data) {
 
       resolve(record);
 
-      result = result.merge({
+      result.add({
         roots: record.values,
       });
     },

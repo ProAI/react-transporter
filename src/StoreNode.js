@@ -1,6 +1,5 @@
-import makeSelectorKey from './network/makeSelectorKey';
+import SelectorSet from './network/SelectorSet';
 
-/* eslint-disable arrow-body-style */
 export default class StoreNode {
   parent;
 
@@ -10,7 +9,7 @@ export default class StoreNode {
 
   requests;
 
-  selectorsByRequest;
+  selectorSetsByRequest;
 
   listeners = [];
 
@@ -19,7 +18,7 @@ export default class StoreNode {
     this.executeQuery = executeQuery;
 
     this.requests = new Map();
-    this.selectorsByRequest = new Map();
+    this.selectorSetsByRequest = new Map();
 
     if (parent) {
       parent.addChild(this);
@@ -41,6 +40,8 @@ export default class StoreNode {
     // Invalidate request if variables have changed
     if (request && !request.isEqual(query, options.variables)) {
       this.requests.delete(name);
+      this.selectorSetsByRequest.delete(name);
+
       request.invalidate();
       request = null;
     }
@@ -73,28 +74,61 @@ export default class StoreNode {
     return request;
   };
 
-  select = (name, options = {}) => {
+  select = (name) => {
     const request = this.getRequest(name);
 
     // Check if request has loaded
     request.read();
 
-    const key = makeSelectorKey(options.fragment);
-    const selector = request.cache.selectors[key];
+    const data = request.cache.selectorSet.getQuery();
 
-    if (!selector) {
-      throw new Error(`Selector for query "${name}" was not found.`);
+    if (!this.selectorSetsByRequest.has(request)) {
+      this.selectorSetsByRequest.set(request, new SelectorSet());
     }
 
     // Cache selector
-    if (this.selectorsByRequest.has(request)) {
-      const selectors = this.selectorsByRequest.get(request);
-      selectors.set(key, selector);
-    } else {
-      this.selectorsByRequest.set(request, new Map([[key, selector]]));
+    const selectorSet = this.selectorSetsByRequest.get(request);
+    selectorSet.setQuery(data);
+
+    return data;
+  };
+
+  getFragmentRequest = (name, entry) => {
+    let request = Array.from(this.requests.values()).find(({ cache }) =>
+      cache?.selectorSet.getFragment(name, entry),
+    );
+
+    if (!request) {
+      if (!this.parent) {
+        const stringifiedEntry = JSON.stringify(entry);
+        throw new Error(
+          `Fragment "${name}" (entry: [${stringifiedEntry}]) was not found.`,
+        );
+      }
+
+      request = this.parent.getFragmentRequest(name, entry);
     }
 
-    return selector.toObject();
+    return request;
+  };
+
+  selectFragment = (name, entry) => {
+    const request = this.getFragmentRequest(name, entry);
+
+    // Check if request has loaded
+    request.read();
+
+    const data = request.cache.selectorSet.getFragment(name, entry);
+
+    if (!this.selectorSetsByRequest.has(request)) {
+      this.selectorSetsByRequest.set(request, new SelectorSet());
+    }
+
+    // Cache selector
+    const selectorSet = this.selectorSetsByRequest.get(request);
+    selectorSet.setFragment(name, entry, data);
+
+    return data;
   };
 
   addChild = (child) => {
@@ -122,17 +156,10 @@ export default class StoreNode {
 
     // Check if a selector has been updated. If so, the store node should
     // update and the listeneres should be called.
-    this.selectorsByRequest.forEach((selectors, request) => {
-      selectors.forEach((selector, key) => {
-        const requestSelector = request.cache.selectors[key];
-
-        if (selector === requestSelector) {
-          return;
-        }
-
-        selectors.set(key, requestSelector);
+    this.selectorSetsByRequest.forEach((selectorSet, request) => {
+      if (selectorSet.update(request.cache.selectorSet)) {
         shouldUpdate = true;
-      });
+      }
     });
 
     if (shouldUpdate) {
@@ -164,4 +191,3 @@ export default class StoreNode {
     });
   };
 }
-/* eslint-enable */

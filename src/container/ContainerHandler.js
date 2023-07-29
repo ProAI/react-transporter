@@ -29,7 +29,7 @@ class ContainerHandler extends React.Component {
     try {
       const [Component, resolvedValues] = Resource.all([
         () => component(),
-        () => container({ ...values, store: node }),
+        () => container(node, values),
       ]);
 
       // Handle meta data

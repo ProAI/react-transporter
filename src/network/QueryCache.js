@@ -1,4 +1,5 @@
-import buildSelectors from './buildSelectors';
+import buildSelectorSet from './buildSelectorSet';
+import buildDataSet from './buildDataSet';
 
 /* eslint-disable arrow-body-style */
 export default class QueryCache {
@@ -8,17 +9,19 @@ export default class QueryCache {
 
   updates = [];
 
-  dirty = true;
+  dirty = false;
 
   data;
 
-  selectors = [];
+  selectorSet;
 
   constructor(request, original) {
     this.request = request;
 
     this.original = original;
     this.data = original;
+
+    this.selectorSet = buildSelectorSet(this);
   }
 
   addUpdate = (data, optimistic = false) => {
@@ -31,7 +34,7 @@ export default class QueryCache {
     const update = {
       optimistic,
       data,
-      cache: this.data.mutate(data),
+      cache: this.data.merge(data),
     };
 
     this.data = data;
@@ -52,7 +55,7 @@ export default class QueryCache {
 
         updates.push({
           ...update,
-          cache: prevData.mutate(data),
+          cache: prevData.merge(data),
         });
       } else {
         updates.push(update);
@@ -68,11 +71,11 @@ export default class QueryCache {
     }
 
     // (Re-)build data of selectors
-    this.selectors = buildSelectors(this);
+    this.selectorSet = buildSelectorSet(this);
 
     // Update original data if there are no optimistic updates
     if (!this.updates.some((u) => u.optimistic)) {
-      this.original = this.data;
+      this.original = buildDataSet(this);
       this.updates = [];
     }
 

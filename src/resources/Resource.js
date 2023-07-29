@@ -1,6 +1,5 @@
 import { PENDING, FULFILLED, REJECTED } from '../constants';
 
-/* eslint-disable arrow-body-style */
 class Resource {
   promise;
 
@@ -42,7 +41,6 @@ class Resource {
     }
   };
 }
-/* eslint-enable */
 
 Resource.all = (values) => {
   const promises = [];

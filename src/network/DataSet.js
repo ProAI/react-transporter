@@ -81,39 +81,32 @@ export default class DataSet {
     );
   };
 
-  merge = (data) => {
+  add = (data) => {
     const { roots, entities } = data;
 
-    return new DataSet({
-      roots: merge(this.roots, roots),
-      entities: merge(this.entities, entities, (type) =>
-        merge(this.entities[type], entities[type], (id) =>
-          merge(this.entities[type][id], entities[type][id]),
-        ),
-      ),
-    });
+    this.roots = merge(this.roots, roots);
+    this.entities = merge(this.entities, entities, (type) =>
+      merge(this.entities[type], entities[type], (id) => {
+        const left = this.entities[type][id];
+        const right = entities[type][id];
+
+        const result = { ...left };
+
+        Object.keys(right).forEach((key) => {
+          result[key] = mergeValue(left[key], right[key]);
+        });
+
+        return result;
+      }),
+    );
   };
 
-  mutate = (data) => {
-    const { roots, entities } = data;
+  merge = (data) => {
+    const result = new DataSet({ roots: this.roots, entities: this.entities });
 
-    return new DataSet({
-      roots: merge(this.roots, roots),
-      entities: merge(this.entities, entities, (type) =>
-        merge(this.entities[type], entities[type], (id) => {
-          const left = this.entities[type][id];
-          const right = entities[type][id];
+    result.add(data);
 
-          const result = {};
-
-          Object.keys(left).forEach((key) => {
-            result[key] = mergeValue(left[key], right[key]);
-          });
-
-          return result;
-        }),
-      ),
-    });
+    return result;
   };
 
   extract = () => {

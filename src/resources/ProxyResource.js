@@ -1,6 +1,5 @@
 import { PENDING, REJECTED } from '../constants';
 
-/* eslint-disable arrow-body-style */
 class ProxyResource {
   promise;
 
@@ -24,6 +23,5 @@ class ProxyResource {
     }
   };
 }
-/* eslint-enable */
 
 export default ProxyResource;
