@@ -1,10 +1,10 @@
-import Collection from './Collection';
+import ReferenceMap from './ReferenceMap';
 import makeAttributeKeyWithArgs from './makeAttributeKeyWithArgs';
 
 const isDate = (v) => Object.prototype.toString.call(v) === '[object Date]';
 
 const castValue = (value) => {
-  if (value instanceof Collection) {
+  if (value instanceof ReferenceMap) {
     return value.toArray();
   }
 
@@ -38,7 +38,7 @@ export default class Record {
       }
 
       const value = Array.isArray(this.original[key])
-        ? new Collection(this.original[key])
+        ? new ReferenceMap(this.original[key])
         : this.original[key];
 
       nextValue = resolve(value);

@@ -12,7 +12,7 @@ const filterByValues = (items, values) => {
   return result;
 };
 
-export default class Collection {
+export default class ReferenceMap {
   items;
 
   constructor(items = []) {

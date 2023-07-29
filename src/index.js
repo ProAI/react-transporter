@@ -1,5 +1,5 @@
 import createContainer from './container/createContainer';
-import Collection from './network/Collection';
+import ReferenceMap from './network/ReferenceMap';
 import Resource from './resources/Resource';
 import ref from './ref';
 import Transporter from './Transporter';
@@ -9,7 +9,7 @@ import useReset from './useReset';
 
 export {
   createContainer,
-  Collection,
+  ReferenceMap,
   Resource,
   ref,
   Transporter,
