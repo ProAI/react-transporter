@@ -10,6 +10,8 @@ export default class Store {
 
   cache;
 
+  ssr;
+
   queries;
 
   constructor({ request, cache, ssr }) {

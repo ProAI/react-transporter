@@ -63,7 +63,7 @@ class ContainerHandler extends React.Component {
 
       // If SSR is enabled and an error occured after loading an async
       // resource, we render the loading component, so that the resource will
-      // be tried to load on the client again.
+      // be loaded on the client again.
       if (client.ssr && this.async) {
         return options.loading && createElement(options.loading);
       }
@@ -76,6 +76,6 @@ class ContainerHandler extends React.Component {
 /* eslint-enable */
 
 ContainerHandler.contextType = TransporterContext;
-ContainerHandler.displayName = ContainerHandler;
+ContainerHandler.displayName = 'ContainerHandler';
 
 export default ContainerHandler;

@@ -1,7 +1,7 @@
 import { FULFILLED } from '../constants';
 
 /* eslint-disable arrow-body-style */
-class ProxyResource {
+class SyncResource {
   status = FULFILLED;
 
   response;
@@ -16,4 +16,4 @@ class ProxyResource {
 }
 /* eslint-enable */
 
-export default ProxyResource;
+export default SyncResource;

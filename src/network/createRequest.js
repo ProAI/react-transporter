@@ -7,65 +7,68 @@ class TransporterError extends Error {
   }
 }
 
-export default async function createRequest(request, query, variables) {
-  let result;
+export default function createRequest(request, query, variables) {
+  return new Promise((resolve, reject) => {
+    let result;
 
-  try {
-    result = await request(query.loc.source.body, variables);
-  } catch (err) {
-    // Error #1: Some network error occured.
-    throw new TransporterError(`${err.message} (NetworkError)`, {
-      type: 'NetworkError',
-      cause: err,
-    });
-  }
+    request(query.loc.source.body, variables)
+      .then((res) => {
+        result = res;
 
-  let response;
+        return result.json();
+      })
+      .then((response) => {
+        if (!result.ok) {
+          // Error #2: Http error code detected, throw error.
+          throw new TransporterError(
+            `Request failed (HttpError - ${result.status})`,
+            {
+              type: 'HttpError',
+              cause: response,
+            },
+          );
+        }
 
-  try {
-    response = await result.json();
+        if (response.errors) {
+          response.errors.forEach((error) => {
+            // eslint-disable-next-line no-console
+            console.error(`GraphQLError: ${error.message}`);
+          });
 
-    if (!result.ok) {
-      // Error #2: Http error code detected, throw error.
-      throw new TransporterError(
-        `Request failed (HttpError - ${result.status})`,
-        {
-          type: 'HttpError',
-          cause: response,
-        },
-      );
-    }
-  } catch (err) {
-    // Error #3: Http error code with invalid JSON detected, throw error.
-    if (!result.ok) {
-      throw new TransporterError(
-        `Request failed (HttpError - ${result.status})`,
-        {
-          type: 'HttpError',
-          cause: err,
-        },
-      );
-    }
+          // Error #5: Response has GraphQL errors, throw error.
+          reject(
+            new TransporterError('Request failed (GraphQLError)', {
+              type: 'GraphQLError',
+              cause: response.errors,
+            }),
+          );
+        }
 
-    // Error #4: Found JSON parsing error.
-    throw new TransporterError(`${err.message} (JsonError)`, {
-      type: 'JsonError',
-      cause: err,
-    });
-  }
-
-  // Error #5: Response has GraphQL errors, throw error.
-  if (response.errors) {
-    response.errors.forEach((error) => {
-      // eslint-disable-next-line no-console
-      console.error(`GraphQLError: ${error.message}`);
-    });
-
-    throw new TransporterError('Request failed (GraphQLError)', {
-      type: 'GraphQLError',
-      cause: response.errors,
-    });
-  }
-
-  return response;
+        resolve(response);
+      })
+      .catch((err) => {
+        if (!result || !result.ok) {
+          // Error #3: Http error code with invalid JSON detected, throw error.
+          reject(
+            new TransporterError(
+              `Request failed (HttpError - ${
+                result ? result.status : 'Unknown'
+              })`,
+              {
+                type: 'HttpError',
+                cause: err,
+              },
+            ),
+          );
+        } else {
+          // Error #4: Found JSON parsing error.
+          reject(
+            new TransporterError(`${err.message} (JsonError)`, {
+              type: 'JsonError',
+              cause: err,
+            }),
+          );
+        }
+      });
+  });
 }

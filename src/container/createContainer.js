@@ -28,6 +28,11 @@ export default function createContainer(component, config) {
       return { error };
     }
 
+    componentDidCatch(error, info) {
+      // eslint-disable-next-line no-console
+      console.error(error, info);
+    }
+
     componentWillUnmount() {
       this.node.destroy();
     }
