@@ -1,29 +1,60 @@
-import Store from './Store';
+import QueryRequest from './network/QueryRequest';
+import MutationRequest from './network/MutationRequest';
+import StoreNode from './StoreNode';
 
 /* eslint-disable arrow-body-style */
 export default class Transporter {
-  store;
+  request;
 
-  meta;
+  root;
+
+  cache;
 
   ssr;
 
-  constructor({ request, cache = {}, ssr = false }) {
-    this.store = new Store({ request, cache, ssr }); // cache: cache.store?
-    // this.meta = new Meta({ cache: cache.meta, ssr });
+  queries;
 
+  constructor({ request, cache = {}, ssr = false }) {
+    this.request = request;
+
+    this.root = this.createNode(null);
+    this.cache = cache;
     this.ssr = ssr;
+
+    this.queries = new Map();
   }
 
-  getMetaTags = () => {
-    // TODO: Safely create meta tags, so that no injection is possible.
+  query = (query, options) => {
+    return new QueryRequest(this, query, options);
+  };
+
+  createNode = (parent) => {
+    return new StoreNode(parent, this.query);
+  };
+
+  mutate = (mutation, options) => {
+    return new MutationRequest(this, mutation, options);
+  };
+
+  refresh = () => {
+    this.root.refresh();
+  };
+
+  reset = () => {
+    this.root.reset();
+    this.queries = new Map();
+
+    this.root.refresh();
   };
 
   extract = () => {
-    return {
-      store: this.store.extract(),
-      // meta: this.meta.extract(),
-    };
+    const data = {};
+
+    this.queries.forEach((query, key) => {
+      data[key] = query.data.extract();
+    });
+
+    return data;
   };
 }
 /* eslint-enable */

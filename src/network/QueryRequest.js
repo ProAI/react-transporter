@@ -56,7 +56,7 @@ export default class QueryRequest {
     // Set response from cache or start a new request.
     if (cachedResponse) {
       this.resource = new SyncResource(cachedResponse);
-      handleResponse(cachedResponse);
+      handleResponse({ data: cachedResponse });
 
       // Delete cache after first use, so that it is only used on first render.
       delete cache[this.options.name];

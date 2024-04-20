@@ -4,13 +4,12 @@ import { isServer } from '../constants';
 import ContainerHandler from './ContainerHandler';
 import resolveComponent from './resolveComponent';
 
-export default function createContainer(component, config) {
-  const { options = {} } = config;
+export default function createContainer(component, options) {
   let resource;
 
   const wrappedComponent = () => {
     if (!resource) {
-      resource = resolveComponent(component);
+      resource = resolveComponent(component, options);
     }
 
     return resource.read();
@@ -41,8 +40,6 @@ export default function createContainer(component, config) {
       const { client } = this.context;
       const { error } = this.state;
 
-      const loading = options.loading && createElement(options.loading);
-
       if (error) {
         return options.error && createElement(options.error, { error });
       }
@@ -50,8 +47,6 @@ export default function createContainer(component, config) {
       const handler = (
         <ContainerHandler
           component={wrappedComponent}
-          container={config.container}
-          meta={config.meta}
           options={options}
           values={this.props}
         />
@@ -62,14 +57,20 @@ export default function createContainer(component, config) {
         return handler;
       }
 
-      return <React.Suspense fallback={loading}>{handler}</React.Suspense>;
+      return (
+        <React.Suspense
+          fallback={options.loading && createElement(options.loading)}
+        >
+          {handler}
+        </React.Suspense>
+      );
     }
 
     render() {
       const { client, node: parent } = this.context;
 
       if (!this.node) {
-        this.node = client.store.createNode(parent);
+        this.node = client.createNode(parent);
       }
 
       return (

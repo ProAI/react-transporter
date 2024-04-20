@@ -9,7 +9,7 @@ function TransporterProvider({ children, client }) {
     );
   }
 
-  const node = client.store.root;
+  const node = client.root;
   useSyncExternalStore(
     node.subscribe,
     () => {},
