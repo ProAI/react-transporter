@@ -2,7 +2,7 @@
 import { Platform } from 'react-native';
 
 export const isServer = typeof window === 'undefined';
-export const isWeb = !Platform || Platform === 'web';
+export const isWeb = !Platform || Platform.OS === 'web';
 
 export const PENDING = 'pending';
 export const FULFILLED = 'fulfilled';
