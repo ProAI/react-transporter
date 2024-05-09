@@ -38,6 +38,7 @@ const handleSelectionSet = (selectionSet, value, context) => {
     }
 
     if (selection.kind === 'InlineFragment') {
+      // eslint-disable-next-line no-console
       console.log('TODO: inline fragment', selection);
     }
 
