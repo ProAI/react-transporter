@@ -23,10 +23,6 @@ export default function createContainer(component, options) {
       this.state = { error: null };
     }
 
-    static getDerivedStateFromError(error) {
-      return { error };
-    }
-
     componentDidCatch(error, info) {
       // eslint-disable-next-line no-console
       console.error(error, info);
@@ -79,6 +75,11 @@ export default function createContainer(component, options) {
         </TransporterContext.Provider>
       );
     }
+  }
+
+  // Add error boundary if container should not throw.
+  if (!options.throwOnError) {
+    Container.getDerivedStateFromError = (error) => ({ error });
   }
 
   Container.contextType = TransporterContext;

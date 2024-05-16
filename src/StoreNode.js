@@ -93,6 +93,16 @@ export default class StoreNode {
     return data;
   };
 
+  waitForAll = () => {
+    this.requests.forEach((request) => {
+      request.read();
+    });
+
+    if (this.parent) {
+      this.parent.waitForAll();
+    }
+  };
+
   getFragmentRequest = (name, entry) => {
     let request = Array.from(this.requests.values()).find(({ cache }) =>
       cache?.selectorSet.getFragment(name, entry),

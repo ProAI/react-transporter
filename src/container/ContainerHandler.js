@@ -18,6 +18,10 @@ function ContainerHandler(props) {
       () => component(),
     ]);
 
+    if (options.waitForAll) {
+      node.waitForAll();
+    }
+
     return createElement(Component, resolvedValues);
   } catch (error) {
     // If not on the server, errors will be handled by the error boundary.
@@ -46,6 +50,11 @@ function ContainerHandler(props) {
     // be loaded on the client again.
     if (client.ssr && async.current) {
       return options.loading && createElement(options.loading);
+    }
+
+    // Re-throw error if container should throw.
+    if (options.throwOnError) {
+      throw error;
     }
 
     // Render error page for synchronous error.
