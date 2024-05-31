@@ -1,4 +1,4 @@
-import { useRef, useContext, createElement } from 'react';
+import { useRef, useContext, createElement, cloneElement } from 'react';
 import { isServer } from '../constants';
 import TransporterContext from '../TransporterContext';
 import Resource from '../resources/Resource';
@@ -7,19 +7,19 @@ import Resource from '../resources/Resource';
 function ContainerHandler(props) {
   const { component, options, values } = props;
 
-  const container = options.container || (() => null);
+  const getData = options.data || (() => null);
 
   const async = useRef(false);
-  const { client, node } = useContext(TransporterContext);
+  const { client, store } = useContext(TransporterContext);
 
   try {
     const [resolvedValues, Component] = Resource.all([
-      () => container(node, values),
+      () => getData(store, values),
       () => component(),
     ]);
 
     if (options.waitForAll) {
-      node.waitForAll();
+      store.waitForAll();
     }
 
     return createElement(Component, resolvedValues);
@@ -34,7 +34,7 @@ function ContainerHandler(props) {
       // If SSR is disabled, we render the loading component, so that the
       // resource will be loaded on the client.
       if (!client.ssr) {
-        return options.loading && createElement(options.loading);
+        return options.loading;
       }
 
       if (!async.current) {
@@ -49,7 +49,7 @@ function ContainerHandler(props) {
     // resource, we render the loading component, so that the resource will
     // be loaded on the client again.
     if (client.ssr && async.current) {
-      return options.loading && createElement(options.loading);
+      return options.loading;
     }
 
     // Re-throw error if container should throw.
@@ -58,7 +58,7 @@ function ContainerHandler(props) {
     }
 
     // Render error page for synchronous error.
-    return options.error && createElement(options.error, { error });
+    return options.error && cloneElement(options.error, { error });
   }
 }
 /* eslint-enable */

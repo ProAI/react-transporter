@@ -9,15 +9,15 @@ function TransporterProvider({ children, client }) {
     );
   }
 
-  const node = client.root;
+  const store = client.rootStore;
   useSyncExternalStore(
-    node.subscribe,
+    store.subscribe,
     () => {},
     () => {}, // TODO: Check this!
   );
 
   return (
-    <TransporterContext.Provider value={{ client, node }}>
+    <TransporterContext.Provider value={{ client, store }}>
       {children}
     </TransporterContext.Provider>
   );

@@ -1,11 +1,4 @@
-class TransporterError extends Error {
-  constructor(message, { type, ...options }) {
-    super(message, options);
-
-    this.name = 'TransporterError';
-    this.type = type;
-  }
-}
+import TransporterError from '../TransporterError';
 
 export default function createRequest(request, query, variables) {
   return new Promise((resolve, reject) => {

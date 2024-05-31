@@ -1,7 +1,7 @@
 import SelectorSet from './network/SelectorSet';
 
-export default class StoreNode {
-  parent;
+export default class Store {
+  parentStore;
 
   executeQuery;
 
@@ -13,15 +13,15 @@ export default class StoreNode {
 
   listeners = [];
 
-  constructor(parent, executeQuery) {
-    this.parent = parent;
+  constructor(parentStore, executeQuery) {
+    this.parentStore = parentStore;
     this.executeQuery = executeQuery;
 
     this.requests = new Map();
     this.selectorSetsByRequest = new Map();
 
-    if (parent) {
-      parent.addChild(this);
+    if (parentStore) {
+      parentStore.addChild(this);
     }
   }
 
@@ -64,11 +64,11 @@ export default class StoreNode {
     let request = this.requests.get(name);
 
     if (!request) {
-      if (!this.parent) {
+      if (!this.parentStore) {
         throw new Error(`Query "${name}" was not found.`);
       }
 
-      request = this.parent.getRequest(name);
+      request = this.parentStore.getRequest(name);
     }
 
     return request;
@@ -98,8 +98,8 @@ export default class StoreNode {
       request.read();
     });
 
-    if (this.parent) {
-      this.parent.waitForAll();
+    if (this.parentStore) {
+      this.parentStore.waitForAll();
     }
   };
 
@@ -109,14 +109,14 @@ export default class StoreNode {
     );
 
     if (!request) {
-      if (!this.parent) {
+      if (!this.parentStore) {
         const stringifiedEntry = JSON.stringify(entry);
         throw new Error(
           `Fragment "${name}" (entry: [${stringifiedEntry}]) was not found.`,
         );
       }
 
-      request = this.parent.getFragmentRequest(name, entry);
+      request = this.parentStore.getFragmentRequest(name, entry);
     }
 
     return request;
@@ -192,8 +192,8 @@ export default class StoreNode {
   };
 
   destroy = () => {
-    // Remove network from parent's network children.
-    this.parent.removeChild(this);
+    // Remove network from parent store network children.
+    this.parentStore.removeChild(this);
 
     // Delete requests.
     this.requests.forEach((request) => {

@@ -1,12 +1,12 @@
 import QueryRequest from './network/QueryRequest';
 import MutationRequest from './network/MutationRequest';
-import StoreNode from './StoreNode';
+import Store from './Store';
 
 /* eslint-disable arrow-body-style */
 export default class Transporter {
   request;
 
-  root;
+  rootStore;
 
   cache;
 
@@ -17,7 +17,7 @@ export default class Transporter {
   constructor({ request, cache = {}, ssr = false }) {
     this.request = request;
 
-    this.root = this.createNode(null);
+    this.rootStore = this.createStore(null);
     this.cache = cache;
     this.ssr = ssr;
 
@@ -28,8 +28,8 @@ export default class Transporter {
     return new QueryRequest(this, query, options);
   };
 
-  createNode = (parent) => {
-    return new StoreNode(parent, this.query);
+  createStore = (parentStore) => {
+    return new Store(parentStore, this.query);
   };
 
   mutate = (mutation, options) => {
@@ -37,14 +37,14 @@ export default class Transporter {
   };
 
   refresh = () => {
-    this.root.refresh();
+    this.rootStore.refresh();
   };
 
   reset = () => {
-    this.root.reset();
+    this.rootStore.reset();
     this.queries = new Map();
 
-    this.root.refresh();
+    this.rootStore.refresh();
   };
 
   extract = () => {

@@ -14,14 +14,14 @@ const isLoaded = (ctor) => {
   return false;
 };
 
-const applyRenderer = (Component, options) =>
-  options.renderer ? options.renderer(Component) : Component;
+const applyRenderer = (component, renderer) =>
+  renderer ? renderer(component) : component;
 
 const resolveDefaultImport = (module) =>
   // eslint-disable-next-line no-underscore-dangle
   module.__esModule ? module.default : module.default || module;
 
-export default function resolveComponent(component, options) {
+export default function resolveComponent(component, renderer) {
   // Handle React lazy and driveline/lazy
   // eslint-disable-next-line no-underscore-dangle
   if (component.payload && component.payload._result) {
@@ -51,10 +51,12 @@ export default function resolveComponent(component, options) {
     return new Resource(() =>
       component
         .bundle()
-        .then((result) => applyRenderer(resolveDefaultImport(result), options)),
+        .then((result) =>
+          applyRenderer(resolveDefaultImport(result), renderer),
+        ),
     );
   }
 
   // Not a lazy import.
-  return new SyncResource(applyRenderer(component, options));
+  return new SyncResource(applyRenderer(component, renderer));
 }

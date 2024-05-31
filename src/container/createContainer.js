@@ -1,22 +1,28 @@
-import React, { createElement } from 'react';
+import React, { cloneElement } from 'react';
 import TransporterContext from '../TransporterContext';
 import { isServer } from '../constants';
 import ContainerHandler from './ContainerHandler';
 import resolveComponent from './resolveComponent';
 
-export default function createContainer(component, options) {
+export default function createContainer(config) {
+  const { component, ...options } = config;
+
+  if (!component) {
+    throw new Error(`You must define a container "component".`);
+  }
+
   let resource;
 
   const wrappedComponent = () => {
     if (!resource) {
-      resource = resolveComponent(component, options);
+      resource = resolveComponent(component, options.renderer);
     }
 
     return resource.read();
   };
 
   class Container extends React.Component {
-    node;
+    store;
 
     constructor(props) {
       super(props);
@@ -29,7 +35,7 @@ export default function createContainer(component, options) {
     }
 
     componentWillUnmount() {
-      this.node.destroy();
+      this.store.destroy();
     }
 
     renderContainer() {
@@ -37,7 +43,7 @@ export default function createContainer(component, options) {
       const { error } = this.state;
 
       if (error) {
-        return options.error && createElement(options.error, { error });
+        return options.error && cloneElement(options.error, { error });
       }
 
       const handler = (
@@ -54,23 +60,19 @@ export default function createContainer(component, options) {
       }
 
       return (
-        <React.Suspense
-          fallback={options.loading && createElement(options.loading)}
-        >
-          {handler}
-        </React.Suspense>
+        <React.Suspense fallback={options.loading}>{handler}</React.Suspense>
       );
     }
 
     render() {
-      const { client, node: parent } = this.context;
+      const { client, store: parentStore } = this.context;
 
-      if (!this.node) {
-        this.node = client.createNode(parent);
+      if (!this.store) {
+        this.store = client.createStore(parentStore);
       }
 
       return (
-        <TransporterContext.Provider value={{ client, node: this.node }}>
+        <TransporterContext.Provider value={{ client, store: this.store }}>
           {this.renderContainer()}
         </TransporterContext.Provider>
       );
