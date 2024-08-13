@@ -11,11 +11,11 @@ export default function buildSelectorSet(cache) {
     const entry = [type, id];
     const cachedResult = cache.selectorSet?.getFragment(name, entry);
 
-    selectorSet.setFragment(
-      name,
-      entry,
-      isEqual(result, cachedResult) ? cachedResult : result,
-    );
+    selectorSet.setFragment(name, entry, {
+      [TYPENAME]: type,
+      [ID]: id,
+      ...(isEqual(result, cachedResult) ? cachedResult : result),
+    });
 
     return {};
   };
