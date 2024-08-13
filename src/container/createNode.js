@@ -13,7 +13,7 @@ export default function createNode(config) {
 
     const getValues = options.data || (() => null);
 
-    createElement(component, getValues(store, props));
+    return createElement(component, getValues(store, props));
   }
 
   const name = component.displayName || component.name;
