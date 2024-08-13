@@ -14,14 +14,11 @@ const isLoaded = (ctor) => {
   return false;
 };
 
-const applyRenderer = (component, renderer) =>
-  renderer ? renderer(component) : component;
-
 const resolveDefaultImport = (module) =>
   // eslint-disable-next-line no-underscore-dangle
   module.__esModule ? module.default : module.default || module;
 
-export default function resolveComponent(component, renderer) {
+export default function resolveComponent(component) {
   // Handle React lazy and driveline/lazy
   // eslint-disable-next-line no-underscore-dangle
   if (component.payload && component.payload._result) {
@@ -49,14 +46,10 @@ export default function resolveComponent(component, renderer) {
   // Handle deprecated { name: ..., bundle: ... } syntax for lazy import
   if (component.bundle) {
     return new Resource(() =>
-      component
-        .bundle()
-        .then((result) =>
-          applyRenderer(resolveDefaultImport(result), renderer),
-        ),
+      component.bundle().then((result) => resolveDefaultImport(result)),
     );
   }
 
   // Not a lazy import.
-  return new SyncResource(applyRenderer(component, renderer));
+  return new SyncResource(component);
 }

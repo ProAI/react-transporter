@@ -18,7 +18,13 @@ export default function createContainer(config) {
       resource = resolveComponent(component, options.renderer);
     }
 
-    return resource.read();
+    const resolvedComponent = resource.read();
+
+    if (options.renderer) {
+      return options.renderer(resolvedComponent);
+    }
+
+    return resolvedComponent;
   };
 
   class Container extends React.Component {
