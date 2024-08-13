@@ -1,23 +1,23 @@
 {
   "react-transporter.umd.min.js": {
-    "bundled": 58449,
-    "minified": 24825,
-    "gzipped": 7309
+    "bundled": 58562,
+    "minified": 24868,
+    "gzipped": 7321
   },
   "react-transporter.cjs.js": {
-    "bundled": 54829,
-    "minified": 29895,
-    "gzipped": 7840
+    "bundled": 54942,
+    "minified": 29958,
+    "gzipped": 7844
   },
   "react-transporter.umd.js": {
-    "bundled": 58449,
-    "minified": 24825,
-    "gzipped": 7309
+    "bundled": 58562,
+    "minified": 24868,
+    "gzipped": 7321
   },
   "react-transporter.esm.js": {
-    "bundled": 54184,
-    "minified": 29338,
-    "gzipped": 7735,
+    "bundled": 54297,
+    "minified": 29395,
+    "gzipped": 7740,
     "treeshaked": {
       "rollup": {
         "code": 109,
