@@ -2,6 +2,7 @@ import { useRef, useContext, createElement, cloneElement } from 'react';
 import { isServer } from '../constants';
 import TransporterContext from '../TransporterContext';
 import Resource from '../resources/Resource';
+import LoadingError from '../LoadingError';
 
 /* eslint-disable react/prop-types */
 function ContainerHandler(props) {
@@ -43,6 +44,10 @@ function ContainerHandler(props) {
 
       // Re-throw suspense resource
       throw error;
+    }
+
+    if (error instanceof LoadingError) {
+      return options.loading;
     }
 
     // If SSR is enabled and an error occured after loading an async

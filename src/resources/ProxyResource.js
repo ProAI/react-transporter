@@ -1,3 +1,5 @@
+import LoadingError from '../LoadingError';
+
 class ProxyResource {
   promise;
 
@@ -6,7 +8,7 @@ class ProxyResource {
   }
 
   read = () => {
-    throw this.promise;
+    throw new LoadingError();
   };
 }
 

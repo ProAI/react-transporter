@@ -5,11 +5,21 @@ export default function createNode(config) {
   const { component, ...options } = config;
 
   if (!config.component) {
-    throw new Error(`You must define a container "component".`);
+    throw new Error(
+      'React Transporter Node: You must define a node component.',
+    );
   }
 
   function ContainerNode(props) {
     const { store } = useContext(TransporterContext);
+
+    const isWrappedInContainer = !!store.parentStore.parentStore;
+
+    if (!isWrappedInContainer) {
+      throw new Error(
+        'React Transporter Node: A node must be wrapped in a container.',
+      );
+    }
 
     const getValues = options.data || (() => null);
 

@@ -62,31 +62,33 @@ export default class QueryRequest {
       delete cache[this.options.name];
     } else {
       // Do not start a request on server if SSR is disabled.
-      this.resource =
-        !isServer || store.ssr
-          ? new Resource(() =>
-              createRequest(store.request, ast, options.variables),
-            )
-          : new ProxyResource();
+      if (isServer && !store.ssr) {
+        this.resource = new ProxyResource();
+      } else {
+        this.resource = new Resource(() =>
+          createRequest(store.request, ast, options.variables),
+        );
+
+        // Handle fulfilled and rejected promise
+        this.resource.promise.then(
+          (res) => {
+            this.loading = false;
+
+            // Store response on server side for hydration.
+            if (isServer) {
+              cache[this.options.name] = res;
+            }
+
+            handleResponse(res);
+          },
+          () => {
+            this.loading = false;
+            this.aborted = true;
+          },
+        );
+      }
+
       this.loading = true;
-
-      // Handle fulfilled and rejected promise
-      this.resource.promise.then(
-        (res) => {
-          this.loading = false;
-
-          // Store response on server side for hydration.
-          if (isServer) {
-            cache[this.options.name] = res;
-          }
-
-          handleResponse(res);
-        },
-        () => {
-          this.loading = false;
-          this.aborted = true;
-        },
-      );
     }
   }
 
