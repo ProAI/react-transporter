@@ -1,4 +1,4 @@
-import { TYPENAME, ID, REF_KEY } from '../constants';
+import { REF_KEY } from '../constants';
 import DataSet from './DataSet';
 import traverseAST from './traverseAST';
 
@@ -10,8 +10,8 @@ export default function buildDataSet(cache) {
   const handleEntity = (type, id, result) => {
     data.add({
       entities: {
-        [TYPENAME]: {
-          [ID]: result,
+        [type]: {
+          [id]: result,
         },
       },
     });

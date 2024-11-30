@@ -1,40 +1,34 @@
-import { TYPENAME, ID, REF_KEY } from '../constants';
+import { TYPENAME, ID } from '../constants';
 
-const intersect = (left, right, condition = () => {}) =>
+const intersect = (left = {}, right = {}, condition = () => true) =>
   Object.keys(right).some((key) => left[key] !== undefined && condition(key));
 
-const merge = (left, right, condition = (v) => v) => {
+const merge = (left = {}, right = {}, condition = (v) => v) => {
   if (!condition) return { ...left, ...right };
 
   const result = { ...left };
 
-  Object.values(right).forEach(([key, value]) => {
+  Object.entries(right).forEach(([key, value]) => {
     result[key] = left[key] === undefined ? value : condition(key);
   });
 
   return result;
 };
 
-const mergeValue = (left, right) => {
-  if (!right) {
+const mergeValue = (key, left, right) => {
+  // Value is not defined on right side, so keep left side.
+  if (right === undefined) {
     return left;
   }
 
-  if (Array.isArray(left)) {
-    return left.map((v, k) => mergeValue(v, right[k]));
+  if (left !== undefined && typeof left !== typeof right) {
+    // eslint-disable-next-line no-console
+    console.warn(
+      `Key ${key} had value "${left}" and was updated with value of different type "${right}".`,
+    );
   }
 
-  if (typeof value !== 'object' || left[REF_KEY]) {
-    return right;
-  }
-
-  const result = {};
-
-  Object.keys(left).forEach((key) => {
-    result[key] = mergeValue(left[key], right[key]);
-  });
-
-  return result;
+  return right;
 };
 
 /* eslint-disable arrow-body-style */
@@ -72,7 +66,7 @@ export default class DataSet {
     const { roots, entities } = data;
 
     return (
-      intersect(this.roots, roots),
+      intersect(this.roots, roots) ||
       intersect(this.entities, entities, (type) =>
         intersect(this.entities[type], entities[type], (id) =>
           intersect(this.entities[type][id], entities[type][id]),
@@ -93,7 +87,7 @@ export default class DataSet {
         const result = { ...left };
 
         Object.keys(right).forEach((key) => {
-          result[key] = mergeValue(left[key], right[key]);
+          result[key] = mergeValue(key, left[key], right[key]);
         });
 
         return result;

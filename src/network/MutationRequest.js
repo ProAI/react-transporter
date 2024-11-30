@@ -10,44 +10,45 @@ export default class MutationRequest {
 
   resource;
 
-  constructor(store, mutation, options = {}) {
+  constructor(client, mutation, options = {}) {
     this.mutation = mutation;
     this.options = options;
 
     const optimisticData = applyUpdater(
-      store,
+      client,
       options.optimisticUpdater,
       new DataSet(),
     );
 
-    store.queries.forEach((query) => {
+    client.queries.forEach((query) => {
       query.addUpdate(optimisticData, true);
     });
-    store.refresh();
+    client.refresh();
 
     this.resource = new Resource(() =>
-      createRequest(store.request, mutation, options.variables),
+      createRequest(client.request, mutation, options.variables),
     );
 
     // Handle fulfilled and rejected promise
     this.resource.promise.then(
       (res) => {
         const data = applyUpdater(
-          store,
+          client,
           options.updater,
-          new DataSet({ entities: res.entities }),
+          new DataSet({ entities: res.data.entities }),
+          res,
         );
 
-        // Set result in store
+        // Set result in client
         if (optimisticData) {
-          store.queries.forEach((query) => {
+          client.queries.forEach((query) => {
             query.removeUpdate(optimisticData);
           });
         }
-        store.queries.forEach((query) => {
+        client.queries.forEach((query) => {
           query.addUpdate(data);
         });
-        store.refresh();
+        client.refresh();
       },
       (err) => {
         if (err.message) {
@@ -55,12 +56,12 @@ export default class MutationRequest {
           console.error(`Mutation Error: ${err.message}`);
         }
 
-        // Reset optimistic update in store
+        // Reset optimistic update in client
         if (optimisticData) {
-          store.queries.forEach((query) => {
+          client.queries.forEach((query) => {
             query.removeUpdate(optimisticData);
           });
-          store.refresh();
+          client.refresh();
         }
       },
     );

@@ -8,7 +8,7 @@ import Resource from '../resources/Resource';
 
 /* eslint-disable arrow-body-style */
 export default class QueryRequest {
-  store;
+  client;
 
   ast;
 
@@ -24,8 +24,8 @@ export default class QueryRequest {
 
   cache;
 
-  constructor(store, ast, options = {}) {
-    this.store = store;
+  constructor(client, ast, options = {}) {
+    this.client = client;
     this.ast = ast;
     this.options = options;
 
@@ -36,21 +36,21 @@ export default class QueryRequest {
 
       const data = new DataSet(res.data);
 
-      // Update store data
+      // Update client data
       const updateData = new DataSet({ entities: data.entities });
-      store.queries.forEach((q) => {
+      client.queries.forEach((q) => {
         q.addUpdate(updateData);
       });
 
-      // Add result to store
+      // Add result to client
       this.cache = new QueryCache(this, data);
-      store.queries.set(this.options.name, this.cache);
+      client.queries.set(this.options.name, this.cache);
 
       // Commit update
-      store.refresh();
+      client.refresh();
     };
 
-    const { cache } = store;
+    const { cache } = client;
     const cachedResponse = cache[this.options.name];
 
     // Set response from cache or start a new request.
@@ -62,11 +62,11 @@ export default class QueryRequest {
       delete cache[this.options.name];
     } else {
       // Do not start a request on server if SSR is disabled.
-      if (isServer && !store.ssr) {
+      if (isServer && !client.ssr) {
         this.resource = new ProxyResource();
       } else {
         this.resource = new Resource(() =>
-          createRequest(store.request, ast, options.variables),
+          createRequest(client.request, ast, options.variables),
         );
 
         // Handle fulfilled and rejected promise
@@ -114,8 +114,8 @@ export default class QueryRequest {
   invalidate = () => {
     this.aborted = true;
 
-    // Delete resource from store
-    this.store.queries.delete(this.options.name);
+    // Delete resource from client
+    this.client.queries.delete(this.options.name);
   };
 }
 /* eslint-enable */

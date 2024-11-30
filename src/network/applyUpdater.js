@@ -1,9 +1,9 @@
 import Record from './Record';
 
-const get = (store, type, id) => {
+const get = (client, type, id) => {
   let value = null;
 
-  store.queries.forEach((query) => {
+  client.queries.forEach((query) => {
     const entity = query.data.get(type, id);
 
     if (entity) {
@@ -20,10 +20,10 @@ const get = (store, type, id) => {
   return value;
 };
 
-const getRoots = (store) => {
+const getRoots = (client) => {
   let value = null;
 
-  store.queries.forEach((query) => {
+  client.queries.forEach((query) => {
     const roots = query.data.getRoots();
 
     value = { ...value, ...roots };
@@ -32,7 +32,7 @@ const getRoots = (store) => {
   return value;
 };
 
-export default function applyUpdater(store, updater, data) {
+export default function applyUpdater(client, updater, data, res) {
   if (!updater) {
     return data;
   }
@@ -51,7 +51,7 @@ export default function applyUpdater(store, updater, data) {
     },
     update(type, id, resolve) {
       const record = new Record(() => ({
-        ...get(store, type, id),
+        ...get(client, type, id),
         ...result.get(type, id),
       }));
 
@@ -62,7 +62,7 @@ export default function applyUpdater(store, updater, data) {
       });
     },
     updateRoots(resolve) {
-      const record = new Record(() => getRoots(store));
+      const record = new Record(() => getRoots(client));
 
       resolve(record);
 
@@ -72,7 +72,7 @@ export default function applyUpdater(store, updater, data) {
     },
   };
 
-  updater(writeStore);
+  updater(writeStore, res.data);
 
   return result;
 }
