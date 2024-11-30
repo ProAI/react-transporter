@@ -6,7 +6,9 @@ import ref from './ref';
 import Transporter from './Transporter';
 import TransporterError from './TransporterError';
 import TransporterProvider from './TransporterProvider';
+import useDispatcher from './useDispatcher';
 import useMutation from './useMutation';
+import useQuery from './useQuery';
 import useReset from './useReset';
 
 export {
@@ -18,6 +20,8 @@ export {
   Transporter,
   TransporterError,
   TransporterProvider,
+  useDispatcher,
   useMutation,
+  useQuery,
   useReset,
 };

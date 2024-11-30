@@ -8,9 +8,9 @@ export default function useReset() {
     throw new Error('"useReset" hook is used outside of TransporterContext.');
   }
 
-  const { store } = context;
+  const { client } = context;
 
   return () => {
-    store.reset();
+    client.reset();
   };
 }

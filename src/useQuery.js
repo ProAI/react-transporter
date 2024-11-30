@@ -1,12 +1,12 @@
 import useDispatcher from './useDispatcher';
 
-export default function useMutation(mutation, options) {
+export default function useQuery(query, options) {
   const [dispatch, state] = useDispatcher();
 
   return {
     ...state,
     dispatch(dispatchOptions) {
-      return dispatch(mutation, {
+      return dispatch(query, {
         ...options,
         ...dispatchOptions,
       });
