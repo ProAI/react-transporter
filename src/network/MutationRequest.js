@@ -2,16 +2,19 @@ import DataSet from './DataSet';
 import createRequest from './createRequest';
 import applyUpdater from './applyUpdater';
 import Resource from '../resources/Resource';
+import MutationCache from './MutationCache';
 
 export default class MutationRequest {
-  mutation;
+  ast;
 
   options;
 
   resource;
 
-  constructor(client, mutation, options = {}) {
-    this.mutation = mutation;
+  cache;
+
+  constructor(client, ast, options = {}) {
+    this.ast = ast;
     this.options = options;
 
     const optimisticData = applyUpdater(
@@ -26,17 +29,22 @@ export default class MutationRequest {
     client.refresh();
 
     this.resource = new Resource(() =>
-      createRequest(client.request, mutation, options.variables),
+      createRequest(client.request, ast, options.variables),
     );
 
     // Handle fulfilled and rejected promise
     this.resource.promise.then(
       (res) => {
-        const data = applyUpdater(
+        const data = new DataSet(res.data);
+
+        // Create cache
+        this.cache = new MutationCache(this, data);
+
+        const updatedData = applyUpdater(
           client,
           options.updater,
-          new DataSet({ entities: res.data.entities }),
-          res,
+          new DataSet({ entities: res.data.entities }), // Do not add roots to store.
+          this.cache,
         );
 
         // Set result in client
@@ -46,7 +54,7 @@ export default class MutationRequest {
           });
         }
         client.queries.forEach((query) => {
-          query.addUpdate(data);
+          query.addUpdate(updatedData);
         });
         client.refresh();
       },

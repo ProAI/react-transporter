@@ -41,7 +41,10 @@ export default function useDispatcher() {
 
       instances.current.push(instance);
 
-      return instance.resource.promise;
+      // Return cached selector set.
+      return instance.resource.promise.then(() =>
+        instance.cache.selectorSet.getQuery(),
+      );
     },
     get ok() {
       const instance = getLatestInstance(instances);

@@ -32,7 +32,7 @@ const getRoots = (client) => {
   return value;
 };
 
-export default function applyUpdater(client, updater, data, res) {
+export default function applyUpdater(client, updater, data, cache) {
   if (!updater) {
     return data;
   }
@@ -72,7 +72,7 @@ export default function applyUpdater(client, updater, data, res) {
     },
   };
 
-  updater(writeStore, res.data);
+  updater(writeStore, cache.selectorSet.getQuery());
 
   return result;
 }

@@ -3,10 +3,10 @@ import { REF_KEY, TYPENAME, ID } from '../constants';
 import makeAttributeKeyWithArgs from './makeAttributeKeyWithArgs';
 import ValueError from './ValueError';
 
-const getKey = (field, variables) => {
+const getKey = (field, variables, ignoreArgs) => {
   const name = field.name.value;
 
-  if (field.arguments.length === 0) {
+  if (field.arguments.length === 0 || ignoreArgs) {
     return name;
   }
 
@@ -19,7 +19,12 @@ const getKey = (field, variables) => {
   return makeAttributeKeyWithArgs(name, args);
 };
 
-const handleSelectionSet = (selectionSet, value, context) => {
+const handleSelectionSet = (
+  selectionSet,
+  value,
+  context,
+  ignoreArgs = false,
+) => {
   const { cache, handleFragment } = context;
   const { ast, options } = cache.request;
 
@@ -27,7 +32,7 @@ const handleSelectionSet = (selectionSet, value, context) => {
 
   selectionSet.selections.forEach((selection) => {
     if (selection.kind === 'Field') {
-      const key = getKey(selection, options.variables);
+      const key = getKey(selection, options.variables, ignoreArgs);
 
       // eslint-disable-next-line no-use-before-define
       result[selection.name.value] = buildNode(
@@ -140,7 +145,12 @@ export default function traverseAST(cache, handleFragment, handleEntity) {
   };
 
   try {
-    return handleSelectionSet(queryAst.selectionSet, cachedRoots, context);
+    return handleSelectionSet(
+      queryAst.selectionSet,
+      cachedRoots,
+      context,
+      queryAst.operation === 'mutation',
+    );
   } catch (err) {
     if (err.name !== 'ValueError') {
       throw err;
