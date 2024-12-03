@@ -31,13 +31,15 @@ export default class QueryCache {
 
     this.dirty = true;
 
+    const updatedData = this.data.merge(data);
+
     const update = {
       optimistic,
       data,
-      cache: this.data.merge(data),
+      cache: updatedData,
     };
 
-    this.data = data;
+    this.data = updatedData;
     this.updates = [...this.updates, update];
   };
 
