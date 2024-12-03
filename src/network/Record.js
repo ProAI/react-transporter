@@ -23,14 +23,14 @@ export default class Record {
         this.original = this.original() || {};
       }
 
-      const value = ValueCaster.fromStore(this.original[key]);
+      const value = ValueCaster.fromNative(this.original[key]);
 
       nextValue = resolve(value);
     } else {
       nextValue = resolve;
     }
 
-    this.values[key] = ValueCaster.toStore(nextValue);
+    this.values[key] = ValueCaster.toNative(nextValue);
   }
 
   fill(values) {

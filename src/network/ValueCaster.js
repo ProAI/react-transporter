@@ -5,13 +5,13 @@ import { REF_KEY } from '../constants';
 const isDate = (v) => Object.prototype.toString.call(v) === '[object Date]';
 
 export default class ValueCaster {
-  static fromStore(value) {
+  static fromNative(value) {
     if (Array.isArray(value)) {
       if (value.some((v) => typeof v === 'object' && REF_KEY in v)) {
         return ManyLink.fromNative(value);
       }
 
-      return value.map((v) => ValueCaster.fromStore(v));
+      return value.map((v) => ValueCaster.fromNative(v));
     }
 
     if (typeof value === 'object') {
@@ -22,7 +22,7 @@ export default class ValueCaster {
       const result = {};
 
       Object.entries(value).forEach(([k, v]) => {
-        result[k] = ValueCaster.fromStore(v);
+        result[k] = ValueCaster.fromNative(v);
       });
 
       return result;
@@ -31,7 +31,7 @@ export default class ValueCaster {
     return value;
   }
 
-  static toStore(value) {
+  static toNative(value) {
     if (value instanceof Link || value instanceof ManyLink) {
       return value.toNative();
     }
@@ -41,14 +41,14 @@ export default class ValueCaster {
     }
 
     if (Array.isArray(value)) {
-      return value.map((v) => ValueCaster.toStore(v));
+      return value.map((v) => ValueCaster.toNative(v));
     }
 
     if (typeof value === 'object') {
       const result = {};
 
       Object.entries(value).forEach(([k, v]) => {
-        result[k] = ValueCaster.toStore(v);
+        result[k] = ValueCaster.toNative(v);
       });
 
       return result;
