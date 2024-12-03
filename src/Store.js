@@ -13,6 +13,8 @@ export default class Store {
 
   listeners = [];
 
+  marker = {};
+
   constructor(parentStore, executeQuery) {
     this.parentStore = parentStore;
     this.executeQuery = executeQuery;
@@ -40,7 +42,7 @@ export default class Store {
     // Invalidate request if variables have changed
     if (request && !request.isEqual(query, options.variables)) {
       this.requests.delete(name);
-      this.selectorSetsByRequest.delete(name);
+      this.selectorSetsByRequest.delete(request);
 
       request.invalidate();
       request = null;
@@ -157,6 +159,8 @@ export default class Store {
     };
   };
 
+  getSnapshot = () => this.marker;
+
   refresh = () => {
     this.requests.forEach((request) => {
       request.sync();
@@ -173,9 +177,7 @@ export default class Store {
     });
 
     if (shouldUpdate) {
-      this.listeners.forEach((listener) => {
-        listener();
-      });
+      this.update();
     } else {
       this.children.forEach((child) => {
         child.refresh();
@@ -183,11 +185,24 @@ export default class Store {
     }
   };
 
-  reset = () => {
+  reset = (root = true) => {
     this.requests = new Map();
+    this.selectorSetsByRequest = new Map();
+
+    if (root) {
+      this.update();
+    }
 
     this.children.forEach((child) => {
-      child.reset();
+      child.reset(false);
+    });
+  };
+
+  update = () => {
+    this.marker = {};
+
+    this.listeners.forEach((listener) => {
+      listener();
     });
   };
 

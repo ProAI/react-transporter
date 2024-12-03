@@ -1,4 +1,10 @@
-import { useRef, useContext, createElement, cloneElement } from 'react';
+import {
+  useRef,
+  useContext,
+  useSyncExternalStore,
+  createElement,
+  cloneElement,
+} from 'react';
 import { isServer } from '../constants';
 import TransporterContext from '../TransporterContext';
 import Resource from '../resources/Resource';
@@ -12,6 +18,8 @@ function ContainerHandler(props) {
 
   const async = useRef(false);
   const { client, store } = useContext(TransporterContext);
+
+  useSyncExternalStore(store.subscribe, store.getSnapshot, () => null);
 
   try {
     const [resolvedValues, Component] = Resource.all([

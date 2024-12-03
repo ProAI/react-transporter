@@ -10,11 +10,8 @@ function TransporterProvider({ children, client }) {
   }
 
   const store = client.rootStore;
-  useSyncExternalStore(
-    store.subscribe,
-    () => {},
-    () => {}, // TODO: Check this!
-  );
+
+  useSyncExternalStore(store.subscribe, store.getSnapshot, () => null);
 
   return (
     <TransporterContext.Provider value={{ client, store }}>

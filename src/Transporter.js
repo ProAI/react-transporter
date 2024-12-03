@@ -43,8 +43,6 @@ export default class Transporter {
   reset = () => {
     this.rootStore.reset();
     this.queries = new Map();
-
-    this.rootStore.refresh();
   };
 
   extract = () => {
