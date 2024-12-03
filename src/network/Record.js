@@ -1,19 +1,5 @@
-import ReferenceMap from './ReferenceMap';
 import makeAttributeKeyWithArgs from './makeAttributeKeyWithArgs';
-
-const isDate = (v) => Object.prototype.toString.call(v) === '[object Date]';
-
-const castValue = (value) => {
-  if (value instanceof ReferenceMap) {
-    return value.toArray();
-  }
-
-  if (isDate(value)) {
-    return value.toISOString();
-  }
-
-  return value;
-};
+import ValueCaster from './ValueCaster';
 
 export default class Record {
   original;
@@ -37,16 +23,14 @@ export default class Record {
         this.original = this.original() || {};
       }
 
-      const value = Array.isArray(this.original[key])
-        ? new ReferenceMap(this.original[key])
-        : this.original[key];
+      const value = ValueCaster.fromStore(this.original[key]);
 
       nextValue = resolve(value);
     } else {
       nextValue = resolve;
     }
 
-    this.values[key] = castValue(nextValue);
+    this.values[key] = ValueCaster.toStore(nextValue);
   }
 
   fill(values) {

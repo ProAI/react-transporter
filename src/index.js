@@ -1,7 +1,8 @@
 import createContainer from './container/createContainer';
 import createNode from './container/createNode';
-import ReferenceMap from './network/ReferenceMap';
 import Resource from './resources/Resource';
+import Link from './Link';
+import ManyLink from './ManyLink';
 import ref from './ref';
 import Transporter from './Transporter';
 import TransporterError from './TransporterError';
@@ -14,8 +15,9 @@ import useReset from './useReset';
 export {
   createContainer,
   createNode,
-  ReferenceMap,
   Resource,
+  Link,
+  ManyLink,
   ref,
   Transporter,
   TransporterError,
