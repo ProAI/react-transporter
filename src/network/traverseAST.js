@@ -1,7 +1,7 @@
 import { valueFromASTUntyped } from 'graphql/utilities/valueFromASTUntyped';
 import { REF_KEY, TYPENAME, ID } from '../constants';
 import makeAttributeKeyWithArgs from './makeAttributeKeyWithArgs';
-import ValueError from './ValueError';
+import ValueError from '../errors/ValueError';
 
 const getKey = (field, variables, ignoreArgs) => {
   const name = field.name.value;

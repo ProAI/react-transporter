@@ -1,4 +1,6 @@
-import TransporterError from '../TransporterError';
+import TransporterError from '../errors/TransporterError';
+import HttpError from '../errors/HttpError';
+import GraphQLError from '../errors/GraphQLError';
 
 export default function createRequest(request, query, variables) {
   return new Promise((resolve, reject) => {
@@ -10,58 +12,36 @@ export default function createRequest(request, query, variables) {
 
         return result.json();
       })
-      .then((response) => {
+      .then((data) => {
         if (!result.ok) {
           // Error #2: Http error code detected, throw error.
           throw new TransporterError(
-            `Request failed (HttpError - ${result.status})`,
+            `Request failed (HttpError - ${result.status}).`,
             {
-              type: 'HttpError',
-              cause: response,
+              cause: new HttpError(result, data),
             },
           );
         }
 
-        if (response.errors) {
-          response.errors.forEach((error) => {
+        if (data.errors) {
+          data.errors.forEach((error) => {
             // eslint-disable-next-line no-console
             console.error(`GraphQLError: ${error.message}`);
           });
 
           // Error #5: Response has GraphQL errors, throw error.
           reject(
-            new TransporterError('Request failed (GraphQLError)', {
-              type: 'GraphQLError',
-              cause: response.errors,
+            new TransporterError('Request failed (GraphQLError).', {
+              cause: new GraphQLError(data.errors),
             }),
           );
         }
 
-        resolve(response);
+        resolve(data);
       })
       .catch((err) => {
-        if (!result || !result.ok) {
-          // Error #3: Http error code with invalid JSON detected, throw error.
-          reject(
-            new TransporterError(
-              `Request failed (HttpError - ${
-                result ? result.status : 'Unknown'
-              })`,
-              {
-                type: 'HttpError',
-                cause: err,
-              },
-            ),
-          );
-        } else {
-          // Error #4: Found JSON parsing error.
-          reject(
-            new TransporterError(`${err.message} (JsonError)`, {
-              type: 'JsonError',
-              cause: err,
-            }),
-          );
-        }
+        // Error #3: Something went wrong, throw error.
+        reject(new TransporterError('Request failed.', { cause: err }));
       });
   });
 }

@@ -1,11 +1,13 @@
 import createContainer from './container/createContainer';
 import createNode from './container/createNode';
+import GraphQLError from './errors/GraphQLError';
+import HttpError from './errors/HttpError';
+import TransporterError from './errors/TransporterError';
 import Resource from './resources/Resource';
 import Link from './Link';
 import ManyLink from './ManyLink';
 import ref from './ref';
 import Transporter from './Transporter';
-import TransporterError from './TransporterError';
 import TransporterProvider from './TransporterProvider';
 import useDispatcher from './useDispatcher';
 import useMutation from './useMutation';
@@ -15,12 +17,14 @@ import useReset from './useReset';
 export {
   createContainer,
   createNode,
+  GraphQLError,
+  HttpError,
+  TransporterError,
   Resource,
   Link,
   ManyLink,
   ref,
   Transporter,
-  TransporterError,
   TransporterProvider,
   useDispatcher,
   useMutation,
