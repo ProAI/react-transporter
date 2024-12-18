@@ -1,4 +1,4 @@
-import React, { cloneElement } from 'react';
+import React, { createElement } from 'react';
 import TransporterContext from '../TransporterContext';
 import { isServer } from '../constants';
 import ContainerHandler from './ContainerHandler';
@@ -49,7 +49,7 @@ export default function createContainer(config) {
       const { error } = this.state;
 
       if (error) {
-        return options.error && cloneElement(options.error, { error });
+        return options.error && createElement(options.error, { error });
       }
 
       const handler = (
@@ -66,7 +66,11 @@ export default function createContainer(config) {
       }
 
       return (
-        <React.Suspense fallback={options.loading}>{handler}</React.Suspense>
+        <React.Suspense
+          fallback={options.loading && createElement(options.loading)}
+        >
+          {handler}
+        </React.Suspense>
       );
     }
 

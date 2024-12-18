@@ -1,10 +1,4 @@
-import {
-  useRef,
-  useContext,
-  useSyncExternalStore,
-  createElement,
-  cloneElement,
-} from 'react';
+import { useRef, useContext, useSyncExternalStore, createElement } from 'react';
 import { isServer } from '../constants';
 import TransporterContext from '../TransporterContext';
 import Resource from '../resources/Resource';
@@ -43,7 +37,7 @@ function ContainerHandler(props) {
       // If SSR is disabled, we render the loading component, so that the
       // resource will be loaded on the client.
       if (!client.ssr) {
-        return options.loading;
+        return options.loading && createElement(options.loading);
       }
 
       if (!async.current) {
@@ -55,14 +49,14 @@ function ContainerHandler(props) {
     }
 
     if (error instanceof LoadingError) {
-      return options.loading;
+      return options.loading && createElement(options.loading);
     }
 
     // If SSR is enabled and an error occured after loading an async
     // resource, we render the loading component, so that the resource will
     // be loaded on the client again.
     if (client.ssr && async.current) {
-      return options.loading;
+      return options.loading && createElement(options.loading);
     }
 
     // Re-throw error if container should throw.
@@ -71,7 +65,7 @@ function ContainerHandler(props) {
     }
 
     // Render error page for synchronous error.
-    return options.error && cloneElement(options.error, { error });
+    return options.error && createElement(options.error, { error });
   }
 }
 /* eslint-enable */
