@@ -1,4 +1,4 @@
-import buildSelectorSet from './buildSelectorSet';
+import buildGraphDataSet from './buildGraphDataSet';
 import buildDataSet from './buildDataSet';
 
 /* eslint-disable arrow-body-style */
@@ -13,7 +13,7 @@ export default class QueryCache {
 
   data;
 
-  selectorSet;
+  graphData;
 
   constructor(request, original) {
     this.request = request;
@@ -21,7 +21,7 @@ export default class QueryCache {
     this.original = original;
     this.data = original;
 
-    this.selectorSet = buildSelectorSet(this);
+    this.graphData = buildGraphDataSet(this);
   }
 
   addUpdate = (data, optimistic = false) => {
@@ -73,7 +73,7 @@ export default class QueryCache {
     }
 
     // (Re-)build data of selectors
-    this.selectorSet = buildSelectorSet(this);
+    this.graphData = buildGraphDataSet(this);
 
     // Update original data if there are no optimistic updates
     if (!this.updates.some((u) => u.optimistic)) {

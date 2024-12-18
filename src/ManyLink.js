@@ -1,20 +1,16 @@
-import { REF_KEY, TYPENAME, ID } from './constants';
+import { TYPENAME, ID } from './constants';
 
-const convertToRefs = (input) => {
-  const values = Array.isArray(input) ? input : [input];
+const convertToRefs = (value) => {
+  const values = Array.isArray(value) ? value : [value];
 
-  return values.map((value) => ({
-    [REF_KEY]: [value[TYPENAME], value[ID]],
-  }));
+  return values.map((v) => [v[TYPENAME], v[ID]]);
 };
 
 const removeDuplicateRefs = (currentRefs, refs) => {
   const result = refs.filter((ref) => {
-    const [refType, refId] = ref[REF_KEY];
+    const [refType, refId] = ref;
 
-    return !currentRefs.some(
-      ({ [REF_KEY]: [type, id] }) => type === refType && id === refId,
-    );
+    return !currentRefs.some(([type, id]) => type === refType && id === refId);
   });
 
   return result;
@@ -23,8 +19,8 @@ const removeDuplicateRefs = (currentRefs, refs) => {
 export default class ManyLink {
   refs;
 
-  constructor(input = []) {
-    this.refs = convertToRefs(input);
+  constructor(value = []) {
+    this.refs = convertToRefs(value);
   }
 
   static fromNative(refs) {
@@ -34,20 +30,20 @@ export default class ManyLink {
     return instance;
   }
 
-  prepend(input) {
-    this.refs = [...convertToRefs(input), ...this.refs];
+  prepend(value) {
+    this.refs = [...convertToRefs(value), ...this.refs];
 
     return this;
   }
 
-  append(input) {
-    this.refs = [...this.refs, ...convertToRefs(input)];
+  append(value) {
+    this.refs = [...this.refs, ...convertToRefs(value)];
 
     return this;
   }
 
-  syncPrepend(input) {
-    const refs = convertToRefs(input);
+  syncPrepend(value) {
+    const refs = convertToRefs(value);
     const filteredRefs = removeDuplicateRefs(this.refs, refs);
 
     this.refs = [...refs, ...filteredRefs];
@@ -55,8 +51,8 @@ export default class ManyLink {
     return this;
   }
 
-  syncAppend(input) {
-    const refs = convertToRefs(input);
+  syncAppend(value) {
+    const refs = convertToRefs(value);
     const filteredRefs = removeDuplicateRefs(this.refs, refs);
 
     this.refs = [...filteredRefs, ...refs];
@@ -64,8 +60,8 @@ export default class ManyLink {
     return this;
   }
 
-  detach(input) {
-    const refs = convertToRefs(input);
+  detach(value) {
+    const refs = convertToRefs(value);
     this.refs = removeDuplicateRefs(refs, this.refs);
 
     return this;

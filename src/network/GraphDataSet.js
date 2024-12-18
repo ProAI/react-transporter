@@ -1,7 +1,7 @@
 const getFragmentKey = (name, [type, id]) => `${name}.${type}.${id}`;
 
 /* eslint-disable arrow-body-style */
-export default class SelectorSet {
+export default class GraphDataSet {
   query = null;
 
   fragments = {};
@@ -26,19 +26,19 @@ export default class SelectorSet {
     this.fragments[key] = data;
   };
 
-  update = (selectorSet) => {
+  update = (graphData) => {
     let changed = false;
 
     if (this.query) {
-      if (this.query !== selectorSet.query) {
-        this.query = selectorSet.query;
+      if (this.query !== graphData.query) {
+        this.query = graphData.query;
         changed = true;
       }
     }
 
     Object.keys(this.fragments).forEach((key) => {
-      if (this.fragments[key] !== selectorSet.fragments[key]) {
-        this.fragments[key] = selectorSet.fragments[key];
+      if (this.fragments[key] !== graphData.fragments[key]) {
+        this.fragments[key] = graphData.fragments[key];
         changed = true;
       }
     });

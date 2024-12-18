@@ -7,16 +7,18 @@ const isDate = (v) => Object.prototype.toString.call(v) === '[object Date]';
 export default class ValueCaster {
   static fromNative(value) {
     if (Array.isArray(value)) {
-      if (value.some((v) => typeof v === 'object' && REF_KEY in v)) {
-        return ManyLink.fromNative(value);
-      }
-
       return value.map((v) => ValueCaster.fromNative(v));
     }
 
     if (typeof value === 'object') {
       if (REF_KEY in value) {
-        return Link.fromNative(value);
+        const ref = value[REF_KEY];
+
+        if (ref.length === 2 && !Array.isArray(ref[0])) {
+          return Link.fromNative(ref);
+        }
+
+        return ManyLink.fromNative(ref);
       }
 
       const result = {};
@@ -33,7 +35,9 @@ export default class ValueCaster {
 
   static toNative(value) {
     if (value instanceof Link || value instanceof ManyLink) {
-      return value.toNative();
+      return {
+        [REF_KEY]: value.toNative(),
+      };
     }
 
     if (isDate(value)) {

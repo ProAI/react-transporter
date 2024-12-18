@@ -43,7 +43,7 @@ export default function useDispatcher() {
 
       // Return cached selector set.
       return instance.resource.promise.then(() =>
-        instance.cache.selectorSet.getQuery(),
+        instance.cache.graphData.getQuery(),
       );
     },
     get ok() {

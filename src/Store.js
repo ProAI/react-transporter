@@ -1,4 +1,4 @@
-import SelectorSet from './network/SelectorSet';
+import GraphDataSet from './network/GraphDataSet';
 
 export default class Store {
   parentStore;
@@ -9,7 +9,7 @@ export default class Store {
 
   requests;
 
-  selectorSetsByRequest;
+  graphDataByRequest;
 
   listeners = [];
 
@@ -20,7 +20,7 @@ export default class Store {
     this.executeQuery = executeQuery;
 
     this.requests = new Map();
-    this.selectorSetsByRequest = new Map();
+    this.graphDataByRequest = new Map();
 
     if (parentStore) {
       parentStore.addChild(this);
@@ -42,7 +42,7 @@ export default class Store {
     // Invalidate request if variables have changed
     if (request && !request.isEqual(query, options.variables)) {
       this.requests.delete(name);
-      this.selectorSetsByRequest.delete(request);
+      this.graphDataByRequest.delete(request);
 
       request.invalidate();
       request = null;
@@ -82,17 +82,17 @@ export default class Store {
     // Check if request has loaded
     request.read();
 
-    const data = request.cache.selectorSet.getQuery();
+    const queryData = request.cache.graphData.getQuery();
 
-    if (!this.selectorSetsByRequest.has(request)) {
-      this.selectorSetsByRequest.set(request, new SelectorSet());
+    if (!this.graphDataByRequest.has(request)) {
+      this.graphDataByRequest.set(request, new GraphDataSet());
     }
 
     // Cache selector
-    const selectorSet = this.selectorSetsByRequest.get(request);
-    selectorSet.setQuery(data);
+    const graphData = this.graphDataByRequest.get(request);
+    graphData.setQuery(queryData);
 
-    return data;
+    return queryData;
   };
 
   waitForAll = () => {
@@ -107,7 +107,7 @@ export default class Store {
 
   getFragmentRequest = (name, entry) => {
     let request = Array.from(this.requests.values()).find(({ cache }) =>
-      cache?.selectorSet.getFragment(name, entry),
+      cache?.graphData.getFragment(name, entry),
     );
 
     if (!request) {
@@ -130,17 +130,17 @@ export default class Store {
     // Check if request has loaded
     request.read();
 
-    const data = request.cache.selectorSet.getFragment(name, entry);
+    const fragmentData = request.cache.graphData.getFragment(name, entry);
 
-    if (!this.selectorSetsByRequest.has(request)) {
-      this.selectorSetsByRequest.set(request, new SelectorSet());
+    if (!this.graphDataByRequest.has(request)) {
+      this.graphDataByRequest.set(request, new GraphDataSet());
     }
 
     // Cache selector
-    const selectorSet = this.selectorSetsByRequest.get(request);
-    selectorSet.setFragment(name, entry, data);
+    const graphData = this.graphDataByRequest.get(request);
+    graphData.setFragment(name, entry, fragmentData);
 
-    return data;
+    return fragmentData;
   };
 
   addChild = (child) => {
@@ -170,8 +170,8 @@ export default class Store {
 
     // Check if a selector has been updated. If so, the store node should
     // update and the listeneres should be called.
-    this.selectorSetsByRequest.forEach((selectorSet, request) => {
-      if (selectorSet.update(request.cache.selectorSet)) {
+    this.graphDataByRequest.forEach((graphData, request) => {
+      if (graphData.update(request.cache.graphData)) {
         shouldUpdate = true;
       }
     });
@@ -187,7 +187,7 @@ export default class Store {
 
   reset = (root = true) => {
     this.requests = new Map();
-    this.selectorSetsByRequest = new Map();
+    this.graphDataByRequest = new Map();
 
     if (root) {
       this.update();

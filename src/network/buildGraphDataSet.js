@@ -1,17 +1,17 @@
 import { TYPENAME, ID } from '../constants';
-import SelectorSet from './SelectorSet';
+import GraphDataSet from './GraphDataSet';
 import traverseAST from './traverseAST';
 
 const isEqual = (left, right) => JSON.stringify(left) === JSON.stringify(right);
 
-export default function buildSelectorSet(cache) {
-  const selectorSet = new SelectorSet();
+export default function buildGraphDataSet(cache) {
+  const graphData = new GraphDataSet();
 
   const handleFragment = (name, type, id, result) => {
     const entry = [type, id];
-    const cachedResult = cache.selectorSet?.getFragment(name, entry);
+    const cachedResult = cache.graphData?.getFragment(name, entry);
 
-    selectorSet.setFragment(name, entry, {
+    graphData.setFragment(name, entry, {
       [TYPENAME]: type,
       [ID]: id,
       ...(isEqual(result, cachedResult) ? cachedResult : result),
@@ -28,9 +28,9 @@ export default function buildSelectorSet(cache) {
 
   const result = traverseAST(cache, handleFragment, handleEntity);
 
-  const cachedResult = cache.selectorSet?.getQuery();
+  const cachedResult = cache.graphData?.getQuery();
 
-  selectorSet.setQuery(isEqual(result, cachedResult) ? cachedResult : result);
+  graphData.setQuery(isEqual(result, cachedResult) ? cachedResult : result);
 
-  return selectorSet;
+  return graphData;
 }

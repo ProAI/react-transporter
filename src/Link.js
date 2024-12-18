@@ -1,4 +1,4 @@
-import { REF_KEY, TYPENAME, ID } from './constants';
+import { TYPENAME, ID } from './constants';
 
 export default class Link {
   ref;
@@ -7,9 +7,7 @@ export default class Link {
     if (value === null) {
       this.ref = null;
     } else {
-      this.ref = {
-        [REF_KEY]: [value[TYPENAME], value[ID]],
-      };
+      this.ref = [value[TYPENAME], value[ID]];
     }
   }
 

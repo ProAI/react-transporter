@@ -1,17 +1,17 @@
-import buildSelectorSet from './buildSelectorSet';
+import buildGraphDataSet from './buildGraphDataSet';
 
 export default class MutationCache {
   request;
 
   data;
 
-  selectorSet;
+  graphData;
 
   constructor(request, data) {
     this.request = request;
 
     this.data = data;
 
-    this.selectorSet = buildSelectorSet(this);
+    this.graphData = buildGraphDataSet(this);
   }
 }

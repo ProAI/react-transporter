@@ -1,4 +1,3 @@
-import { REF_KEY } from '../constants';
 import DataSet from './DataSet';
 import traverseAST from './traverseAST';
 
@@ -16,9 +15,7 @@ export default function buildDataSet(cache) {
       },
     });
 
-    return {
-      [REF_KEY]: [type, id],
-    };
+    return [type, id];
   };
 
   const roots = traverseAST(cache, handleFragment, handleEntity);

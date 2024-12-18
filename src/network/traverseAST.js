@@ -102,6 +102,17 @@ const buildNode = (selectionSet, value, context) => {
   return handleValue(selectionSet, value, context);
 };
 
+const handleRef = (selectionSet, ref, context) => {
+  const { cache, handleEntity } = context;
+
+  const [type, id] = ref;
+  const cachedEntity = cache.data.get(type, id);
+
+  const result = handleSelectionSet(selectionSet, cachedEntity, context);
+
+  return handleEntity(type, id, result);
+};
+
 const handleValue = (selectionSet, value, context) => {
   if (value === undefined) {
     throw new ValueError();
@@ -114,20 +125,17 @@ const handleValue = (selectionSet, value, context) => {
     return null;
   }
 
-  const ref = value[REF_KEY];
-
-  if (!ref) {
+  if (!(REF_KEY in value)) {
     return handleSelectionSet(selectionSet, value, context);
   }
 
-  const { cache, handleEntity } = context;
+  const ref = value[REF_KEY];
 
-  const [type, id] = ref;
-  const cachedEntity = cache.data.get(type, id);
+  if (ref.length === 2 && !Array.isArray(ref[0])) {
+    return handleRef(selectionSet, ref, context);
+  }
 
-  const result = handleSelectionSet(selectionSet, cachedEntity, context);
-
-  return handleEntity(type, id, result);
+  return ref.map((refItem) => handleRef(selectionSet, refItem, context));
 };
 
 export default function traverseAST(cache, handleFragment, handleEntity) {
