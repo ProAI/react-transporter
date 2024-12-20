@@ -1,7 +1,16 @@
 import { TYPENAME, ID } from '../constants';
 
-const intersect = (left = {}, right = {}, condition = () => true) =>
-  Object.keys(right).some((key) => left[key] !== undefined && condition(key));
+const intersect = (left = {}, right = {}, condition = () => true) => {
+  if (right === null) {
+    throw new Error(
+      'Key not found. This can happen if there is a deleted entity that is still in use.',
+    );
+  }
+
+  return Object.keys(right).some(
+    (key) => left[key] !== undefined && condition(key),
+  );
+};
 
 const merge = (left = {}, right = {}, condition = (v) => v) => {
   if (!condition) return { ...left, ...right };
@@ -83,6 +92,11 @@ export default class DataSet {
       merge(this.entities[type], entities[type], (id) => {
         const left = this.entities[type][id];
         const right = entities[type][id];
+
+        // Deleted entity
+        if (right === null) {
+          return null;
+        }
 
         const result = { ...left };
 

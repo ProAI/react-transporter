@@ -70,9 +70,14 @@ export default function applyUpdater(client, updater, data, cache) {
         roots: record.values,
       });
     },
+    delete(type, id) {
+      result.add({
+        entities: { [type]: { [id]: null } },
+      });
+    },
   };
 
-  updater(writeStore, cache.selectorSet.getQuery());
+  updater(writeStore, cache.graphData.getQuery());
 
   return result;
 }

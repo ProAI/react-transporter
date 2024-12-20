@@ -1,6 +1,6 @@
 class ValueError extends Error {
-  constructor() {
-    super('Undefined value.');
+  constructor(message) {
+    super(message);
     this.name = 'ValueError';
   }
 }

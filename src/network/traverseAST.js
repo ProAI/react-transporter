@@ -103,10 +103,18 @@ const buildNode = (selectionSet, value, context) => {
 };
 
 const handleRef = (selectionSet, ref, context) => {
+  if (ref === null) {
+    return null;
+  }
+
   const { cache, handleEntity } = context;
 
   const [type, id] = ref;
   const cachedEntity = cache.data.get(type, id);
+
+  if (!cachedEntity) {
+    throw new ValueError(`Entity [${type}, ${id}] not found.`);
+  }
 
   const result = handleSelectionSet(selectionSet, cachedEntity, context);
 
@@ -115,11 +123,8 @@ const handleRef = (selectionSet, ref, context) => {
 
 const handleValue = (selectionSet, value, context) => {
   if (value === undefined) {
-    throw new ValueError();
+    throw new ValueError('Undefined value.');
   }
-
-  // TODO: Apply connections
-  // const entity = handleConnection(ref ? data.get(...ref) : value);
 
   if (value === null) {
     return null;
@@ -130,6 +135,9 @@ const handleValue = (selectionSet, value, context) => {
   }
 
   const ref = value[REF_KEY];
+
+  // TODO: Apply connections
+  // const entity = handleConnection(ref ? data.get(...ref) : value);
 
   if (ref.length === 2 && !Array.isArray(ref[0])) {
     return handleRef(selectionSet, ref, context);
