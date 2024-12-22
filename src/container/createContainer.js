@@ -8,7 +8,7 @@ export default function createContainer(config) {
   const { component, ...options } = config;
 
   if (!component) {
-    throw new Error(`You must define a container "component".`);
+    throw new Error('You must define a container "component".');
   }
 
   let resource;

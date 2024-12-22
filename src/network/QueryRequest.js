@@ -47,7 +47,8 @@ export default class QueryRequest {
       client.queries.set(this.options.name, this.cache);
 
       // Commit update
-      client.refresh();
+      // TODO: Resolve infinite loop between render and load query
+      // client.refresh();
     };
 
     const { cache } = client;
