@@ -43,8 +43,24 @@ const handleSelectionSet = (
     }
 
     if (selection.kind === 'InlineFragment') {
-      // eslint-disable-next-line no-console
-      console.log('TODO: inline fragment', selection);
+      try {
+        Object.assign(
+          result,
+          handleSelectionSet(selection.selectionSet, value, context),
+        );
+      } catch (err) {
+        if (err.name !== 'ValueError') {
+          throw err;
+        }
+
+        if (selection.typeCondition.name.value === value[TYPENAME]) {
+          throw new Error(
+            `Inline fragment "${selection.typeCondition.name.value}" has an undefined value and has been skipped.`,
+          );
+        }
+
+        // Hint: If type condition is not typename, do not throw an error.
+      }
     }
 
     if (selection.kind === 'FragmentSpread') {
@@ -73,11 +89,15 @@ const handleSelectionSet = (
       } catch (err) {
         if (err.name !== 'ValueError') {
           throw err;
-        } else if (fragmentAst.typeCondition.name.value === value[TYPENAME]) {
+        }
+
+        if (fragmentAst.typeCondition.name.value === value[TYPENAME]) {
           throw new Error(
             `Fragment "${fragmentAst.name.value}" has an undefined value and has been skipped.`,
           );
         }
+
+        // Hint: If type condition is not typename, do not throw an error.
       }
     }
   });
