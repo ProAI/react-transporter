@@ -7,27 +7,19 @@ class Resource {
 
   response;
 
-  constructor(createPromise, options = {}) {
-    const { proxy = false } = options;
+  constructor(createPromise) {
+    this.promise = createPromise();
 
-    if (proxy) {
-      this.promise = new Promise((_, reject) => {
-        reject(new Error('Proxied resource.'));
-      });
-    } else {
-      this.promise = createPromise();
-
-      this.promise.then(
-        (res) => {
-          this.status = FULFILLED;
-          this.response = res;
-        },
-        (err) => {
-          this.status = REJECTED;
-          this.response = err;
-        },
-      );
-    }
+    this.promise.then(
+      (res) => {
+        this.status = FULFILLED;
+        this.response = res;
+      },
+      (err) => {
+        this.status = REJECTED;
+        this.response = err;
+      },
+    );
   }
 
   read = () => {

@@ -12,19 +12,22 @@ export default function createContainer(config) {
   }
 
   let resource;
+  let ResolvedComponent;
 
   const wrappedComponent = () => {
-    if (!resource) {
-      resource = resolveComponent(component);
+    if (!ResolvedComponent) {
+      if (!resource) {
+        resource = resolveComponent(component);
+      }
+
+      const Component = resource.read();
+
+      ResolvedComponent = options.renderer
+        ? options.renderer(Component)
+        : Component;
     }
 
-    const resolvedComponent = resource.read();
-
-    if (options.renderer) {
-      return options.renderer(resolvedComponent);
-    }
-
-    return resolvedComponent;
+    return ResolvedComponent;
   };
 
   class Container extends React.Component {
