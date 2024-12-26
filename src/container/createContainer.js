@@ -15,7 +15,7 @@ export default function createContainer(config) {
 
   const wrappedComponent = () => {
     if (!resource) {
-      resource = resolveComponent(component, options.renderer);
+      resource = resolveComponent(component);
     }
 
     const resolvedComponent = resource.read();
@@ -35,13 +35,17 @@ export default function createContainer(config) {
       this.state = { error: null };
     }
 
+    componentDidMount() {
+      this.store.mount();
+    }
+
     componentDidCatch(error, info) {
       // eslint-disable-next-line no-console
       console.error(error, info);
     }
 
     componentWillUnmount() {
-      this.store.destroy();
+      this.store.unmount();
     }
 
     renderContainer() {

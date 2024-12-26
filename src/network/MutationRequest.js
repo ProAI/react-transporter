@@ -24,7 +24,7 @@ export default class MutationRequest {
     );
 
     client.queries.forEach((query) => {
-      query.addUpdate(optimisticData, true);
+      query.cache.addUpdate(optimisticData, true);
     });
     client.refresh();
 
@@ -50,11 +50,11 @@ export default class MutationRequest {
         // Set result in client
         if (optimisticData) {
           client.queries.forEach((query) => {
-            query.removeUpdate(optimisticData);
+            query.cache.removeUpdate(optimisticData);
           });
         }
         client.queries.forEach((query) => {
-          query.addUpdate(updatedData);
+          query.cache.addUpdate(updatedData);
         });
         client.refresh();
       },
@@ -67,7 +67,7 @@ export default class MutationRequest {
         // Reset optimistic update in client
         if (optimisticData) {
           client.queries.forEach((query) => {
-            query.removeUpdate(optimisticData);
+            query.cache.removeUpdate(optimisticData);
           });
           client.refresh();
         }

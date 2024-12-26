@@ -24,16 +24,25 @@ export default class Transporter {
     this.queries = new Map();
   }
 
-  query = (query, options) => {
-    return new QueryRequest(this, query, options);
+  query = (ast, options) => {
+    const query = this.queries.get(options.name);
+
+    // It might happen that a rerender occurs while initializing. In this case
+    // we do not want to create a new query request and return the already
+    // existing query request.
+    if (query && !query.mounted) {
+      return query;
+    }
+
+    return new QueryRequest(this, ast, options);
   };
 
   createStore = (parentStore) => {
     return new Store(parentStore, this.query);
   };
 
-  mutate = (mutation, options) => {
-    return new MutationRequest(this, mutation, options);
+  mutate = (ast, options) => {
+    return new MutationRequest(this, ast, options);
   };
 
   refresh = () => {
@@ -49,7 +58,7 @@ export default class Transporter {
     const data = {};
 
     this.queries.forEach((query, key) => {
-      data[key] = query.data.extract();
+      data[key] = query.cache.data.extract();
     });
 
     return data;

@@ -15,22 +15,20 @@ export default class Store {
 
   marker = {};
 
+  mounted = false;
+
   constructor(parentStore, executeQuery) {
     this.parentStore = parentStore;
     this.executeQuery = executeQuery;
 
     this.requests = new Map();
     this.graphDataByRequest = new Map();
-
-    if (parentStore) {
-      parentStore.addChild(this);
-    }
   }
 
-  preload = (query, options = {}) => {
+  preload = (ast, options = {}) => {
     const name =
       options.name ||
-      query.definitions.find((def) => def.kind === 'OperationDefinition')?.name
+      ast.definitions.find((def) => def.kind === 'OperationDefinition')?.name
         .value;
 
     if (!name) {
@@ -40,25 +38,25 @@ export default class Store {
     let request = this.requests.get(name);
 
     // Invalidate request if variables have changed
-    if (request && !request.isEqual(query, options.variables)) {
+    if (request && !request.isEqual(ast, options.variables)) {
       this.requests.delete(name);
       this.graphDataByRequest.delete(request);
 
-      request.invalidate();
+      request.unmount();
       request = null;
     }
 
     // Create request if no request was found
     if (!request) {
-      request = this.executeQuery(query, { ...options, name });
+      request = this.executeQuery(ast, { ...options, name });
       this.requests.set(name, request);
     }
 
     return name;
   };
 
-  load = (query, options) => {
-    const name = this.preload(query, options);
+  load = (ast, options) => {
+    const name = this.preload(ast, options);
     return this.select(name);
   };
 
@@ -206,13 +204,23 @@ export default class Store {
     });
   };
 
-  destroy = () => {
+  mount = () => {
+    this.mounted = true;
+
+    // Add store to parent after mounting, so that not multiple unmounted
+    // stores for the same node can be added.
+    this.parentStore.addChild(this);
+  };
+
+  unmount = () => {
+    this.mounted = false;
+
     // Remove network from parent store network children.
     this.parentStore.removeChild(this);
 
     // Delete requests.
     this.requests.forEach((request) => {
-      request.invalidate();
+      request.unmount();
     });
   };
 }

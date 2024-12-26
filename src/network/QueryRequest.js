@@ -22,6 +22,8 @@ export default class QueryRequest {
 
   aborted = false;
 
+  mounted = false;
+
   cache;
 
   constructor(client, ast, options = {}) {
@@ -38,17 +40,16 @@ export default class QueryRequest {
 
       // Update client data
       const updateData = new DataSet({ entities: data.entities });
-      client.queries.forEach((q) => {
-        q.addUpdate(updateData);
+      client.queries.forEach((query) => {
+        query.cache.addUpdate(updateData);
       });
 
       // Add result to client
       this.cache = new QueryCache(this, data);
-      client.queries.set(this.options.name, this.cache);
+      client.queries.set(this.options.name, this);
 
       // Commit update
-      // TODO: Resolve infinite loop between render and load query
-      // client.refresh();
+      client.refresh();
     };
 
     const { cache } = client;
@@ -112,7 +113,12 @@ export default class QueryRequest {
     this.cache.commit();
   };
 
-  invalidate = () => {
+  mount = () => {
+    this.mounted = true;
+  };
+
+  unmount = () => {
+    this.mounted = false;
     this.aborted = true;
 
     // Delete resource from client

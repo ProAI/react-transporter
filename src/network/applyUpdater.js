@@ -4,10 +4,12 @@ const get = (client, type, id) => {
   let value = null;
 
   client.queries.forEach((query) => {
-    const entity = query.data.get(type, id);
+    const entity = query.cache.data.get(type, id);
 
     if (entity) {
-      if (query.updates.some((u) => u.optimistic && u.data.get(type, id))) {
+      if (
+        query.cache.updates.some((u) => u.optimistic && u.data.get(type, id))
+      ) {
         throw new Error(
           `Cannot perform update on optimistically updated entity. [${type}.${id}]`,
         );
@@ -24,7 +26,7 @@ const getRoots = (client) => {
   let value = null;
 
   client.queries.forEach((query) => {
-    const roots = query.data.getRoots();
+    const roots = query.cache.data.getRoots();
 
     value = { ...value, ...roots };
   });
