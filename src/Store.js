@@ -210,6 +210,11 @@ export default class Store {
     // Add store to parent after mounting, so that not multiple unmounted
     // stores for the same node can be added.
     this.parentStore.addChild(this);
+
+    // Mount requests.
+    this.requests.forEach((request) => {
+      request.mount();
+    });
   };
 
   unmount = () => {
@@ -218,7 +223,7 @@ export default class Store {
     // Remove network from parent store network children.
     this.parentStore.removeChild(this);
 
-    // Delete requests.
+    // Unmount requests.
     this.requests.forEach((request) => {
       request.unmount();
     });

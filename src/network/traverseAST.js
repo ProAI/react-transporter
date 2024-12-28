@@ -25,7 +25,7 @@ const handleSelectionSet = (
   context,
   ignoreArgs = false,
 ) => {
-  const { cache, handleFragment } = context;
+  const { cache, handleFragment, keyWithArgs } = context;
   const { ast, options } = cache.request;
 
   const result = {};
@@ -34,8 +34,10 @@ const handleSelectionSet = (
     if (selection.kind === 'Field') {
       const key = getKey(selection, options.variables, ignoreArgs);
 
+      const resultKey = keyWithArgs ? key : selection.name.value;
+
       // eslint-disable-next-line no-use-before-define
-      result[selection.name.value] = buildNode(
+      result[resultKey] = buildNode(
         selection.selectionSet,
         value[key],
         context,
@@ -155,18 +157,24 @@ const handleValue = (selectionSet, value, context) => {
   }
 
   const ref = value[REF_KEY];
+  const { handleLink } = context;
 
   // TODO: Apply connections
   // const entity = handleConnection(ref ? data.get(...ref) : value);
 
   if (ref.length === 2 && !Array.isArray(ref[0])) {
-    return handleRef(selectionSet, ref, context);
+    return handleLink(handleRef(selectionSet, ref, context));
   }
 
-  return ref.map((refItem) => handleRef(selectionSet, refItem, context));
+  return handleLink(
+    ref.map((refItem) => handleRef(selectionSet, refItem, context)),
+  );
 };
 
-export default function traverseAST(cache, handleFragment, handleEntity) {
+export default function traverseAST(
+  cache,
+  { handleFragment, handleEntity, handleLink, keyWithArgs = false },
+) {
   const { ast } = cache.request;
 
   const queryAst = ast.definitions.find(
@@ -178,6 +186,8 @@ export default function traverseAST(cache, handleFragment, handleEntity) {
     cache,
     handleFragment,
     handleEntity,
+    handleLink,
+    keyWithArgs,
   };
 
   try {

@@ -23,7 +23,9 @@ export default class Record {
         this.original = this.original() || {};
       }
 
-      const value = ValueCaster.fromNative(this.original[key]);
+      const value = ValueCaster.fromNative(
+        key in this.values ? this.values[key] : this.original[key],
+      );
 
       nextValue = resolve(value);
     } else {

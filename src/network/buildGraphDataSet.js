@@ -26,7 +26,13 @@ export default function buildGraphDataSet(cache) {
     ...result,
   });
 
-  const result = traverseAST(cache, handleFragment, handleEntity);
+  const handleLink = (value) => value;
+
+  const result = traverseAST(cache, {
+    handleFragment,
+    handleEntity,
+    handleLink,
+  });
 
   const cachedResult = cache.graphData?.getQuery();
 

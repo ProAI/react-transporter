@@ -1,5 +1,6 @@
 import DataSet from './DataSet';
 import traverseAST from './traverseAST';
+import { REF_KEY } from '../constants';
 
 export default function buildDataSet(cache) {
   const data = new DataSet();
@@ -18,7 +19,16 @@ export default function buildDataSet(cache) {
     return [type, id];
   };
 
-  const roots = traverseAST(cache, handleFragment, handleEntity);
+  const handleLink = (value) => ({
+    [REF_KEY]: value,
+  });
+
+  const roots = traverseAST(cache, {
+    handleFragment,
+    handleEntity,
+    handleLink,
+    keyWithArgs: true,
+  });
 
   data.add({ roots });
 

@@ -30,7 +30,12 @@ const mergeValue = (key, left, right) => {
     return left;
   }
 
-  if (left !== undefined && typeof left !== typeof right) {
+  if (
+    left !== undefined &&
+    left !== null &&
+    right !== null &&
+    typeof left !== typeof right
+  ) {
     // eslint-disable-next-line no-console
     console.warn(
       `Key ${key} had value "${left}" and was updated with value of different type "${right}".`,

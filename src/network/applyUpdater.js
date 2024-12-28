@@ -79,7 +79,7 @@ export default function applyUpdater(client, updater, data, cache) {
     },
   };
 
-  updater(writeStore, cache.graphData.getQuery());
+  updater(writeStore, cache?.graphData.getQuery());
 
   return result;
 }

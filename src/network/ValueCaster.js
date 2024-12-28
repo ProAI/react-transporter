@@ -48,7 +48,7 @@ export default class ValueCaster {
       return value.map((v) => ValueCaster.toNative(v));
     }
 
-    if (typeof value === 'object') {
+    if (value && typeof value === 'object') {
       const result = {};
 
       Object.entries(value).forEach(([k, v]) => {

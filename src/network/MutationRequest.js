@@ -40,6 +40,14 @@ export default class MutationRequest {
         // Create cache
         this.cache = new MutationCache(this, data);
 
+        // Remove optimistic update
+        if (optimisticData) {
+          client.queries.forEach((query) => {
+            query.cache.removeUpdate(optimisticData);
+          });
+        }
+
+        // Apply update
         const updatedData = applyUpdater(
           client,
           options.updater,
@@ -48,11 +56,6 @@ export default class MutationRequest {
         );
 
         // Set result in client
-        if (optimisticData) {
-          client.queries.forEach((query) => {
-            query.cache.removeUpdate(optimisticData);
-          });
-        }
         client.queries.forEach((query) => {
           query.cache.addUpdate(updatedData);
         });
