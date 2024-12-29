@@ -33,7 +33,7 @@ export default class QueryRequest {
     this.ast = ast;
     this.options = options;
 
-    const handleResponse = (res) => {
+    const handleResponse = (res, fromCache = false) => {
       if (this.aborted) {
         return;
       }
@@ -46,16 +46,20 @@ export default class QueryRequest {
       }
 
       // Update client data
-      const updateData = new DataSet({ entities: data.entities });
-      client.queries.forEach((query) => {
-        query.cache.addUpdate(updateData);
-      });
+      if (!isServer && !fromCache) {
+        const updateData = new DataSet({ entities: data.entities });
+        client.queries.forEach((query) => {
+          query.cache.addUpdate(updateData);
+        });
+      }
 
       // Add result to client
       client.queries.set(this.options.name, this);
 
       // Commit update
-      client.refresh();
+      if (!isServer && !fromCache) {
+        client.refresh();
+      }
     };
 
     const { cache } = client;
@@ -64,7 +68,7 @@ export default class QueryRequest {
     // Set response from cache or start a new request.
     if (cachedResponse) {
       this.resource = new SyncResource(cachedResponse);
-      handleResponse({ data: cachedResponse });
+      handleResponse({ data: cachedResponse }, true);
 
       // Delete cache after first use, so that it is only used on first render.
       delete cache[this.options.name];
