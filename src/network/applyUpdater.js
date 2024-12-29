@@ -42,22 +42,30 @@ export default function applyUpdater(client, updater, data, cache) {
   const result = data;
 
   const writeStore = {
-    insert(type, id, resolve) {
+    insert(type, id, values) {
       const record = new Record();
 
-      resolve(record);
+      if (typeof values === 'function') {
+        values(record);
+      } else {
+        record.fill(values);
+      }
 
       result.add({
         entities: { [type]: { [id]: record.values } },
       });
     },
-    update(type, id, resolve) {
+    update(type, id, values) {
       const record = new Record(() => ({
         ...get(client, type, id),
         ...result.get(type, id),
       }));
 
-      resolve(record);
+      if (typeof values === 'function') {
+        values(record);
+      } else {
+        record.fill(values);
+      }
 
       result.add({
         entities: { [type]: { [id]: record.values } },
