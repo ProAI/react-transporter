@@ -1,8 +1,7 @@
 import React, { createElement } from 'react';
 import TransporterContext from '../TransporterContext';
 import { isServer } from '../constants';
-import ContainerHandler from './ContainerHandler';
-import resolveComponent from './resolveComponent';
+import createContainerHandler from './createContainerHandler';
 
 export default function createContainer(config) {
   const { component, ...options } = config;
@@ -11,24 +10,7 @@ export default function createContainer(config) {
     throw new Error('You must define a container "component".');
   }
 
-  let resource;
-  let ResolvedComponent;
-
-  const wrappedComponent = () => {
-    if (!ResolvedComponent) {
-      if (!resource) {
-        resource = resolveComponent(component);
-      }
-
-      const Component = resource.read();
-
-      ResolvedComponent = options.renderer
-        ? options.renderer(Component)
-        : Component;
-    }
-
-    return ResolvedComponent;
-  };
+  const ContainerHandler = createContainerHandler(component, options);
 
   class Container extends React.Component {
     store;
@@ -59,13 +41,7 @@ export default function createContainer(config) {
         return options.error && createElement(options.error, { error });
       }
 
-      const handler = (
-        <ContainerHandler
-          component={wrappedComponent}
-          options={options}
-          values={this.props}
-        />
-      );
+      const handler = <ContainerHandler {...this.props} />;
 
       // If SSR is disabled, we do not need to wrap the handler in Suspense.
       if (isServer && !client.ssr) {
