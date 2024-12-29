@@ -1,4 +1,5 @@
 import GraphDataSet from './network/GraphDataSet';
+import { TYPENAME, ID } from './constants';
 
 export default class Store {
   parentStore;
@@ -103,32 +104,33 @@ export default class Store {
     }
   };
 
-  getFragmentRequest = (name, entry) => {
+  getFragmentRequest = (name, type, id) => {
     let request = Array.from(this.requests.values()).find(({ cache }) =>
-      cache?.graphData.getFragment(name, entry),
+      cache?.graphData.getFragment(name, type, id),
     );
 
     if (!request) {
       if (!this.parentStore) {
-        const stringifiedEntry = JSON.stringify(entry);
         throw new Error(
-          `Fragment "${name}" (entry: [${stringifiedEntry}]) was not found.`,
+          `Fragment "${name}" (entry: [${type}, ${id}]) was not found.`,
         );
       }
 
-      request = this.parentStore.getFragmentRequest(name, entry);
+      request = this.parentStore.getFragmentRequest(name, type, id);
     }
 
     return request;
   };
 
-  selectFragment = (name, entry) => {
-    const request = this.getFragmentRequest(name, entry);
+  selectFragment = (name, entity) => {
+    const { [TYPENAME]: type, [ID]: id } = entity;
+
+    const request = this.getFragmentRequest(name, type, id);
 
     // Check if request has loaded
     request.read();
 
-    const fragmentData = request.cache.graphData.getFragment(name, entry);
+    const fragmentData = request.cache.graphData.getFragment(name, type, id);
 
     if (!this.graphDataByRequest.has(request)) {
       this.graphDataByRequest.set(request, new GraphDataSet());
@@ -136,7 +138,7 @@ export default class Store {
 
     // Cache selector
     const graphData = this.graphDataByRequest.get(request);
-    graphData.setFragment(name, entry, fragmentData);
+    graphData.setFragment(name, type, id, fragmentData);
 
     return fragmentData;
   };

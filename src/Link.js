@@ -3,11 +3,11 @@ import { TYPENAME, ID } from './constants';
 export default class Link {
   ref;
 
-  constructor(value = null) {
-    if (value === null) {
+  constructor(entity = null) {
+    if (entity === null) {
       this.ref = null;
     } else {
-      this.ref = [value[TYPENAME], value[ID]];
+      this.ref = [entity[TYPENAME], entity[ID]];
     }
   }
 

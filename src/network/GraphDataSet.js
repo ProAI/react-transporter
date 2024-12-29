@@ -1,4 +1,4 @@
-const getFragmentKey = (name, [type, id]) => `${name}.${type}.${id}`;
+const getFragmentKey = (name, type, id) => `${name}.${type}.${id}`;
 
 /* eslint-disable arrow-body-style */
 export default class GraphDataSet {
@@ -14,14 +14,14 @@ export default class GraphDataSet {
     this.query = data;
   };
 
-  getFragment = (name, entry) => {
-    const key = getFragmentKey(name, entry);
+  getFragment = (name, type, id) => {
+    const key = getFragmentKey(name, type, id);
 
     return this.fragments[key];
   };
 
-  setFragment = (name, entry, data) => {
-    const key = getFragmentKey(name, entry);
+  setFragment = (name, type, id, data) => {
+    const key = getFragmentKey(name, type, id);
 
     this.fragments[key] = data;
   };

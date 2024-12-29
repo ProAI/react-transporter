@@ -8,14 +8,14 @@ export default function buildGraphDataSet(cache) {
   const graphData = new GraphDataSet();
 
   const handleFragment = (name, type, id, result) => {
-    const entry = [type, id];
-    const cachedResult = cache.graphData?.getFragment(name, entry);
+    const cachedResult = cache.graphData?.getFragment(name, type, id);
 
     // Keep cached result if there are no changes, so that we can check graphDataByRequest against
     // the result in order to determine an update.
     graphData.setFragment(
       name,
-      entry,
+      type,
+      id,
       isEqual(result, cachedResult)
         ? cachedResult
         : {

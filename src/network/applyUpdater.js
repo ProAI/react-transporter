@@ -1,21 +1,22 @@
 import Record from './Record';
+import { TYPENAME, ID } from '../constants';
 
 const get = (client, type, id) => {
   let value = null;
 
   client.queries.forEach((query) => {
-    const entity = query.cache.data.get(type, id);
+    const data = query.cache.data.get(type, id);
 
-    if (entity) {
+    if (data) {
       if (
         query.cache.updates.some((u) => u.optimistic && u.data.get(type, id))
       ) {
         throw new Error(
-          `Cannot perform update on optimistically updated entity. [${type}.${id}]`,
+          `Cannot perform update on optimistically updated record. [${type}.${id}]`,
         );
       }
 
-      value = { ...value, ...entity };
+      value = { ...value, ...data };
     }
   });
 
@@ -55,7 +56,9 @@ export default function applyUpdater(client, updater, data, cache) {
         entities: { [type]: { [id]: record.values } },
       });
     },
-    update(type, id, values) {
+    update(entity, values) {
+      const { [TYPENAME]: type, [ID]: id } = entity;
+
       const record = new Record(() => ({
         ...get(client, type, id),
         ...result.get(type, id),
@@ -80,7 +83,9 @@ export default function applyUpdater(client, updater, data, cache) {
         roots: record.values,
       });
     },
-    delete(type, id) {
+    delete(entity) {
+      const { [TYPENAME]: type, [ID]: id } = entity;
+
       result.add({
         entities: { [type]: { [id]: null } },
       });

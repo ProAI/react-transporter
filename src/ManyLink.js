@@ -1,9 +1,11 @@
 import { TYPENAME, ID } from './constants';
 
-const convertToRefs = (value) => {
-  const values = Array.isArray(value) ? value : [value];
+const convertToRefs = (entityOrEntities) => {
+  const entities = Array.isArray(entityOrEntities)
+    ? entityOrEntities
+    : [entityOrEntities];
 
-  return values.map((v) => [v[TYPENAME], v[ID]]);
+  return entities.map((v) => [v[TYPENAME], v[ID]]);
 };
 
 const removeDuplicateRefs = (currentRefs, refs) => {
@@ -19,8 +21,8 @@ const removeDuplicateRefs = (currentRefs, refs) => {
 export default class ManyLink {
   refs;
 
-  constructor(value = []) {
-    this.refs = convertToRefs(value);
+  constructor(entityOrEntities = []) {
+    this.refs = convertToRefs(entityOrEntities);
   }
 
   static fromNative(refs) {
@@ -30,20 +32,20 @@ export default class ManyLink {
     return instance;
   }
 
-  prepend(value) {
-    this.refs = [...convertToRefs(value), ...this.refs];
+  prepend(entityOrEntities) {
+    this.refs = [...convertToRefs(entityOrEntities), ...this.refs];
 
     return this;
   }
 
-  append(value) {
-    this.refs = [...this.refs, ...convertToRefs(value)];
+  append(entityOrEntities) {
+    this.refs = [...this.refs, ...convertToRefs(entityOrEntities)];
 
     return this;
   }
 
-  syncPrepend(value) {
-    const refs = convertToRefs(value);
+  syncPrepend(entityOrEntities) {
+    const refs = convertToRefs(entityOrEntities);
     const filteredRefs = removeDuplicateRefs(this.refs, refs);
 
     this.refs = [...refs, ...filteredRefs];
@@ -51,8 +53,8 @@ export default class ManyLink {
     return this;
   }
 
-  syncAppend(value) {
-    const refs = convertToRefs(value);
+  syncAppend(entityOrEntities) {
+    const refs = convertToRefs(entityOrEntities);
     const filteredRefs = removeDuplicateRefs(this.refs, refs);
 
     this.refs = [...filteredRefs, ...refs];
@@ -60,8 +62,8 @@ export default class ManyLink {
     return this;
   }
 
-  detach(value) {
-    const refs = convertToRefs(value);
+  detach(entityOrEntities) {
+    const refs = convertToRefs(entityOrEntities);
     this.refs = removeDuplicateRefs(refs, this.refs);
 
     return this;
