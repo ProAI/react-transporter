@@ -1,4 +1,4 @@
-import makeAttributeKeyWithArgs from './makeAttributeKeyWithArgs';
+import makeKey from '../key';
 import ValueCaster from './ValueCaster';
 
 export default class Record {
@@ -11,9 +11,7 @@ export default class Record {
   }
 
   set(rawKey, resolve) {
-    const key = Array.isArray(rawKey)
-      ? makeAttributeKeyWithArgs(...rawKey)
-      : rawKey;
+    const key = Array.isArray(rawKey) ? makeKey(...rawKey) : rawKey;
 
     let nextValue;
 

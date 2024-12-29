@@ -1,6 +1,6 @@
 import { valueFromASTUntyped } from 'graphql/utilities/valueFromASTUntyped';
 import { REF_KEY, TYPENAME, ID } from '../constants';
-import makeAttributeKeyWithArgs from './makeAttributeKeyWithArgs';
+import makeKey from '../key';
 import ValueError from '../errors/ValueError';
 
 const getKey = (field, variables, ignoreArgs) => {
@@ -16,7 +16,7 @@ const getKey = (field, variables, ignoreArgs) => {
     args[arg.name.value] = valueFromASTUntyped(arg.value, variables);
   });
 
-  return makeAttributeKeyWithArgs(name, args);
+  return makeKey(name, args);
 };
 
 const handleSelectionSet = (

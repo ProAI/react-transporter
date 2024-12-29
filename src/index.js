@@ -4,6 +4,7 @@ import GraphQLError from './errors/GraphQLError';
 import HttpError from './errors/HttpError';
 import TransporterError from './errors/TransporterError';
 import Resource from './resources/Resource';
+import key from './key';
 import Link from './Link';
 import ManyLink from './ManyLink';
 import ref from './ref';
@@ -21,6 +22,7 @@ export {
   HttpError,
   TransporterError,
   Resource,
+  key,
   Link,
   ManyLink,
   ref,

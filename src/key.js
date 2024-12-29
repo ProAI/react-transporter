@@ -17,10 +17,10 @@ const stringifyObject = (obj) => {
   keys.sort();
 
   const parts = keys
-    .map((key) => {
-      const value = getValue(obj[key]);
+    .map((k) => {
+      const value = getValue(obj[k]);
 
-      return value === null ? value : `"${key}":${value}`;
+      return value === null ? value : `"${k}":${value}`;
     })
     .filter((value) => value !== null);
 
@@ -31,8 +31,8 @@ const stringifyObject = (obj) => {
   return `{${parts.join(',')}}`;
 };
 
-export default function makeAttributeKeyWithArgs(name, args) {
-  const attributes = stringifyObject(args);
+export default function key(name, variables) {
+  const attributes = stringifyObject(variables);
 
   return `${name}${attributes ? `(${attributes})` : ''}`;
 }
