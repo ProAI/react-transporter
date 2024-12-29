@@ -169,7 +169,10 @@ export default class Store {
     // Check if a selector has been updated. If so, the store node should
     // update and the listeneres should be called.
     this.graphDataByRequest.forEach((graphData, request) => {
-      if (graphData.update(request.cache.graphData)) {
+      if (!request.cache) {
+        this.graphDataByRequest.delete(request);
+      }
+      if (!request.cache || graphData.update(request.cache.graphData)) {
         shouldUpdate = true;
       }
     });

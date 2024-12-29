@@ -24,7 +24,9 @@ export default class QueryRequest {
 
   mounted = false;
 
-  cache;
+  interval = null;
+
+  cache = null;
 
   constructor(client, ast, options = {}) {
     this.client = client;
@@ -38,6 +40,11 @@ export default class QueryRequest {
 
       const data = new DataSet(res.data);
 
+      // Create cache
+      if (!this.cache) {
+        this.cache = new QueryCache(this, data);
+      }
+
       // Update client data
       const updateData = new DataSet({ entities: data.entities });
       client.queries.forEach((query) => {
@@ -45,7 +52,6 @@ export default class QueryRequest {
       });
 
       // Add result to client
-      this.cache = new QueryCache(this, data);
       client.queries.set(this.options.name, this);
 
       // Commit update
@@ -63,6 +69,8 @@ export default class QueryRequest {
       // Delete cache after first use, so that it is only used on first render.
       delete cache[this.options.name];
     } else {
+      this.loading = true;
+
       // Do not start a request on server if SSR is disabled.
       if (isServer && !client.ssr) {
         this.resource = new ProxyResource();
@@ -89,10 +97,45 @@ export default class QueryRequest {
           },
         );
       }
+    }
 
-      this.loading = true;
+    if (!isServer && options.refetchInterval) {
+      this.interval = setInterval(() => {
+        this.loading = true;
+
+        const resource = new Resource(() =>
+          createRequest(client.request, ast, options.variables),
+        );
+
+        if (!options.refetchIntervalInBackground) {
+          this.resource = resource;
+          this.cache = null;
+
+          // Commit update
+          client.refresh();
+        }
+
+        // Handle fulfilled and rejected promise
+        resource.promise.then(
+          (res) => {
+            this.loading = false;
+
+            if (options.refetchIntervalInBackground) {
+              this.resource = resource;
+            }
+
+            handleResponse(res);
+          },
+          () => {
+            this.loading = false;
+            this.aborted = true;
+          },
+        );
+      }, options.refetchInterval);
     }
   }
+
+  refetch = () => {};
 
   read = () => {
     this.resource.read();
@@ -120,6 +163,11 @@ export default class QueryRequest {
   unmount = () => {
     this.mounted = false;
     this.aborted = true;
+
+    // Clear interval
+    if (this.interval) {
+      clearInterval(this.interval);
+    }
 
     // Delete resource from client
     this.client.queries.delete(this.options.name);

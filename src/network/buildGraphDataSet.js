@@ -11,11 +11,19 @@ export default function buildGraphDataSet(cache) {
     const entry = [type, id];
     const cachedResult = cache.graphData?.getFragment(name, entry);
 
-    graphData.setFragment(name, entry, {
-      [TYPENAME]: type,
-      [ID]: id,
-      ...(isEqual(result, cachedResult) ? cachedResult : result),
-    });
+    // Keep cached result if there are no changes, so that we can check graphDataByRequest against
+    // the result in order to determine an update.
+    graphData.setFragment(
+      name,
+      entry,
+      isEqual(result, cachedResult)
+        ? cachedResult
+        : {
+            [TYPENAME]: type,
+            [ID]: id,
+            ...result,
+          },
+    );
 
     return {};
   };
@@ -36,6 +44,8 @@ export default function buildGraphDataSet(cache) {
 
   const cachedResult = cache.graphData?.getQuery();
 
+  // Keep cached result if there are no changes, so that we can check graphDataByRequest against
+  // the result in order to determine an update.
   graphData.setQuery(isEqual(result, cachedResult) ? cachedResult : result);
 
   return graphData;
