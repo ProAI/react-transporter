@@ -23,6 +23,7 @@ const handleSelectionSet = (
   selectionSet,
   value,
   context,
+  path = [],
   ignoreArgs = false,
 ) => {
   const { cache, handleFragment, keyWithArgs } = context;
@@ -41,6 +42,7 @@ const handleSelectionSet = (
         selection.selectionSet,
         value[key],
         context,
+        [...path, resultKey],
       );
     }
 
@@ -48,7 +50,7 @@ const handleSelectionSet = (
       try {
         Object.assign(
           result,
-          handleSelectionSet(selection.selectionSet, value, context),
+          handleSelectionSet(selection.selectionSet, value, context, path),
         );
       } catch (err) {
         if (err.name !== 'ValueError') {
@@ -95,7 +97,7 @@ const handleSelectionSet = (
 
         if (fragmentAst.typeCondition.name.value === value[TYPENAME]) {
           throw new Error(
-            `Fragment "${fragmentAst.name.value}" has an undefined value and has been skipped.`,
+            `Fragment "${fragmentAst.name.value}" at [${path}]: ${err.message}`,
           );
         }
 
@@ -107,7 +109,7 @@ const handleSelectionSet = (
   return result;
 };
 
-const buildNode = (selectionSet, value, context) => {
+const buildNode = (selectionSet, value, context, path) => {
   // Return value if there is no selection set
   if (selectionSet === undefined) {
     return value;
@@ -115,16 +117,18 @@ const buildNode = (selectionSet, value, context) => {
 
   // Handle array of values
   if (Array.isArray(value)) {
-    // eslint-disable-next-line no-use-before-define
-    return value.map((v) => handleValue(selectionSet, v, context));
+    return value.map((v, k) =>
+      // eslint-disable-next-line no-use-before-define
+      handleValue(selectionSet, v, context, [...path, k]),
+    );
   }
 
   // Handle value
   // eslint-disable-next-line no-use-before-define
-  return handleValue(selectionSet, value, context);
+  return handleValue(selectionSet, value, context, path);
 };
 
-const handleRef = (selectionSet, ref, context) => {
+const handleRef = (selectionSet, ref, context, path) => {
   if (ref === null) {
     return null;
   }
@@ -135,17 +139,17 @@ const handleRef = (selectionSet, ref, context) => {
   const cachedEntity = cache.data.get(type, id);
 
   if (!cachedEntity) {
-    throw new ValueError(`Entity [${type}, ${id}] not found.`);
+    throw new ValueError(`Entity [${type}, ${id}] not found.`, path);
   }
 
-  const result = handleSelectionSet(selectionSet, cachedEntity, context);
+  const result = handleSelectionSet(selectionSet, cachedEntity, context, path);
 
   return handleEntity(type, id, result);
 };
 
-const handleValue = (selectionSet, value, context) => {
+const handleValue = (selectionSet, value, context, path) => {
   if (value === undefined) {
-    throw new ValueError('Undefined value.');
+    throw new ValueError('Undefined value.', path);
   }
 
   if (value === null) {
@@ -153,7 +157,7 @@ const handleValue = (selectionSet, value, context) => {
   }
 
   if (!(REF_KEY in value)) {
-    return handleSelectionSet(selectionSet, value, context);
+    return handleSelectionSet(selectionSet, value, context, path);
   }
 
   const ref = value[REF_KEY];
@@ -163,11 +167,13 @@ const handleValue = (selectionSet, value, context) => {
   // const entity = handleConnection(ref ? data.get(...ref) : value);
 
   if (ref.length === 2 && !Array.isArray(ref[0])) {
-    return handleLink(handleRef(selectionSet, ref, context));
+    return handleLink(handleRef(selectionSet, ref, context, path));
   }
 
   return handleLink(
-    ref.map((refItem) => handleRef(selectionSet, refItem, context)),
+    ref.map((refItem, refKey) =>
+      handleRef(selectionSet, refItem, context, [...path, refKey]),
+    ),
   );
 };
 
@@ -195,14 +201,17 @@ export default function traverseAST(
       queryAst.selectionSet,
       cachedRoots,
       context,
+      [],
       queryAst.operation === 'mutation',
     );
   } catch (err) {
     if (err.name !== 'ValueError') {
       throw err;
     } else {
+      const { path, message } = err;
+
       throw new Error(
-        `Query "${queryAst.name.value}" has an undefined value and has been skipped.`,
+        `Query "${queryAst.name.value}" at [${path.join('.')}]: ${message}`,
       );
     }
   }

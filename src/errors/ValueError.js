@@ -1,6 +1,10 @@
 class ValueError extends Error {
-  constructor(message) {
+  path;
+
+  constructor(message, path) {
     super(message);
+
+    this.path = path;
     this.name = 'ValueError';
   }
 }
