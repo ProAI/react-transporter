@@ -9,10 +9,10 @@ const convertToRefs = (entityOrEntities) => {
 };
 
 const removeDuplicateRefs = (currentRefs, refs) => {
-  const result = refs.filter((ref) => {
+  const result = currentRefs.filter((ref) => {
     const [refType, refId] = ref;
 
-    return !currentRefs.some(([type, id]) => type === refType && id === refId);
+    return !refs.some(([type, id]) => type === refType && id === refId);
   });
 
   return result;
@@ -64,7 +64,7 @@ export default class ManyLink {
 
   detach(entityOrEntities) {
     const refs = convertToRefs(entityOrEntities);
-    this.refs = removeDuplicateRefs(refs, this.refs);
+    this.refs = removeDuplicateRefs(this.refs, refs);
 
     return this;
   }
