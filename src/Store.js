@@ -166,7 +166,10 @@ export default class Store {
       request.sync();
     });
 
-    let shouldUpdate = false;
+    // Traverse tree to update all child stores.
+    this.children.forEach((child) => {
+      child.refresh();
+    });
 
     // Check if a selector has been updated. If so, the store node should
     // update and the listeneres should be called.
@@ -175,17 +178,9 @@ export default class Store {
         this.graphDataByRequest.delete(request);
       }
       if (!request.cache || graphData.update(request.cache.graphData)) {
-        shouldUpdate = true;
+        this.update();
       }
     });
-
-    if (shouldUpdate) {
-      this.update();
-    } else {
-      this.children.forEach((child) => {
-        child.refresh();
-      });
-    }
   };
 
   reset = (root = true) => {
