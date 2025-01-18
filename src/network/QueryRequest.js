@@ -139,8 +139,6 @@ export default class QueryRequest {
     }
   }
 
-  refetch = () => {};
-
   read = () => {
     this.resource.read();
   };
@@ -150,6 +148,10 @@ export default class QueryRequest {
       this.ast === ast &&
       JSON.stringify(this.options.variables) === JSON.stringify(variables)
     );
+  };
+
+  isAborted = () => {
+    return this.aborted;
   };
 
   sync = () => {

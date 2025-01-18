@@ -2,6 +2,7 @@ import React, { createElement } from 'react';
 import TransporterContext from '../TransporterContext';
 import { isServer } from '../constants';
 import createContainerHandler from './createContainerHandler';
+import createComponentLoader from './createComponentLoader';
 
 export default function createContainer(config) {
   const { component, ...options } = config;
@@ -10,7 +11,8 @@ export default function createContainer(config) {
     throw new Error('You must define a container "component".');
   }
 
-  const ContainerHandler = createContainerHandler(component, options);
+  const componentLoader = createComponentLoader(component, options.renderer);
+  const ContainerHandler = createContainerHandler(componentLoader, options);
 
   class Container extends React.Component {
     store;
@@ -24,11 +26,6 @@ export default function createContainer(config) {
       this.store.mount();
     }
 
-    componentDidCatch(error, info) {
-      // eslint-disable-next-line no-console
-      console.error(error, info);
-    }
-
     componentWillUnmount() {
       this.store.unmount();
     }
@@ -38,7 +35,14 @@ export default function createContainer(config) {
       const { error } = this.state;
 
       if (error) {
-        return options.error && createElement(options.error, { error });
+        const reset = () => {
+          componentLoader.resetOnError();
+          this.store.resetAborted();
+
+          this.setState({ error: null });
+        };
+
+        return options.error && createElement(options.error, { error, reset });
       }
 
       const handler = <ContainerHandler {...this.props} />;
@@ -61,6 +65,7 @@ export default function createContainer(config) {
       const { client, store: parentStore } = this.context;
 
       if (!this.store) {
+        componentLoader.resetOnError();
         this.store = client.createStore(parentStore);
       }
 

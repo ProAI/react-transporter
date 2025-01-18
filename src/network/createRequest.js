@@ -14,13 +14,17 @@ export default function createRequest(request, query, variables) {
       })
       .then((data) => {
         if (!result.ok) {
-          // Error #2: Http error code detected, throw error.
-          throw new TransporterError(
-            `Request failed (HttpError - ${result.status}).`,
-            {
-              cause: new HttpError(result, data),
-            },
+          // Error #1: Http error code detected, throw error.
+          reject(
+            new TransporterError(
+              `Request failed (HttpError - ${result.status}).`,
+              {
+                cause: new HttpError(result, data),
+              },
+            ),
           );
+
+          return;
         }
 
         if (data.errors) {
@@ -29,12 +33,14 @@ export default function createRequest(request, query, variables) {
             console.error(`GraphQLError: ${error.message}`);
           });
 
-          // Error #5: Response has GraphQL errors, throw error.
+          // Error #2: Response has GraphQL errors, throw error.
           reject(
             new TransporterError('Request failed (GraphQLError).', {
               cause: new GraphQLError(data.errors),
             }),
           );
+
+          return;
         }
 
         resolve(data);

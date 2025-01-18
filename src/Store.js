@@ -183,17 +183,42 @@ export default class Store {
     });
   };
 
-  reset = (root = true) => {
-    this.requests = new Map();
-    this.graphDataByRequest = new Map();
+  resetAborted = (root = true) => {
+    // Unmount requests that failed.
+    this.requests.forEach((request, name) => {
+      if (request.isAborted()) {
+        this.requests.delete(name);
+        this.graphDataByRequest.delete(request);
+
+        request.unmount();
+      }
+    });
+
+    this.children.forEach((child) => {
+      child.resetAborted(false);
+    });
 
     if (root) {
       this.update();
     }
+  };
+
+  reset = (root = true) => {
+    // Unmount requests.
+    this.requests.forEach((request) => {
+      request.unmount();
+    });
+
+    this.requests = new Map();
+    this.graphDataByRequest = new Map();
 
     this.children.forEach((child) => {
       child.reset(false);
     });
+
+    if (root) {
+      this.update();
+    }
   };
 
   update = () => {
