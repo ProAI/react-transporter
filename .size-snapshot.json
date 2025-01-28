@@ -5,19 +5,19 @@
     "gzipped": 8562
   },
   "react-transporter.cjs.js": {
-    "bundled": 69097,
-    "minified": 36918,
-    "gzipped": 9186
+    "bundled": 69198,
+    "minified": 36904,
+    "gzipped": 9215
   },
   "react-transporter.umd.js": {
-    "bundled": 73453,
-    "minified": 30471,
-    "gzipped": 8562
+    "bundled": 73552,
+    "minified": 30475,
+    "gzipped": 8587
   },
   "react-transporter.esm.js": {
-    "bundled": 68291,
-    "minified": 36207,
-    "gzipped": 9053,
+    "bundled": 68396,
+    "minified": 36196,
+    "gzipped": 9082,
     "treeshaked": {
       "rollup": {
         "code": 109,
