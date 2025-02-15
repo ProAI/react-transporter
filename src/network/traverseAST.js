@@ -96,8 +96,10 @@ const handleSelectionSet = (
         }
 
         if (fragmentAst.typeCondition.name.value === value[TYPENAME]) {
+          const errPath = err.path.join('.');
+
           throw new Error(
-            `Fragment "${fragmentAst.name.value}" at [${path}]: ${err.message}`,
+            `Fragment "${fragmentAst.name.value}" at [${errPath}]: ${err.message}`,
           );
         }
 
@@ -209,9 +211,10 @@ export default function traverseAST(
       throw err;
     } else {
       const { path, message } = err;
+      const errPath = path.join('.');
 
       throw new Error(
-        `Query "${queryAst.name.value}" at [${path.join('.')}]: ${message}`,
+        `Query "${queryAst.name.value}" at [${errPath}]: ${message}`,
       );
     }
   }
