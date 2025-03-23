@@ -46,7 +46,11 @@ const handleSelectionSet = (
       );
     }
 
-    if (selection.kind === 'InlineFragment') {
+    // Include inline fragment if type condition is fullfilled.
+    if (
+      selection.kind === 'InlineFragment' &&
+      selection.typeCondition.name.value === value[TYPENAME]
+    ) {
       try {
         Object.assign(
           result,
@@ -57,16 +61,13 @@ const handleSelectionSet = (
           throw err;
         }
 
-        if (selection.typeCondition.name.value === value[TYPENAME]) {
-          throw new Error(
-            `Inline fragment "${selection.typeCondition.name.value}" has an undefined value and has been skipped.`,
-          );
-        }
-
-        // Hint: If type condition is not typename, do not throw an error.
+        throw new Error(
+          `Inline fragment "${selection.typeCondition.name.value}" has an undefined value and has been skipped.`,
+        );
       }
     }
 
+    // Include fragment and try to guess if type condition is fullfilled.
     if (selection.kind === 'FragmentSpread') {
       const fragmentAst = ast.definitions.find(
         (def) =>
@@ -103,6 +104,7 @@ const handleSelectionSet = (
           );
         }
 
+        // TODO: Add mapping between interface and type names!
         // Hint: If type condition is not typename, do not throw an error.
       }
     }
