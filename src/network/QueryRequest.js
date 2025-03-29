@@ -80,7 +80,7 @@ export default class QueryRequest {
         this.resource = new ProxyResource();
       } else {
         this.resource = new Resource(() =>
-          createRequest(client.request, ast, options.variables),
+          createRequest(client, ast, options.variables),
         );
 
         // Handle fulfilled and rejected promise
@@ -108,7 +108,7 @@ export default class QueryRequest {
         this.loading = true;
 
         const resource = new Resource(() =>
-          createRequest(client.request, ast, options.variables),
+          createRequest(client, ast, options.variables),
         );
 
         if (!options.refetchIntervalInBackground) {

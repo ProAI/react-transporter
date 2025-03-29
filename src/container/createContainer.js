@@ -26,6 +26,16 @@ export default function createContainer(config) {
       this.store.mount();
     }
 
+    componentDidCatch(error, info) {
+      if (options.throwOnError) {
+        return;
+      }
+
+      const { client } = this.context;
+
+      client.onContainerError(error, info);
+    }
+
     componentWillUnmount() {
       this.store.unmount();
     }

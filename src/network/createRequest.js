@@ -1,12 +1,12 @@
 import TransporterError from '../errors/TransporterError';
 import HttpError from '../errors/HttpError';
-import GraphQLError from '../errors/GraphQLError';
 
-export default function createRequest(request, query, variables) {
+export default function createRequest(client, query, variables) {
   return new Promise((resolve, reject) => {
     let result;
 
-    request(query.loc.source.body, variables)
+    client
+      .request(query.loc.source.body, variables)
       .then((res) => {
         result = res;
 
@@ -27,23 +27,16 @@ export default function createRequest(request, query, variables) {
           return;
         }
 
-        if (data.errors) {
-          data.errors.forEach((error) => {
-            // eslint-disable-next-line no-console
-            console.error(`GraphQLError: ${error.message}`);
-          });
-
+        try {
+          resolve(client.onResponse(data));
+        } catch (err) {
           // Error #2: Response has GraphQL errors, throw error.
           reject(
             new TransporterError('Request failed (GraphQLError).', {
-              cause: new GraphQLError(data.errors),
+              cause: err,
             }),
           );
-
-          return;
         }
-
-        resolve(data);
       })
       .catch((err) => {
         // Error #3: Something went wrong, throw error.

@@ -29,7 +29,7 @@ export default class MutationRequest {
     client.refresh();
 
     this.resource = new Resource(() =>
-      createRequest(client.request, ast, options.variables),
+      createRequest(client, ast, options.variables),
     );
 
     // Handle fulfilled and rejected promise
@@ -59,14 +59,10 @@ export default class MutationRequest {
         client.queries.forEach((query) => {
           query.cache.addUpdate(updatedData);
         });
+
         client.refresh();
       },
-      (err) => {
-        if (err.message) {
-          // eslint-disable-next-line no-console
-          console.error(`Mutation Error: ${err.message}`);
-        }
-
+      () => {
         // Reset optimistic update in client
         if (optimisticData) {
           client.queries.forEach((query) => {
