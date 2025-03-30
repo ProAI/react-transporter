@@ -2,7 +2,6 @@ import { useRef, useContext, useSyncExternalStore, createElement } from 'react';
 import { isServer } from '../constants';
 import TransporterContext from '../TransporterContext';
 import Resource from '../resources/Resource';
-import LoadingError from '../LoadingError';
 
 export default function createContainerHandler(componentLoader, options) {
   const loadData = options.data || (() => undefined);
@@ -45,10 +44,6 @@ export default function createContainerHandler(componentLoader, options) {
 
         // Re-throw suspense resource
         throw error;
-      }
-
-      if (error instanceof LoadingError) {
-        return options.loading && createElement(options.loading);
       }
 
       // If SSR is enabled and an error occured after loading an async

@@ -1,6 +1,18 @@
 import { createElement, useContext } from 'react';
 import TransporterContext from '../TransporterContext';
 
+class ReadOnlyStore {
+  store;
+
+  constructor(store) {
+    this.store = store;
+  }
+
+  select = (name) => this.store.select(name);
+
+  selectFragment = (name, entity) => this.store.selectFragment(name, entity);
+}
+
 export default function createNode(config) {
   const { component, ...options } = config;
 
@@ -23,7 +35,20 @@ export default function createNode(config) {
 
     const getValues = options.data || (() => null);
 
-    return createElement(component, getValues(store, props));
+    try {
+      return createElement(
+        component,
+        getValues(new ReadOnlyStore(store), props),
+      );
+    } catch (error) {
+      if (error instanceof Promise) {
+        throw new Error(
+          'React Transporter Node: Query requested before loaded. Wrap node into another container.',
+        );
+      }
+
+      throw error;
+    }
   }
 
   const name = component.displayName || component.name;
