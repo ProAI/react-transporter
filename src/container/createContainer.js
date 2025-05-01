@@ -2,7 +2,8 @@ import React, { createElement } from 'react';
 import TransporterContext from '../TransporterContext';
 import { isServer } from '../constants';
 import createContainerHandler from './createContainerHandler';
-import createComponentLoader from './createComponentLoader';
+import createComponentResolver from './createComponentResolver';
+import ErrorBoundary from './ErrorBoundary';
 
 export default function createContainer(config) {
   const { component, ...options } = config;
@@ -11,29 +12,18 @@ export default function createContainer(config) {
     throw new Error('You must define a container "component".');
   }
 
-  const componentLoader = createComponentLoader(component, options.renderer);
-  const ContainerHandler = createContainerHandler(componentLoader, options);
+  const componentResolver = createComponentResolver(
+    component,
+    options.renderer,
+  );
+
+  const ContainerHandler = createContainerHandler(componentResolver, options);
 
   class Container extends React.Component {
     store;
 
-    constructor(props) {
-      super(props);
-      this.state = { error: null };
-    }
-
     componentDidMount() {
       this.store.mount();
-    }
-
-    componentDidCatch(error, info) {
-      if (options.throwOnError) {
-        return;
-      }
-
-      const { client } = this.context;
-
-      client.onContainerError(error, info);
     }
 
     componentWillUnmount() {
@@ -42,23 +32,11 @@ export default function createContainer(config) {
 
     renderContainer() {
       const { client } = this.context;
-      const { error } = this.state;
-
-      if (error) {
-        const reset = () => {
-          componentLoader.resetOnError();
-          this.store.resetAborted();
-
-          this.setState({ error: null });
-        };
-
-        return options.error && createElement(options.error, { error, reset });
-      }
 
       const handler = <ContainerHandler {...this.props} />;
 
       // If SSR is disabled, we do not need to wrap the handler in Suspense.
-      if (isServer && !client.ssr) {
+      if (options.syncMode || (isServer && !client.ssr)) {
         return handler;
       }
 
@@ -75,21 +53,28 @@ export default function createContainer(config) {
       const { client, store: parentStore } = this.context;
 
       if (!this.store) {
-        componentLoader.resetOnError();
-        this.store = client.createStore(parentStore);
+        componentResolver.resetOnError();
+        this.store = client.createStore(parentStore, options.syncMode);
       }
 
       return (
         <TransporterContext.Provider value={{ client, store: this.store }}>
-          {this.renderContainer()}
+          {options.throwOnError ? (
+            this.renderContainer()
+          ) : (
+            <ErrorBoundary
+              fallbackRender={options.error}
+              onReset={() => {
+                componentResolver.resetOnError();
+                this.store.resetAborted();
+              }}
+            >
+              {this.renderContainer()}
+            </ErrorBoundary>
+          )}
         </TransporterContext.Provider>
       );
     }
-  }
-
-  // Add error boundary if container should not throw.
-  if (!options.throwOnError) {
-    Container.getDerivedStateFromError = (error) => ({ error });
   }
 
   Container.contextType = TransporterContext;

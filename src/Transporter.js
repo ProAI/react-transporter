@@ -1,30 +1,16 @@
 import QueryRequest from './network/QueryRequest';
 import MutationRequest from './network/MutationRequest';
-import GraphQLError from './errors/GraphQLError';
 import Store from './Store';
-
-const handleResponse = (data) => {
-  if (data.errors) {
-    throw new GraphQLError(data.errors);
-  }
-
-  return data;
-};
-
-const handleContainerError = () => {
-  // React already logs errors from error boundary, so we do not log the error here.
-};
-
-const handleDispatcherError = (error) => {
-  // eslint-disable-next-line no-console
-  console.error(`Request error: ${error.message}`);
-};
 
 /* eslint-disable arrow-body-style */
 export default class Transporter {
   request;
 
   rootStore;
+
+  transformContainerError;
+
+  createGraphQLErrorMessage;
 
   cache;
 
@@ -34,18 +20,16 @@ export default class Transporter {
 
   constructor({
     request,
-    onResponse = handleResponse,
-    onContainerError = handleContainerError,
-    onDispatcherError = handleDispatcherError,
+    transformContainerError,
+    createGraphQLErrorMessage,
     cache = {},
     ssr = false,
   }) {
     this.request = request;
 
     this.rootStore = this.createStore(null);
-    this.onResponse = onResponse;
-    this.onContainerError = onContainerError;
-    this.onDispatcherError = onDispatcherError;
+    this.transformContainerError = transformContainerError;
+    this.createGraphQLErrorMessage = createGraphQLErrorMessage;
     this.cache = cache;
     this.ssr = ssr;
 
@@ -65,8 +49,8 @@ export default class Transporter {
     return new QueryRequest(this, ast, options);
   };
 
-  createStore = (parentStore) => {
-    return new Store(parentStore, this.query);
+  createStore = (parentStore, syncMode) => {
+    return new Store(parentStore, this.query, syncMode);
   };
 
   mutate = (ast, options) => {

@@ -72,11 +72,9 @@ export default function useDispatcher() {
         updateState(instance);
         return instance.cache.graphData.getQuery();
       },
-      (err) => {
-        context.client.onDispatcherError(err);
-
+      (error) => {
         updateState(instance);
-        throw err;
+        throw error;
       },
     );
   };

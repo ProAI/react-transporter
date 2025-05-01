@@ -1,16 +1,26 @@
 import { createElement, useContext } from 'react';
 import TransporterContext from '../TransporterContext';
 
-class ReadOnlyStore {
+class NodeStore {
   store;
 
   constructor(store) {
     this.store = store;
   }
 
-  select = (name) => this.store.select(name);
+  preload = () => {
+    throw new Error(
+      'preload() cannot be called on a node, only on a container.',
+    );
+  };
 
-  selectFragment = (name, entity) => this.store.selectFragment(name, entity);
+  load = () => {
+    throw new Error('load() cannot be called on a node, only on a container.');
+  };
+
+  select = (...args) => this.store.select(...args);
+
+  selectFragment = (...args) => this.store.selectFragment(...args);
 }
 
 export default function createNode(config) {
@@ -22,8 +32,10 @@ export default function createNode(config) {
     );
   }
 
+  const resolveData = options.data || (() => undefined);
+
   function ContainerNode(props) {
-    const { store } = useContext(TransporterContext);
+    const { client, store } = useContext(TransporterContext);
 
     const isWrappedInContainer = !!store.parentStore.parentStore;
 
@@ -33,14 +45,13 @@ export default function createNode(config) {
       );
     }
 
-    const getValues = options.data || (() => null);
-
     try {
-      return createElement(
-        component,
-        getValues(new ReadOnlyStore(store), props),
-      );
-    } catch (error) {
+      return createElement(component, resolveData(new NodeStore(store), props));
+    } catch (rawError) {
+      const error = client.transformContainerError
+        ? client.transformContainerError(rawError)
+        : rawError;
+
       if (error instanceof Promise) {
         throw new Error(
           'React Transporter Node: Query requested before loaded. Wrap node into another container.',

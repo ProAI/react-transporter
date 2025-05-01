@@ -1,11 +1,11 @@
 import resolveComponent from './resolveComponent';
 
-export default function createComponentLoader(component, renderer) {
+export default function createComponentResolver(component, renderer) {
   let resource;
   let ResolvedComponent;
 
   return {
-    load() {
+    resolve() {
       if (!ResolvedComponent) {
         if (!resource) {
           resource = resolveComponent(component);

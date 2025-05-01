@@ -3,8 +3,8 @@ import { isServer } from '../constants';
 import TransporterContext from '../TransporterContext';
 import Resource from '../resources/Resource';
 
-export default function createContainerHandler(componentLoader, options) {
-  const loadData = options.data || (() => undefined);
+export default function createContainerHandler(componentResolver, options) {
+  const resolveData = options.data || (() => undefined);
 
   /* eslint-disable react/prop-types */
   function ContainerHandler(props) {
@@ -14,17 +14,23 @@ export default function createContainerHandler(componentLoader, options) {
     useSyncExternalStore(store.subscribe, store.getSnapshot, () => null);
 
     try {
-      const [resolvedProps, Component] = Resource.all([
-        () => loadData(store, props),
-        () => componentLoader.load(),
-      ]);
+      const [resolvedProps, Component] = options.syncMode
+        ? [resolveData(store, props), componentResolver.resolve()]
+        : Resource.all([
+            () => resolveData(store, props),
+            () => componentResolver.resolve(),
+          ]);
 
       if (options.waitForAll) {
         store.waitForAll();
       }
 
       return createElement(Component, resolvedProps);
-    } catch (error) {
+    } catch (rawError) {
+      const error = client.transformContainerError
+        ? client.transformContainerError(rawError)
+        : rawError;
+
       // If not on the server, errors will be handled by the error boundary.
       if (!isServer) {
         throw error;
@@ -58,14 +64,14 @@ export default function createContainerHandler(componentLoader, options) {
         throw error;
       }
 
-      // Render error page for synchronous error.
+      // Render error page for server side rendering errors, because error boundaries are not
+      // working on server side.
       return (
         options.error &&
         createElement(options.error, {
           error,
           // Use noop for reset on server.
           reset: () => {},
-          resetAll: () => {},
         })
       );
     }

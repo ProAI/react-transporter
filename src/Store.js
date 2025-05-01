@@ -6,6 +6,8 @@ export default class Store {
 
   executeQuery;
 
+  syncMode;
+
   children = [];
 
   requests;
@@ -18,9 +20,10 @@ export default class Store {
 
   mounted = false;
 
-  constructor(parentStore, executeQuery) {
+  constructor(parentStore, executeQuery, syncMode) {
     this.parentStore = parentStore;
     this.executeQuery = executeQuery;
+    this.syncMode = syncMode;
 
     this.requests = new Map();
     this.graphDataByRequest = new Map();
@@ -57,6 +60,10 @@ export default class Store {
   };
 
   load = (ast, options) => {
+    if (this.syncMode) {
+      throw new Error('load() cannot be called in sync mode.');
+    }
+
     const name = this.preload(ast, options);
     return this.select(name);
   };
@@ -76,6 +83,10 @@ export default class Store {
   };
 
   select = (name) => {
+    if (this.syncMode) {
+      throw new Error('select() cannot be called in sync mode.');
+    }
+
     const request = this.getRequest(name);
 
     // Check if request has loaded
@@ -123,6 +134,10 @@ export default class Store {
   };
 
   selectFragment = (name, entity) => {
+    if (this.syncMode) {
+      throw new Error('selectFragment() cannot be called in sync mode.');
+    }
+
     const { [TYPENAME]: type, [ID]: id } = entity;
 
     const request = this.getFragmentRequest(name, type, id);
