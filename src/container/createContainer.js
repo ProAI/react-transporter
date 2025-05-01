@@ -1,4 +1,4 @@
-import React, { createElement } from 'react';
+import React, { useContext, useRef, useEffect, createElement } from 'react';
 import TransporterContext from '../TransporterContext';
 import { isServer } from '../constants';
 import createContainerHandler from './createContainerHandler';
@@ -19,65 +19,54 @@ export default function createContainer(config) {
 
   const ContainerHandler = createContainerHandler(componentResolver, options);
 
-  class Container extends React.Component {
-    store;
+  function Container(props) {
+    const { client, store: parentStore } = useContext(TransporterContext);
+    const storeRef = useRef(null);
 
-    componentDidMount() {
-      this.store.mount();
+    if (!storeRef.current) {
+      componentResolver.resetOnError();
+      storeRef.current = client.createStore(parentStore, options.syncMode);
     }
 
-    componentWillUnmount() {
-      this.store.unmount();
-    }
+    useEffect(() => {
+      storeRef.current.mount();
 
-    renderContainer() {
-      const { client } = this.context;
+      return () => {
+        storeRef.current.unmount();
+      };
+    }, []);
 
-      const handler = <ContainerHandler {...this.props} />;
+    const handler = <ContainerHandler {...props} />;
 
-      // If SSR is disabled, we do not need to wrap the handler in Suspense.
-      if (options.syncMode || (isServer && !client.ssr)) {
-        return handler;
-      }
-
-      return (
+    const container =
+      options.syncMode || (isServer && !client.ssr) ? (
+        handler
+      ) : (
         <React.Suspense
           fallback={options.loading && createElement(options.loading)}
         >
           {handler}
         </React.Suspense>
       );
-    }
 
-    render() {
-      const { client, store: parentStore } = this.context;
-
-      if (!this.store) {
-        componentResolver.resetOnError();
-        this.store = client.createStore(parentStore, options.syncMode);
-      }
-
-      return (
-        <TransporterContext.Provider value={{ client, store: this.store }}>
-          {options.throwOnError ? (
-            this.renderContainer()
-          ) : (
-            <ErrorBoundary
-              fallbackRender={options.error}
-              onReset={() => {
-                componentResolver.resetOnError();
-                this.store.resetAborted();
-              }}
-            >
-              {this.renderContainer()}
-            </ErrorBoundary>
-          )}
-        </TransporterContext.Provider>
-      );
-    }
+    return (
+      <TransporterContext.Provider value={{ client, store: storeRef.current }}>
+        {options.throwOnError ? (
+          container
+        ) : (
+          <ErrorBoundary
+            fallbackRender={options.error}
+            onReset={() => {
+              componentResolver.resetOnError();
+              storeRef.current.resetAborted();
+            }}
+          >
+            {container}
+          </ErrorBoundary>
+        )}
+      </TransporterContext.Provider>
+    );
   }
-
-  Container.contextType = TransporterContext;
 
   const name = component.displayName || component.name;
   Container.displayName = name ? `Container(${name})` : 'Container';
