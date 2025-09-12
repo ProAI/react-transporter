@@ -1,4 +1,4 @@
-import { useContext, useState, useRef } from 'react';
+import { useContext, useState, useRef, useEffect } from 'react';
 import TransporterContext from './TransporterContext';
 
 const PENDING = 'pending';
@@ -27,9 +27,22 @@ export default function useDispatcher() {
     error: null,
   });
 
+  const mounted = useRef(false);
   const instances = useRef([]);
 
+  useEffect(() => {
+    mounted.current = true;
+
+    return () => {
+      mounted.current = false;
+    };
+  }, []);
+
   const updateState = (instance) => {
+    if (!mounted.current) {
+      return;
+    }
+
     const latestInstance = getLatestInstance(instances);
 
     if (latestInstance !== instance) {
