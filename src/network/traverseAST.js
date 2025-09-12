@@ -164,21 +164,12 @@ const handleValue = (selectionSet, value, context, path) => {
     return handleSelectionSet(selectionSet, value, context, path);
   }
 
-  const ref = value[REF_KEY];
   const { handleLink } = context;
 
   // TODO: Apply connections
-  // const entity = handleConnection(ref ? data.get(...ref) : value);
+  // const entity = handleConnection(value[REF_KEY] ? data.get(...value[REF_KEY]) : value);
 
-  if (ref.length === 2 && !Array.isArray(ref[0])) {
-    return handleLink(handleRef(selectionSet, ref, context, path));
-  }
-
-  return handleLink(
-    ref.map((refItem, refKey) =>
-      handleRef(selectionSet, refItem, context, [...path, refKey]),
-    ),
-  );
+  return handleLink(handleRef(selectionSet, value[REF_KEY], context, path));
 };
 
 export default function traverseAST(

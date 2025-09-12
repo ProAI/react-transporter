@@ -1,63 +1,71 @@
 import Link from '../Link';
-import ManyLink from '../ManyLink';
-import { REF_KEY } from '../constants';
+import Collection from '../Collection';
+import { REF_KEY, TYPENAME } from '../constants';
+
+// Native format:
+// - Only uses arrays and { ref: [typename, id] } refs
+//
+// User (non-native) format:
+// - Uses Collection instances instead of arrays
+// - Uses Link instances instead of { ref: [typename, id] } refs
+// - Also allows { __typename, id, ... } objects as refs
 
 const isDate = (v) => Object.prototype.toString.call(v) === '[object Date]';
 
 export default class ValueCaster {
   static fromNative(value) {
     if (Array.isArray(value)) {
-      return value.map((v) => ValueCaster.fromNative(v));
+      return Collection.fromNative(value.map((v) => ValueCaster.fromNative(v)));
     }
 
-    if (typeof value === 'object') {
-      if (REF_KEY in value) {
-        const ref = value[REF_KEY];
-
-        if (ref.length === 2 && !Array.isArray(ref[0])) {
-          return Link.fromNative(ref);
-        }
-
-        return ManyLink.fromNative(ref);
-      }
-
-      const result = {};
-
-      Object.entries(value).forEach(([k, v]) => {
-        result[k] = ValueCaster.fromNative(v);
-      });
-
-      return result;
+    if (value === null || typeof value !== 'object') {
+      return value;
     }
 
-    return value;
+    if (REF_KEY in value) {
+      return Link.fromNative(value[REF_KEY]);
+    }
+
+    const item = {};
+
+    Object.entries(value).forEach(([k, v]) => {
+      item[k] = ValueCaster.fromNative(v);
+    });
+
+    return item;
   }
 
   static toNative(value) {
-    if (value instanceof Link || value instanceof ManyLink) {
-      return {
-        [REF_KEY]: value.toNative(),
-      };
-    }
-
     if (isDate(value)) {
       return value.toISOString();
+    }
+
+    if (value instanceof Collection) {
+      return value.toNative().map((v) => ValueCaster.toNative(v));
     }
 
     if (Array.isArray(value)) {
       return value.map((v) => ValueCaster.toNative(v));
     }
 
-    if (value && typeof value === 'object') {
-      const result = {};
-
-      Object.entries(value).forEach(([k, v]) => {
-        result[k] = ValueCaster.toNative(v);
-      });
-
-      return result;
+    if (value === null || typeof value !== 'object') {
+      return value;
     }
 
-    return value;
+    if (value instanceof Link) {
+      return { [REF_KEY]: value.toNative() };
+    }
+
+    if (TYPENAME in value) {
+      return { [REF_KEY]: new Link(value).toNative() };
+    }
+
+    const item = {};
+
+    Object.entries(value).forEach(([k, v]) => {
+      item[k] = ValueCaster.toNative(v);
+    });
+
+    return item;
   }
 }

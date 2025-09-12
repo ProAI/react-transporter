@@ -3,10 +3,10 @@ import createNode from './container/createNode';
 import GraphQLError from './errors/GraphQLError';
 import HttpError from './errors/HttpError';
 import Resource from './resources/Resource';
+import Collection from './Collection';
 import createHttpClient from './createHttpClient';
 import key from './key';
 import Link from './Link';
-import ManyLink from './ManyLink';
 import ref from './ref';
 import Transporter from './Transporter';
 import TransporterProvider from './TransporterProvider';
@@ -21,10 +21,10 @@ export {
   GraphQLError,
   HttpError,
   Resource,
+  Collection,
   createHttpClient,
   key,
   Link,
-  ManyLink,
   ref,
   Transporter,
   TransporterProvider,

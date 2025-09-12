@@ -18,6 +18,10 @@ export default class Link {
     return instance;
   }
 
+  equals(link) {
+    return this.ref[0] === link.ref[0] && this.ref[1] === link.ref[1];
+  }
+
   toNative() {
     return this.ref;
   }
