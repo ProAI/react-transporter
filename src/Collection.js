@@ -1,5 +1,5 @@
 import Link from './Link';
-import { TYPENAME } from './constants';
+import { TYPENAME, ID } from './constants';
 
 const transformEntitiesToLinks = (value) => {
   // eslint-disable-next-line no-use-before-define
@@ -16,7 +16,7 @@ const transformEntitiesToLinks = (value) => {
     return value;
   }
 
-  if (TYPENAME in value) {
+  if (ID in value && TYPENAME in value) {
     return new Link(value);
   }
 

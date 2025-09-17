@@ -1,6 +1,6 @@
 import Link from '../Link';
 import Collection from '../Collection';
-import { REF_KEY, TYPENAME } from '../constants';
+import { REF_KEY, TYPENAME, ID } from '../constants';
 
 // Native format:
 // - Only uses arrays and { ref: [typename, id] } refs
@@ -56,7 +56,7 @@ export default class ValueCaster {
       return { [REF_KEY]: value.toNative() };
     }
 
-    if (TYPENAME in value) {
+    if (ID in value && TYPENAME in value) {
       return { [REF_KEY]: new Link(value).toNative() };
     }
 
