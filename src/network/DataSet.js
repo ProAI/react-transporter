@@ -12,7 +12,7 @@ const intersect = (left = {}, right = {}, condition = () => true) => {
   );
 };
 
-const merge = (left = {}, right = {}, condition = (v) => v) => {
+const merge = (left = {}, right = {}, condition) => {
   if (!condition) return { ...left, ...right };
 
   const result = { ...left };
@@ -40,6 +40,21 @@ const mergeValue = (key, left, right) => {
     console.warn(
       `Key ${key} had value "${left}" and was updated with value of different type "${right}".`,
     );
+  }
+
+  // TODO: Merge arrays of objects by defining a key (maybe by using a graphql directive).
+  if (Array.isArray(left) && Array.isArray(right)) {
+    return right;
+  }
+
+  // Values are objects, so merge them.
+  if (
+    left !== null &&
+    typeof left === 'object' &&
+    right !== null &&
+    typeof right === 'object'
+  ) {
+    return { ...left, ...right };
   }
 
   return right;
