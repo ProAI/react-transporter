@@ -37,6 +37,10 @@ export default class Transporter {
   }
 
   query = (ast, options) => {
+    return new QueryRequest(this, ast, options);
+  };
+
+  createStoreQuery = (ast, options) => {
     const query = this.queries.get(options.name);
 
     // It might happen that a rerender occurs while initializing. In this case
@@ -46,11 +50,11 @@ export default class Transporter {
       return query;
     }
 
-    return new QueryRequest(this, ast, options);
+    return new QueryRequest(this, ast, options, true);
   };
 
   createStore = (parentStore, syncMode) => {
-    return new Store(parentStore, this.query, syncMode);
+    return new Store(parentStore, this.createStoreQuery, syncMode);
   };
 
   mutate = (ast, options) => {

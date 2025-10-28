@@ -14,6 +14,8 @@ export default class QueryRequest {
 
   options;
 
+  shouldCacheResponse;
+
   resource;
 
   selectors = [];
@@ -28,59 +30,34 @@ export default class QueryRequest {
 
   cache = null;
 
-  constructor(client, ast, options = {}) {
+  constructor(client, ast, options = {}, shouldCacheResponse = false) {
     this.client = client;
     this.ast = ast;
     this.options = options;
-
-    const handleResponse = (res, fromCache = false) => {
-      if (this.aborted) {
-        return;
-      }
-
-      const data = new DataSet(res.data);
-
-      // Create cache
-      if (!this.cache) {
-        this.cache = new QueryCache(this, data);
-      }
-
-      // Update client data
-      if (!isServer && !fromCache) {
-        const updateData = new DataSet({ entities: data.entities });
-        client.queries.forEach((query) => {
-          query.cache.addUpdate(updateData);
-        });
-      }
-
-      // Add result to client
-      client.queries.set(this.options.name, this);
-
-      // Commit update
-      if (!isServer && !fromCache) {
-        client.refresh();
-      }
-    };
-
-    const { cache } = client;
-    const cachedResponse = cache[this.options.name];
+    this.shouldCacheResponse = shouldCacheResponse;
 
     // Set response from cache or start a new request.
+    this.handleRequest();
+  }
+
+  handleRequest = () => {
+    const cachedResponse = this.client.cache[this.options.name];
+
     if (cachedResponse) {
       this.resource = new SyncResource(cachedResponse);
-      handleResponse({ data: cachedResponse }, true);
+      this.handleResponse({ data: cachedResponse }, true);
 
       // Delete cache after first use, so that it is only used on first render.
-      delete cache[this.options.name];
+      delete this.client.cache[this.options.name];
     } else {
       this.loading = true;
 
       // Do not start a request on server if SSR is disabled.
-      if (isServer && !client.ssr) {
+      if (isServer && !this.client.ssr) {
         this.resource = new ProxyResource();
       } else {
         this.resource = new Resource(() =>
-          createRequest(client, ast, options.variables),
+          createRequest(this.client, this.ast, this.options.variables),
         );
 
         // Handle fulfilled and rejected promise
@@ -90,10 +67,10 @@ export default class QueryRequest {
 
             // Store response on server side for hydration.
             if (isServer) {
-              cache[this.options.name] = res;
+              this.client.cache[this.options.name] = res;
             }
 
-            handleResponse(res);
+            this.handleResponse(res);
           },
           () => {
             this.loading = false;
@@ -103,20 +80,20 @@ export default class QueryRequest {
       }
     }
 
-    if (!isServer && options.refetchInterval) {
+    if (!isServer && this.options.refetchInterval) {
       this.interval = setInterval(() => {
         this.loading = true;
 
         const resource = new Resource(() =>
-          createRequest(client, ast, options.variables),
+          createRequest(this.client, this.ast, this.options.variables),
         );
 
-        if (!options.refetchIntervalInBackground) {
+        if (!this.options.refetchIntervalInBackground) {
           this.resource = resource;
           this.cache = null;
 
           // Commit update
-          client.refresh();
+          this.client.refresh();
         }
 
         // Handle fulfilled and rejected promise
@@ -124,20 +101,51 @@ export default class QueryRequest {
           (res) => {
             this.loading = false;
 
-            if (options.refetchIntervalInBackground) {
+            if (this.options.refetchIntervalInBackground) {
               this.resource = resource;
             }
 
-            handleResponse(res);
+            this.handleResponse(res);
           },
           () => {
             this.loading = false;
             this.aborted = true;
           },
         );
-      }, options.refetchInterval);
+      }, this.options.refetchInterval);
     }
-  }
+  };
+
+  handleResponse = (res, fromCache = false) => {
+    if (this.aborted) {
+      return;
+    }
+
+    const data = new DataSet(res.data);
+
+    // Create cache
+    if (!this.cache) {
+      this.cache = new QueryCache(this, data);
+    }
+
+    // Update client data
+    if (!isServer && !fromCache) {
+      const updateData = new DataSet({ entities: data.entities });
+      this.client.queries.forEach((query) => {
+        query.cache.addUpdate(updateData);
+      });
+    }
+
+    // Add result to client
+    if (this.shouldCacheResponse) {
+      this.client.queries.set(this.options.name, this);
+    }
+
+    // Commit update
+    if (!isServer && !fromCache) {
+      this.client.refresh();
+    }
+  };
 
   read = () => {
     this.resource.read();
@@ -176,7 +184,9 @@ export default class QueryRequest {
     }
 
     // Delete resource from client
-    this.client.queries.delete(this.options.name);
+    if (this.shouldCacheResponse) {
+      this.client.queries.delete(this.options.name);
+    }
   };
 }
 /* eslint-enable */
