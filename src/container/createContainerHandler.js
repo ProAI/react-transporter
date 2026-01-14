@@ -27,8 +27,8 @@ export default function createContainerHandler(componentResolver, options) {
 
       return createElement(Component, resolvedProps);
     } catch (rawError) {
-      const error = client.transformContainerError
-        ? client.transformContainerError(rawError)
+      const error = client.formatContainerError
+        ? client.formatContainerError(rawError)
         : rawError;
 
       // If not on the server, errors will be handled by the error boundary.

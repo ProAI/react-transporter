@@ -8,9 +8,9 @@ export default class Transporter {
 
   rootStore;
 
-  transformContainerError;
+  formatError;
 
-  createGraphQLErrorMessage;
+  formatContainerError;
 
   cache;
 
@@ -20,16 +20,16 @@ export default class Transporter {
 
   constructor({
     request,
-    transformContainerError,
-    createGraphQLErrorMessage,
+    formatError,
+    formatContainerError,
     cache = {},
     ssr = false,
   }) {
     this.request = request;
 
     this.rootStore = this.createStore(null);
-    this.transformContainerError = transformContainerError;
-    this.createGraphQLErrorMessage = createGraphQLErrorMessage;
+    this.formatError = formatError;
+    this.formatContainerError = formatContainerError;
     this.cache = cache;
     this.ssr = ssr;
 

@@ -48,8 +48,8 @@ export default function createNode(config) {
     try {
       return createElement(component, resolveData(new NodeStore(store), props));
     } catch (rawError) {
-      const error = client.transformContainerError
-        ? client.transformContainerError(rawError)
+      const error = client.formatContainerError
+        ? client.formatContainerError(rawError)
         : rawError;
 
       if (error instanceof Promise) {
