@@ -1,4 +1,4 @@
-import React, { useSyncExternalStore } from 'react';
+import React, { useMemo, useSyncExternalStore } from 'react';
 import TransporterContext from './TransporterContext';
 
 /* eslint-disable react/prop-types */
@@ -13,8 +13,10 @@ function TransporterProvider({ children, client }) {
 
   useSyncExternalStore(store.subscribe, store.getSnapshot, () => null);
 
+  const value = useMemo(() => ({ client, store }), [client, store]);
+
   return (
-    <TransporterContext.Provider value={{ client, store }}>
+    <TransporterContext.Provider value={value}>
       {children}
     </TransporterContext.Provider>
   );

@@ -8,12 +8,14 @@ class NodeStore {
     this.store = store;
   }
 
+  // eslint-disable-next-line class-methods-use-this
   preload = () => {
     throw new Error(
       'preload() cannot be called on a node, only on a container.',
     );
   };
 
+  // eslint-disable-next-line class-methods-use-this
   load = () => {
     throw new Error('load() cannot be called on a node, only on a container.');
   };

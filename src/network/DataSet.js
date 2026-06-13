@@ -12,7 +12,7 @@ const intersect = (left = {}, right = {}, condition = () => true) => {
   );
 };
 
-const merge = (left = {}, right = {}, condition) => {
+const merge = (left = {}, right = {}, condition = null) => {
   if (!condition) return { ...left, ...right };
 
   const result = { ...left };

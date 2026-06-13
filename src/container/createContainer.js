@@ -1,4 +1,10 @@
-import React, { useContext, useRef, useEffect, createElement } from 'react';
+import React, {
+  useContext,
+  useRef,
+  useEffect,
+  useMemo,
+  createElement,
+} from 'react';
 import TransporterContext from '../TransporterContext';
 import { isServer } from '../constants';
 import createContainerHandler from './createContainerHandler';
@@ -36,6 +42,11 @@ export default function createContainer(config) {
       };
     }, []);
 
+    const value = useMemo(
+      () => ({ client, store: storeRef.current }),
+      [client, storeRef.current],
+    );
+
     const handler = <ContainerHandler {...props} />;
 
     const container =
@@ -50,7 +61,7 @@ export default function createContainer(config) {
       );
 
     return (
-      <TransporterContext.Provider value={{ client, store: storeRef.current }}>
+      <TransporterContext.Provider value={value}>
         {options.throwOnError ? (
           container
         ) : (
