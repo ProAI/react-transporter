@@ -38,6 +38,13 @@ export default class QueryCache {
       data,
       cache: updatedData,
     };
+    console.log(
+      'update',
+      this.request.ast.definitions[0].name.value,
+      this,
+      data,
+      updatedData,
+    );
 
     this.data = updatedData;
     this.updates = [...this.updates, update];
@@ -81,6 +88,7 @@ export default class QueryCache {
     if (!this.dirty) {
       return;
     }
+    console.log('commit', this.request.ast.definitions[0].name.value, this);
 
     // (Re-)build data of selectors
     this.graphData = buildGraphDataSet(this);
