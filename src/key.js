@@ -3,6 +3,10 @@ const getValue = (value) => {
     return null;
   }
 
+  if (Array.isArray(value)) {
+    return `[${value.map((item) => getValue(item) ?? 'null').join(',')}]`;
+  }
+
   if (typeof value === 'object') {
     // eslint-disable-next-line no-use-before-define
     return stringifyObject(value);
